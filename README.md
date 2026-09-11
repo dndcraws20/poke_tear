@@ -5,7 +5,9 @@ Single-file pack-opening game for the Mega Evolution — Pitch Black set.
 - **Sandbox** — free rips, every card shows its market value.
 - **Normal** — start with $60, packs cost $4.99, cards auto-sell at real TCGplayer market prices, buy upgrades, don't go broke.
 
-Live: https://preview.sasta.ai/pack-opener/
+**Play it:** https://dndcraws20.github.io/poke_tear/ (GitHub Pages, publishes from `main`)
+
+Mirror: https://preview.sasta.ai/pack-opener/
 
 ## Files
 
