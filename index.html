@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pokémon Pack Opener — Pitch Black</title>
+  <style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: radial-gradient(circle at top, #2b1050, #08050d 65%); color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; min-height: 100vh; }
+    .wrap { max-width: 1000px; margin: auto; padding: 14px 14px 60px; text-align: center; }
+    h1 { font-size: 30px; margin: 6px 0; }
+    h2 { font-size: 22px; margin: 6px 0; }
+    .sub { opacity: .78; margin: 6px 0; }
+    .screen { display: none; }
+    .screen.on { display: block; }
+    #home.on { min-height: 92vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .pack { width: min(260px, 64vw); border-radius: 14px; box-shadow: 0 20px 40px #000b; }
+    button, .btn { display: inline-block; border-radius: 14px; text-decoration: none; font-weight: 900; cursor: pointer; border: 0; font-family: inherit; font-size: 16px; padding: 14px 22px; margin: 6px 4px; color: #180b00; background: #ffe066; -webkit-tap-highlight-color: transparent; }
+    button:disabled { opacity: .35; cursor: not-allowed; }
+    .primary { padding: 18px 36px; background: linear-gradient(#ffe66b, #ff9800); font-size: 20px; box-shadow: 0 7px #985500; }
+    .primary:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 2px #985500; }
+    .ghost { background: #332744; color: #fff; }
+    .modes { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 18px; }
+    .mode { background: #151020; border: 1px solid #654d83; border-radius: 16px; padding: 14px 16px; width: 250px; text-align: left; color: #fff; }
+    .mode b { display: block; font-size: 18px; margin-bottom: 4px; }
+    .mode small { opacity: .75; line-height: 1.35; display: block; font-weight: 400; }
+    .mode:active { transform: scale(.98); }
+    .hud { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #120c1c; border: 1px solid #3d2a57; border-radius: 14px; padding: 10px 14px; margin-bottom: 10px; position: sticky; top: 8px; z-index: 5; box-shadow: 0 8px 20px #0009; text-align: left; }
+    .hud .bank { font-size: 24px; font-weight: 900; color: #8dffb0; }
+    .hud .bank.low { color: #ff6b6b; }
+    .hud small { opacity: .7; display: block; font-size: 11px; }
+    .hud .r { text-align: right; }
+    .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-width: 900px; margin: 16px auto; }
+    .card { position: relative; background: #151020; border: 1px solid #654d83; border-radius: 14px; padding: 8px; box-shadow: 0 12px 24px #0008; animation: pop .45s both; }
+    .card.r2 { border-color: #7fb8ff; }
+    .card.r3 { border-color: #ffd54a; box-shadow: 0 0 22px #ffb30088, 0 12px 24px #0008; }
+    .card.r4 { border-color: #ff5ce0; box-shadow: 0 0 30px #ff4fd0aa, 0 12px 24px #0008; animation: pop .6s both, glow 1.6s ease-in-out infinite alternate; }
+    .card img { width: 100%; display: block; border-radius: 9px; background: #222; aspect-ratio: 63/88; object-fit: contain; }
+    .name { font-weight: 900; font-size: 14px; margin-top: 7px; }
+    .rarity { font-size: 11px; opacity: .7; margin-top: 2px; }
+    .val { position: absolute; top: 12px; right: 12px; background: #05240fdd; color: #8dffb0; font-weight: 900; font-size: 13px; padding: 4px 8px; border-radius: 999px; border: 1px solid #22c55e; animation: pop .4s both; }
+    .val.big { background: #3a0b30dd; color: #ffb3f0; border-color: #ff5ce0; font-size: 15px; }
+    .val.rev { color: #c9b6ff; border-color: #a78bfa; background: #1d1040dd; }
+    .tag { position: absolute; top: 12px; left: 12px; font-size: 10px; font-weight: 900; padding: 3px 7px; border-radius: 999px; background: #a78bfa; color: #14092e; }
+    .summary { background: #151020; border: 1px solid #3d2a57; border-radius: 14px; padding: 10px 14px; margin: 8px auto; max-width: 520px; font-size: 15px; }
+    .summary .delta { font-size: 24px; font-weight: 900; }
+    .delta.up { color: #8dffb0; } .delta.down { color: #ff6b6b; }
+    .note { font-size: 12px; opacity: .6; margin-top: 12px; }
+    .actions { position: sticky; bottom: 0; padding: 10px 0 12px; background: linear-gradient(transparent, #08050d 40%); }
+    .overlay { position: fixed; inset: 0; background: #000a; display: none; align-items: flex-end; justify-content: center; z-index: 20; }
+    .overlay.on { display: flex; }
+    .sheet { background: #14101f; border: 1px solid #654d83; border-radius: 20px 20px 0 0; width: min(560px, 100%); max-height: 88vh; overflow: auto; padding: 16px 16px 26px; text-align: left; }
+    .up { display: flex; gap: 12px; align-items: center; background: #1c1529; border: 1px solid #3d2a57; border-radius: 14px; padding: 12px; margin: 10px 0; }
+    .up .ico { font-size: 30px; width: 40px; text-align: center; }
+    .up .body { flex: 1; }
+    .up b { display: block; font-size: 15px; }
+    .up small { opacity: .75; display: block; line-height: 1.35; margin-top: 2px; }
+    .up .tier { font-size: 11px; color: #ffd54a; margin-top: 4px; font-weight: 900; }
+    .up button { margin: 0; padding: 10px 14px; font-size: 14px; white-space: nowrap; }
+    .up.max button { background: #2a3d2e; color: #8dffb0; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 460px; margin: 14px auto; }
+    .stat { background: #151020; border: 1px solid #3d2a57; border-radius: 12px; padding: 10px; }
+    .stat b { display: block; font-size: 20px; }
+    .stat small { opacity: .7; font-size: 11px; }
+    .best { max-width: 220px; margin: 10px auto; }
+    @keyframes pop { from { opacity: 0; transform: scale(.7) translateY(25px); } to { opacity: 1; transform: none; } }
+    @keyframes glow { from { box-shadow: 0 0 18px #ff4fd088; } to { box-shadow: 0 0 44px #ff4fd0ee, 0 0 80px #ff9800aa; } }
+    @keyframes flash { 0% { background: #22c55e66; } 100% { background: #120c1c; } }
+    .flash { animation: flash .8s; }
+    @media (min-width: 700px) { .cards { grid-template-columns: repeat(5, 1fr); } .overlay { align-items: center; } .sheet { border-radius: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <section id="home" class="screen on">
+      <h1>🎴 Pokémon Pack Opener</h1>
+      <p class="sub">Mega Evolution — Pitch Black • ME05</p>
+      <img class="pack" src="pack.jpg" alt="Pitch Black booster pack">
+      <div class="modes">
+        <button class="mode" id="btnNormal"><b>💸 Normal</b><small>Start with <span id="startBank"></span>. Packs cost real money, cards sell at live market value. Buy upgrades, don't go broke.</small></button>
+        <button class="mode" id="btnSandbox"><b>🧪 Sandbox</b><small>Free rips forever. Still shows what every card is worth.</small></button>
+      </div>
+      <button class="ghost" id="btnContinue" hidden>▶ Continue run</button>
+      <p class="note">Prices: TCGplayer market (USD), updated <span id="priceDate"></span>.</p>
+    </section>
+
+    <section id="game" class="screen">
+      <div class="hud" id="hud">
+        <div><div class="bank" id="bank"></div><small id="hudSub"></small></div>
+        <div class="r"><button class="ghost" id="btnShop" style="margin:0;padding:10px 14px">🛒 Upgrades</button><small id="hudUp"></small></div>
+      </div>
+      <h2 id="title">🔥 PACK OPENED!</h2>
+      <div class="summary" id="summary"></div>
+      <div class="cards" id="cards"></div>
+      <div class="actions">
+        <button class="primary" id="btnOpen">OPEN PACK</button>
+        <button class="ghost" id="btnHome">HOME</button>
+      </div>
+    </section>
+
+    <section id="over" class="screen">
+      <h1>💀 BUSTED</h1>
+      <p class="sub">You can't afford another pack.</p>
+      <div class="stats" id="overStats"></div>
+      <div id="overBest"></div>
+      <button class="primary" id="btnRestart">NEW RUN</button>
+      <button class="ghost" id="btnOverHome">HOME</button>
+    </section>
+  </div>
+
+  <div class="overlay" id="shop">
+    <div class="sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🛒 Upgrades</h2><button class="ghost" id="btnShopClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub" style="font-size:13px">Bankroll: <b id="shopBank"></b></p>
+      <div id="shopList"></div>
+      <p class="note">Upgrades last for the whole run. Pick a strategy: chase the big hits, or farm bulk.</p>
+    </div>
+  </div>
+
+  <script>
+    // ME05 Pitch Black — 120 cards, TCGplayer market prices (p = normal, pr = reverse holo, ph = holofoil). Source: TCGdex.
+    const IMG = 'https://assets.tcgdex.net/en/me/me05/';
+    const SET = [{"id":"me05-001","n":"Tropius","r":"Common","img":"001","p":0.04,"pr":0.2,"ph":null},{"id":"me05-002","n":"Grubbin","r":"Common","img":"002","p":0.09,"pr":0.15,"ph":null},{"id":"me05-003","n":"Fomantis","r":"Common","img":"003","p":0.13,"pr":0.19,"ph":null},{"id":"me05-004","n":"Lurantis ex","r":"Double rare","img":"004","p":null,"pr":null,"ph":0.52},{"id":"me05-005","n":"Poltchageist","r":"Common","img":"005","p":0.15,"pr":0.21,"ph":null},{"id":"me05-006","n":"Sinistcha","r":"Uncommon","img":"006","p":0.15,"pr":0.24,"ph":null},{"id":"me05-007","n":"Heatran","r":"Uncommon","img":"007","p":0.09,"pr":0.18,"ph":null},{"id":"me05-008","n":"Mega Delphox ex","r":"Double rare","img":"008","p":null,"pr":null,"ph":0.62},{"id":"me05-009","n":"Sizzlipede","r":"Common","img":"009","p":0.07,"pr":0.16,"ph":null},{"id":"me05-010","n":"Centiskorch","r":"Common","img":"010","p":0.07,"pr":0.19,"ph":null},{"id":"me05-011","n":"Charcadet","r":"Common","img":"011","p":0.06,"pr":0.21,"ph":null},{"id":"me05-012","n":"Armarouge","r":"Rare","img":"012","p":null,"pr":0.2,"ph":0.16},{"id":"me05-013","n":"Goldeen","r":"Common","img":"013","p":0.08,"pr":0.15,"ph":null},{"id":"me05-014","n":"Seaking","r":"Uncommon","img":"014","p":0.08,"pr":0.18,"ph":null},{"id":"me05-015","n":"Wailmer","r":"Common","img":"015","p":0.19,"pr":0.21,"ph":null},{"id":"me05-016","n":"Wailord ex","r":"Double rare","img":"016","p":null,"pr":null,"ph":0.57},{"id":"me05-017","n":"Relicanth","r":"Uncommon","img":"017","p":0.05,"pr":0.13,"ph":null},{"id":"me05-018","n":"Popplio","r":"Common","img":"018","p":0.13,"pr":0.2,"ph":null},{"id":"me05-019","n":"Brionne","r":"Common","img":"019","p":0.1,"pr":0.21,"ph":null},{"id":"me05-020","n":"Primarina","r":"Rare","img":"020","p":null,"pr":0.28,"ph":0.21},{"id":"me05-021","n":"Finizen","r":"Common","img":"021","p":0.05,"pr":0.24,"ph":null},{"id":"me05-022","n":"Palafin","r":"Uncommon","img":"022","p":0.06,"pr":0.19,"ph":null},{"id":"me05-023","n":"Electrike","r":"Common","img":"023","p":0.07,"pr":0.14,"ph":null},{"id":"me05-024","n":"Manectric","r":"Uncommon","img":"024","p":0.05,"pr":0.18,"ph":null},{"id":"me05-025","n":"Charjabug","r":"Common","img":"025","p":0.04,"pr":0.15,"ph":null},{"id":"me05-026","n":"Vikavolt","r":"Uncommon","img":"026","p":0.15,"pr":0.2,"ph":null},{"id":"me05-027","n":"Mega Zeraora ex","r":"Double rare","img":"027","p":null,"pr":null,"ph":0.77},{"id":"me05-028","n":"Miraidon","r":"Rare","img":"028","p":null,"pr":0.26,"ph":0.21},{"id":"me05-029","n":"Slowpoke","r":"Common","img":"029","p":0.16,"pr":0.26,"ph":null},{"id":"me05-030","n":"Slowbro","r":"Uncommon","img":"030","p":0.17,"pr":0.24,"ph":null},{"id":"me05-031","n":"Mega Slowbro ex","r":"Double rare","img":"031","p":null,"pr":null,"ph":0.83},{"id":"me05-032","n":"Jynx","r":"Common","img":"032","p":0.12,"pr":0.18,"ph":null},{"id":"me05-033","n":"Shuppet","r":"Common","img":"033","p":0.1,"pr":0.39,"ph":null},{"id":"me05-034","n":"Banette","r":"Uncommon","img":"034","p":0.11,"pr":0.25,"ph":null},{"id":"me05-035","n":"Spiritomb","r":"Rare","img":"035","p":null,"pr":0.29,"ph":0.18},{"id":"me05-036","n":"Litwick","r":"Common","img":"036","p":0.2,"pr":0.21,"ph":null},{"id":"me05-037","n":"Lampent","r":"Uncommon","img":"037","p":0.21,"pr":0.25,"ph":null},{"id":"me05-038","n":"Mega Chandelure ex","r":"Double rare","img":"038","p":null,"pr":null,"ph":0.73},{"id":"me05-039","n":"Dhelmise","r":"Uncommon","img":"039","p":0.14,"pr":0.23,"ph":null},{"id":"me05-040","n":"Marshadow","r":"Uncommon","img":"040","p":0.08,"pr":0.19,"ph":null},{"id":"me05-041","n":"Annihilape","r":"Uncommon","img":"041","p":0.14,"pr":0.21,"ph":null},{"id":"me05-042","n":"Mankey","r":"Common","img":"042","p":0.14,"pr":0.19,"ph":null},{"id":"me05-043","n":"Primeape","r":"Common","img":"043","p":0.05,"pr":0.17,"ph":null},{"id":"me05-044","n":"Cranidos","r":"Common","img":"044","p":0.12,"pr":0.2,"ph":null},{"id":"me05-045","n":"Rampardos ex","r":"Double rare","img":"045","p":null,"pr":null,"ph":0.83},{"id":"me05-046","n":"Drilbur","r":"Common","img":"046","p":0.14,"pr":0.22,"ph":null},{"id":"me05-047","n":"Koraidon","r":"Rare","img":"047","p":null,"pr":0.24,"ph":0.17},{"id":"me05-048","n":"Mega Darkrai ex","r":"Double rare","img":"048","p":null,"pr":null,"ph":0.88},{"id":"me05-049","n":"Vullaby","r":"Common","img":"049","p":0.08,"pr":0.19,"ph":null},{"id":"me05-050","n":"Mandibuzz","r":"Common","img":"050","p":0.11,"pr":0.28,"ph":null},{"id":"me05-051","n":"Inkay","r":"Common","img":"051","p":0.07,"pr":0.22,"ph":null},{"id":"me05-052","n":"Malamar","r":"Uncommon","img":"052","p":0.05,"pr":0.25,"ph":null},{"id":"me05-053","n":"Nickit","r":"Common","img":"053","p":0.15,"pr":0.23,"ph":null},{"id":"me05-054","n":"Thievul","r":"Uncommon","img":"054","p":0.11,"pr":0.25,"ph":null},{"id":"me05-055","n":"Morpeko ex","r":"Double rare","img":"055","p":null,"pr":null,"ph":0.61},{"id":"me05-056","n":"Zarude","r":"Rare","img":"056","p":null,"pr":0.25,"ph":0.2},{"id":"me05-057","n":"Maschiff","r":"Common","img":"057","p":0.05,"pr":0.22,"ph":null},{"id":"me05-058","n":"Mabosstiff","r":"Common","img":"058","p":0.06,"pr":0.25,"ph":null},{"id":"me05-059","n":"Chi-Yu","r":"Rare","img":"059","p":null,"pr":0.22,"ph":0.15},{"id":"me05-060","n":"Skarmory","r":"Common","img":"060","p":0.03,"pr":0.19,"ph":null},{"id":"me05-061","n":"Shieldon","r":"Common","img":"061","p":0.13,"pr":0.21,"ph":null},{"id":"me05-062","n":"Bastiodon","r":"Rare","img":"062","p":null,"pr":0.6,"ph":0.23},{"id":"me05-063","n":"Bronzor","r":"Common","img":"063","p":0.06,"pr":0.19,"ph":null},{"id":"me05-064","n":"Bronzong","r":"Uncommon","img":"064","p":0.04,"pr":0.2,"ph":null},{"id":"me05-065","n":"Mega Excadrill ex","r":"Double rare","img":"065","p":null,"pr":null,"ph":0.87},{"id":"me05-066","n":"Pikipek","r":"Common","img":"066","p":0.13,"pr":0.18,"ph":null},{"id":"me05-067","n":"Trumbeak","r":"Common","img":"067","p":0.13,"pr":0.19,"ph":null},{"id":"me05-068","n":"Toucannon","r":"Uncommon","img":"068","p":0.14,"pr":0.16,"ph":null},{"id":"me05-069","n":"Type: Null","r":"Common","img":"069","p":0.18,"pr":0.23,"ph":null},{"id":"me05-070","n":"Silvally","r":"Rare","img":"070","p":null,"pr":0.23,"ph":0.24},{"id":"me05-071","n":"Bombirdier","r":"Common","img":"071","p":0.04,"pr":0.16,"ph":null},{"id":"me05-072","n":"Antique Armor Fossil","r":"Common","img":"072","p":0.15,"pr":0.22,"ph":null},{"id":"me05-073","n":"Antique Skull Fossil","r":"Common","img":"073","p":0.13,"pr":0.2,"ph":null},{"id":"me05-074","n":"Backtrack Badge","r":"Uncommon","img":"074","p":0.12,"pr":0.21,"ph":null},{"id":"me05-075","n":"Dark Bell","r":"Uncommon","img":"075","p":0.15,"pr":0.18,"ph":null},{"id":"me05-076","n":"Fossil Quarry","r":"Uncommon","img":"076","p":0.19,"pr":0.19,"ph":null},{"id":"me05-077","n":"Gladion's Final Battle","r":"Uncommon","img":"077","p":0.1,"pr":0.19,"ph":null},{"id":"me05-078","n":"Gwynn","r":"Uncommon","img":"078","p":0.17,"pr":0.4,"ph":null},{"id":"me05-079","n":"Jett","r":"Uncommon","img":"079","p":0.06,"pr":0.15,"ph":null},{"id":"me05-080","n":"Misty's Vitality","r":"Uncommon","img":"080","p":0.18,"pr":0.21,"ph":null},{"id":"me05-081","n":"Rust Syndicate Grunt","r":"Uncommon","img":"081","p":0.05,"pr":0.21,"ph":null},{"id":"me05-082","n":"Tremendous Bomb","r":"Uncommon","img":"082","p":0.09,"pr":0.21,"ph":null},{"id":"me05-083","n":"Shadowy Darkness Energy","r":"Rare","img":"083","p":null,"pr":0.2,"ph":0.17},{"id":"me05-084","n":"Voltaic Lightning Energy","r":"Rare","img":"084","p":null,"pr":0.33,"ph":0.2},{"id":"me05-085","n":"Fomantis","r":"Illustration rare","img":"085","p":null,"pr":null,"ph":2.67},{"id":"me05-086","n":"Armarouge","r":"Illustration rare","img":"086","p":null,"pr":null,"ph":3.28},{"id":"me05-087","n":"Goldeen","r":"Illustration rare","img":"087","p":null,"pr":null,"ph":6.86},{"id":"me05-088","n":"Primarina","r":"Illustration rare","img":"088","p":null,"pr":null,"ph":3.4},{"id":"me05-089","n":"Manectric","r":"Illustration rare","img":"089","p":null,"pr":null,"ph":2.15},{"id":"me05-090","n":"Slowbro","r":"Illustration rare","img":"090","p":null,"pr":null,"ph":8.42},{"id":"me05-091","n":"Dhelmise","r":"Illustration rare","img":"091","p":null,"pr":null,"ph":2.56},{"id":"me05-092","n":"Thievul","r":"Illustration rare","img":"092","p":null,"pr":null,"ph":1.58},{"id":"me05-093","n":"Bastiodon","r":"Illustration rare","img":"093","p":null,"pr":null,"ph":1.85},{"id":"me05-094","n":"Toucannon","r":"Illustration rare","img":"094","p":null,"pr":null,"ph":2.59},{"id":"me05-095","n":"Silvally","r":"Illustration rare","img":"095","p":null,"pr":null,"ph":2.12},{"id":"me05-096","n":"Lurantis ex","r":"Ultra Rare","img":"096","p":null,"pr":null,"ph":2.63},{"id":"me05-097","n":"Wailord ex","r":"Ultra Rare","img":"097","p":null,"pr":null,"ph":4.55},{"id":"me05-098","n":"Mega Zeraora ex","r":"Ultra Rare","img":"098","p":null,"pr":null,"ph":6.49},{"id":"me05-099","n":"Mega Chandelure ex","r":"Ultra Rare","img":"099","p":null,"pr":null,"ph":7.95},{"id":"me05-100","n":"Rampardos ex","r":"Ultra Rare","img":"100","p":null,"pr":null,"ph":3.69},{"id":"me05-101","n":"Mega Darkrai ex","r":"Ultra Rare","img":"101","p":null,"pr":null,"ph":9.74},{"id":"me05-102","n":"Morpeko ex","r":"Ultra Rare","img":"102","p":null,"pr":null,"ph":5.45},{"id":"me05-103","n":"Mega Excadrill ex","r":"Ultra Rare","img":"103","p":null,"pr":null,"ph":7.06},{"id":"me05-104","n":"Brave Bangle","r":"Ultra Rare","img":"104","p":null,"pr":null,"ph":3.81},{"id":"me05-105","n":"Crushing Hammer","r":"Ultra Rare","img":"105","p":null,"pr":null,"ph":5.51},{"id":"me05-106","n":"Dark Bell","r":"Ultra Rare","img":"106","p":null,"pr":null,"ph":2.42},{"id":"me05-107","n":"Energy Switch","r":"Ultra Rare","img":"107","p":null,"pr":null,"ph":2.45},{"id":"me05-108","n":"Gladion's Final Battle","r":"Ultra Rare","img":"108","p":null,"pr":null,"ph":3.47},{"id":"me05-109","n":"Gwynn","r":"Ultra Rare","img":"109","p":null,"pr":null,"ph":8.29},{"id":"me05-110","n":"Iron Defender","r":"Ultra Rare","img":"110","p":null,"pr":null,"ph":1.09},{"id":"me05-111","n":"Misty's Vitality","r":"Ultra Rare","img":"111","p":null,"pr":null,"ph":14.15},{"id":"me05-112","n":"Rust Syndicate Grunt","r":"Ultra Rare","img":"112","p":null,"pr":null,"ph":2.21},{"id":"me05-113","n":"Tremendous Bomb","r":"Ultra Rare","img":"113","p":null,"pr":null,"ph":1.56},{"id":"me05-114","n":"Mega Zeraora ex","r":"Special illustration rare","img":"114","p":null,"pr":null,"ph":56.42},{"id":"me05-115","n":"Mega Chandelure ex","r":"Special illustration rare","img":"115","p":null,"pr":null,"ph":41.46},{"id":"me05-116","n":"Mega Darkrai ex","r":"Special illustration rare","img":"116","p":null,"pr":null,"ph":195.02},{"id":"me05-117","n":"Morpeko ex","r":"Special illustration rare","img":"117","p":null,"pr":null,"ph":83.17},{"id":"me05-118","n":"Gladion's Final Battle","r":"Special illustration rare","img":"118","p":null,"pr":null,"ph":28.35},{"id":"me05-119","n":"Gwynn","r":"Special illustration rare","img":"119","p":null,"pr":null,"ph":31.08},{"id":"me05-120","n":"Mega Darkrai ex","r":"Mega Hyper Rare","img":"120","p":null,"pr":null,"ph":156.89}];
+    const PRICE_DATE = '2026-09-10';
+
+    const START_BANK = 60;
+    const PACK_COST = 4.99;
+    const SAVE_KEY = 'pbl-run-v1';
+
+    // rank: 0 common · 1 uncommon · 2 rare/double rare · 3 ultra/illustration · 4 special illustration/hyper
+    const RANK = r => { r = r.toLowerCase(); if (r === 'common') return 0; if (r === 'uncommon') return 1; if (r.includes('special') || r.includes('hyper')) return 4; if (r.includes('ultra') || r.includes('illustration')) return 3; return 2; };
+    const BY = {}; SET.forEach(c => (BY[c.r] = BY[c.r] || []).push(c));
+
+    // Hit-slot base weights (roughly real pull rates). Luck multiplies the chase tiers.
+    const HIT_W = { 'Rare': 55, 'Double rare': 22, 'Illustration rare': 10, 'Ultra Rare': 5, 'Special illustration rare': 2, 'Mega Hyper Rare': 0.4 };
+    const CHASE = new Set(['Illustration rare', 'Ultra Rare', 'Special illustration rare', 'Mega Hyper Rare']);
+
+    const UPGRADES = [
+      { k: 'luck',  ico: '🍀', name: 'Lucky Charm', desc: 'Boosts the odds of the hit slot being an Illustration / Ultra / Special / Hyper rare.', tiers: [15, 40, 100], fx: ['1.6×', '2.6×', '4.5×'], mult: [1, 1.6, 2.6, 4.5] },
+      { k: 'bulk',  ico: '📦', name: 'Bulk Baron', desc: 'Commons, uncommons, rares and double rares sell for a multiple of market price.', tiers: [12, 30, 75], fx: ['2×', '3×', '5×'], mult: [1, 2, 3, 5] },
+      { k: 'rev',   ico: '✨', name: 'Reverse Radar', desc: 'Every pack gets a third reverse-holo slot (11 cards per pack).', tiers: [20], fx: ['+1 slot'], mult: [0, 1] },
+      { k: 'whole', ico: '🏷️', name: 'Wholesale', desc: 'Packs cost less.', tiers: [25, 60], fx: ['-10%', '-20%'], mult: [1, 0.9, 0.8] },
+    ];
+
+    let S = null; // run state
+    const $ = id => document.getElementById(id);
+    const money = v => (v < 0 ? '-' : '') + '$' + Math.abs(v).toFixed(2);
+    const rand = a => a[Math.floor(Math.random() * a.length)];
+
+    function newState(mode) {
+      return { mode, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0 }, last: null };
+    }
+    function save() { try { if (S && S.mode === 'normal') localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+    function load() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
+    function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+
+    const packCost = () => S.mode === 'normal' ? +(PACK_COST * UPGRADES[3].mult[S.up.whole]).toFixed(2) : 0;
+    const bulkMult = () => UPGRADES[1].mult[S.up.bulk];
+    const luckMult = () => UPGRADES[0].mult[S.up.luck];
+
+    function rollHitRarity() {
+      const entries = Object.entries(HIT_W).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() : w]);
+      const total = entries.reduce((a, e) => a + e[1], 0);
+      let x = Math.random() * total;
+      for (const [r, w] of entries) { x -= w; if (x <= 0) return r; }
+      return 'Rare';
+    }
+    function cardValue(c, slot) {
+      const rk = RANK(c.r);
+      let v = slot === 'rev' ? (c.pr || c.p || c.ph || 0) : rk >= 2 ? (c.ph || c.p || c.pr || 0) : (c.p || c.pr || c.ph || 0);
+      if (!CHASE.has(c.r)) v *= bulkMult();
+      return +v.toFixed(2);
+    }
+
+    function pullPack() {
+      const used = new Set();
+      const take = (pool, slot) => { let c, n = 0; do { c = rand(pool); } while (used.has(c.id) && n++ < 50); used.add(c.id); return { c, slot, v: 0 }; };
+      const base = [...BY['Common'], ...BY['Uncommon'], ...BY['Rare']];
+      const pull = [];
+      for (let i = 0; i < 4; i++) pull.push(take(BY['Common'], 'base'));
+      for (let i = 0; i < 3; i++) pull.push(take(BY['Uncommon'], 'base'));
+      for (let i = 0; i < 2 + S.up.rev; i++) pull.push(take(base, 'rev'));
+      pull.push(take(BY[rollHitRarity()], 'hit'));
+      pull.forEach(p => p.v = cardValue(p.c, p.slot));
+      return pull;
+    }
+
+    function openPack() {
+      const cost = packCost();
+      if (S.mode === 'normal' && S.bank < cost) return bust();
+      const pull = pullPack();
+      const total = +pull.reduce((a, p) => a + p.v, 0).toFixed(2);
+      S.bank = +(S.bank - cost + total).toFixed(2);
+      S.packs++; S.spent = +(S.spent + cost).toFixed(2); S.earned = +(S.earned + total).toFixed(2);
+      S.peak = Math.max(S.peak, S.bank);
+      const hit = pull.reduce((a, p) => p.v > a.v ? p : a, pull[0]);
+      if (!S.best || hit.v > S.best.v) S.best = { n: hit.c.n, r: hit.c.r, v: hit.v, img: hit.c.img };
+      S.last = { pull, cost, total };
+      save();
+      render(pull, cost, total);
+    }
+
+    function render(pull, cost, total) {
+      const cardsEl = $('cards'); cardsEl.innerHTML = '';
+      pull.forEach((p, i) => {
+        const c = p.c, rk = RANK(c.r);
+        const d = document.createElement('div');
+        d.className = 'card r' + rk;
+        d.style.animationDelay = (i * 0.14) + 's';
+        const big = p.v >= 5;
+        d.innerHTML = `${p.slot === 'rev' ? '<span class="tag">REVERSE</span>' : ''}
+          <span class="val ${big ? 'big' : p.slot === 'rev' ? 'rev' : ''}" style="animation-delay:${i * 0.14 + 0.3}s">${money(p.v)}</span>
+          <img src="${IMG + c.img}/high.webp" alt="${c.n}" loading="lazy">
+          <div class="name">${c.n}</div>
+          <div class="rarity">${c.r} • #${c.id.split('-')[1]}/084</div>`;
+        cardsEl.appendChild(d);
+      });
+      const delta = +(total - cost).toFixed(2);
+      const hit = pull[pull.length - 1];
+      $('summary').innerHTML = S.mode === 'normal'
+        ? `Pack ${money(cost)} → cards sold ${money(total)} <div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${money(delta)}</div><small style="opacity:.7">hit: ${hit.c.n} (${hit.c.r})</small>`
+        : `Pack value ${money(total)} <small style="opacity:.7;display:block">hit: ${hit.c.n} (${hit.c.r})</small>`;
+      $('title').textContent = delta >= 20 ? '💎 BIG HIT!' : '🔥 PACK OPENED!';
+      $('hud').classList.remove('flash'); void $('hud').offsetWidth; $('hud').classList.add('flash');
+      hud();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function hud() {
+      const normal = S.mode === 'normal';
+      $('bank').textContent = normal ? money(S.bank) : 'SANDBOX';
+      $('bank').classList.toggle('low', normal && S.bank < packCost() * 2);
+      $('hudSub').textContent = normal ? `${S.packs} packs • spent ${money(S.spent)} • pulled ${money(S.earned)}` : `${S.packs} packs • pulled ${money(S.earned)}`;
+      const ups = UPGRADES.filter(u => S.up[u.k]).map(u => u.ico + (u.tiers.length > 1 ? S.up[u.k] : '')).join(' ');
+      $('hudUp').textContent = ups || 'no upgrades';
+      $('btnShop').hidden = !normal;
+      $('btnOpen').textContent = normal ? `BUY & OPEN • ${money(packCost())}` : 'OPEN PACK';
+      $('btnOpen').disabled = normal && S.bank < packCost();
+      if (normal && S.bank < packCost()) setTimeout(bust, 1200);
+    }
+
+    function bust() {
+      show('over');
+      $('overStats').innerHTML = [
+        ['Packs opened', S.packs], ['Peak bankroll', money(S.peak)], ['Spent', money(S.spent)], ['Pulled', money(S.earned)],
+      ].map(([l, v]) => `<div class="stat"><b>${v}</b><small>${l}</small></div>`).join('');
+      $('overBest').innerHTML = S.best ? `<p class="sub">Best pull</p><div class="card r${RANK(S.best.r)} best"><span class="val big">${money(S.best.v)}</span><img src="${IMG + S.best.img}/high.webp" alt=""><div class="name">${S.best.n}</div><div class="rarity">${S.best.r}</div></div>` : '';
+      clearSave();
+    }
+
+    function shop() {
+      $('shopBank').textContent = money(S.bank);
+      $('shopList').innerHTML = UPGRADES.map(u => {
+        const t = S.up[u.k], max = t >= u.tiers.length, cost = max ? 0 : u.tiers[t];
+        return `<div class="up ${max ? 'max' : ''}"><div class="ico">${u.ico}</div><div class="body"><b>${u.name} ${u.tiers.length > 1 ? `<span style="opacity:.6;font-weight:400">tier ${t}/${u.tiers.length}</span>` : ''}</b><small>${u.desc}</small><div class="tier">${max ? 'MAXED: ' + u.fx[t - 1] : (t ? 'now ' + u.fx[t - 1] + ' → ' : '') + 'next ' + u.fx[t]}</div></div>
+          <button data-k="${u.k}" ${max || S.bank < cost ? 'disabled' : ''}>${max ? '✓' : money(cost)}</button></div>`;
+      }).join('');
+      $('shopList').querySelectorAll('button').forEach(b => b.onclick = () => buy(b.dataset.k));
+      $('shop').classList.add('on');
+    }
+    function buy(k) {
+      const u = UPGRADES.find(u => u.k === k), t = S.up[k];
+      if (t >= u.tiers.length || S.bank < u.tiers[t]) return;
+      S.bank = +(S.bank - u.tiers[t]).toFixed(2); S.up[k]++; save(); hud(); shop();
+    }
+
+    function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); window.scrollTo(0, 0); }
+    function start(mode, resume) {
+      S = resume || newState(mode);
+      show('game');
+      $('cards').innerHTML = '';
+      $('title').textContent = mode === 'normal' ? '💸 NORMAL MODE' : '🧪 SANDBOX';
+      $('summary').innerHTML = mode === 'normal' ? `You have <b>${money(S.bank)}</b>. Packs cost <b>${money(packCost())}</b>. Every card auto-sells at market value. Don't go broke.` : 'Free rips. Values shown for fun.';
+      hud();
+      if (S.last) render(S.last.pull, S.last.cost, S.last.total);
+    }
+    function home() { show('home'); $('btnContinue').hidden = !load(); }
+
+    $('startBank').textContent = money(START_BANK);
+    $('priceDate').textContent = PRICE_DATE;
+    $('btnNormal').onclick = () => { clearSave(); start('normal'); };
+    $('btnSandbox').onclick = () => start('sandbox');
+    $('btnContinue').onclick = () => { const s = load(); if (s) start('normal', s); };
+    $('btnOpen').onclick = openPack;
+    $('btnHome').onclick = home;
+    $('btnShop').onclick = shop;
+    $('btnShopClose').onclick = () => $('shop').classList.remove('on');
+    $('shop').onclick = e => { if (e.target === $('shop')) $('shop').classList.remove('on'); };
+    $('btnRestart').onclick = () => start('normal');
+    $('btnOverHome').onclick = home;
+    home();
+  </script>
+</body>
+</html>
