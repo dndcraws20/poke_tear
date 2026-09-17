@@ -184,6 +184,7 @@ html = r'''<!doctype html>
     const HARD_QUOTA_SECONDS = 30;
     const HARD_PACK_MULT = 1.25;
     const HARD_CHASE_MULT = 0.5;
+    const DOUBLE_HIT_CHANCE = .10;
     const SAVE_KEY = 'poke-tear-run-v2';
     const QUOTA_RECORD_KEY = 'poke-tear-quota-record-v1';
 
@@ -218,7 +219,7 @@ html = r'''<!doctype html>
       { k: 'whole', ico: '🏷️', name: 'Wholesale', desc: 'Packs cost less.', tiers: [25, 60], fx: ['-10%', '-20%'], mult: [1, 0.9, 0.8] },
       { k: 'mint',  ico: '🧤', name: 'Mint Condition Kit', desc: 'Careful handling raises every PSA result, up to PSA 10.', tiers: [35, 90], fx: ['+1 PSA grade', '+2 PSA grades'], mult: [0, 1, 2] },
       { k: 'shine', ico: '🌟', name: 'Holo Amplifier', desc: 'Reverse-holo and hit cards sell for more.', tiers: [30, 80], fx: ['1.25× value', '1.6× value'], mult: [1, 1.25, 1.6] },
-      { k: 'bonus', ico: '🎁', name: 'Bonus Hit', desc: 'Adds a chance for a second hit card in every pack.', tiers: [50, 140], fx: ['15% chance', '30% chance'], mult: [0, .15, .3] },
+      { k: 'bonus', ico: '🎁', name: 'Bonus Hit', desc: 'Adds to the natural 10% chance for a second hit card.', tiers: [50, 140], fx: ['25% total chance', '40% total chance'], mult: [0, .15, .3] },
     ];
 
     let S = null; // run state
@@ -367,7 +368,11 @@ html = r'''<!doctype html>
       for (let i = 0; i < 3; i++) pull.push(take(BY['Uncommon'], 'base'));
       for (let i = 0; i < 2 + S.up.rev; i++) pull.push(take(base, 'rev'));
       pull.push(take(BY[rollHitRarity()], 'hit'));
-      if (Math.random() < UPGRADES[6].mult[S.up.bonus]) pull.push(take(BY[rollHitRarity()], 'hit'));
+      if (Math.random() < DOUBLE_HIT_CHANCE + UPGRADES[6].mult[S.up.bonus]) pull.push(take(BY[rollHitRarity()], 'hit'));
+      for (let i = pull.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pull[i], pull[j]] = [pull[j], pull[i]];
+      }
       pull.forEach(p => p.v = cardValue(p.c, p.slot));
       return pull;
     }
@@ -409,7 +414,7 @@ html = r'''<!doctype html>
       });
       cardsEl.querySelectorAll('[data-grade]').forEach(b => b.onclick = () => gradeCard(+b.dataset.grade));
       const delta = +(total - cost).toFixed(2);
-      const hit = pull[pull.length - 1];
+      const hit = pull.reduce((best, p) => p.v > best.v ? p : best, pull[0]);
       $('summary').innerHTML = paidMode()
         ? `Pack ${money(cost)} → cards sold ${money(total)} <div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${money(delta)}</div><small style="opacity:.7">hit: ${hit.c.n} (${hit.c.r})</small>`
         : `Pack value ${money(total)} <small style="opacity:.7;display:block">hit: ${hit.c.n} (${hit.c.r})</small>`;
