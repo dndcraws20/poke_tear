@@ -117,6 +117,7 @@ html = r'''<!doctype html>
       <div class="cards" id="cards"></div>
       <div class="actions">
         <button class="primary" id="btnOpen">OPEN PACK</button>
+        <button class="ghost" id="btnSwitchSet">SWITCH SET</button>
         <button class="ghost" id="btnHome">HOME</button>
       </div>
     </section>
@@ -140,17 +141,24 @@ html = r'''<!doctype html>
     </div>
   </div>
 
+  <div class="overlay" id="setSwitch">
+    <div class="sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🎴 Switch set</h2><button class="ghost" id="btnSetClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub" style="font-size:13px">Your bankroll, upgrades, stats, and save stay the same.</p>
+      <div class="set-picker" id="gameSetPicker"></div>
+    </div>
+  </div>
+
   <script>
     // TCGplayer market prices: p = normal, pr = reverse holo, ph = holofoil. Source: TCGdex.
     const SET_DATA = __DATA__;
     const SET_META = {
-      me04: { name: 'Chaos Rising', code: 'ME04', official: 86, art: 'chaos-rising-pack.png' },
-      me05: { name: 'Pitch Black', code: 'ME05', official: 84, art: 'pack.jpg' },
+      me04: { name: 'Chaos Rising', code: 'ME04', official: 86, art: 'chaos-rising-pack.png', price: 9.99, valueMult: 1.2 },
+      me05: { name: 'Pitch Black', code: 'ME05', official: 84, art: 'pack.jpg', price: 4.99, valueMult: 1 },
     };
     const PRICE_DATE = '__DATE__';
 
     const START_BANK = 60;
-    const PACK_COST = 4.99;
     const SAVE_KEY = 'poke-tear-run-v2';
 
     // More cards lose value than gain it: 55% below PSA 5, 12% PSA 5, 33% above PSA 5.
@@ -200,6 +208,19 @@ html = r'''<!doctype html>
       $('packArt').src = meta().art; $('packArt').alt = `${meta().name} pack`;
     }
 
+    function switchSet(id) {
+      if (!S || !SET_DATA[id]) return;
+      activateSet(id);
+      S.set = selectedSet;
+      S.last = null;
+      save();
+      $('cards').innerHTML = '';
+      $('title').textContent = `🎴 ${meta().name}`;
+      $('summary').innerHTML = `Now opening <b>${meta().name}</b>. Your bankroll, upgrades, and stats are unchanged.`;
+      $('setSwitch').classList.remove('on');
+      hud();
+    }
+
     function newState(mode) {
       return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0 }, last: null };
     }
@@ -207,7 +228,8 @@ html = r'''<!doctype html>
     function load() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
     function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 
-    const packCost = () => S.mode === 'normal' ? +(PACK_COST * UPGRADES[3].mult[S.up.whole]).toFixed(2) : 0;
+    const packCost = () => S.mode === 'normal' ? +(meta().price * UPGRADES[3].mult[S.up.whole]).toFixed(2) : 0;
+    const minPackCost = () => Math.min(...Object.values(SET_META).map(s => +(s.price * UPGRADES[3].mult[S.up.whole]).toFixed(2)));
     const bulkMult = () => UPGRADES[1].mult[S.up.bulk];
     const luckMult = () => UPGRADES[0].mult[S.up.luck];
 
@@ -221,6 +243,7 @@ html = r'''<!doctype html>
     function cardValue(c, slot) {
       const rk = RANK(c.r);
       let v = slot === 'rev' ? (c.pr || c.p || c.ph || 0) : rk >= 2 ? (c.ph || c.p || c.pr || 0) : (c.p || c.pr || c.ph || 0);
+      v *= meta().valueMult;
       if (!CHASE.has(c.r)) v *= bulkMult();
       return +v.toFixed(2);
     }
@@ -261,7 +284,7 @@ html = r'''<!doctype html>
 
     function openPack() {
       const cost = packCost();
-      if (S.mode === 'normal' && S.bank < cost) return bust();
+      if (S.mode === 'normal' && S.bank < cost) return;
       const pull = pullPack();
       const total = +pull.reduce((a, p) => a + p.v, 0).toFixed(2);
       S.bank = +(S.bank - cost + total).toFixed(2);
@@ -314,7 +337,7 @@ html = r'''<!doctype html>
       $('btnShop').hidden = !normal;
       $('btnOpen').textContent = normal ? `BUY & OPEN • ${money(packCost())}` : 'OPEN PACK';
       $('btnOpen').disabled = normal && S.bank < packCost();
-      if (normal && S.bank < packCost()) setTimeout(bust, 1200);
+      if (normal && S.bank < minPackCost()) setTimeout(bust, 1200);
     }
 
     function bust() {
@@ -355,8 +378,12 @@ html = r'''<!doctype html>
     }
     function home() { show('home'); $('btnContinue').hidden = !load(); }
 
-    $('setPicker').innerHTML = Object.entries(SET_META).map(([id, s]) => `<button class="set-choice" data-set="${id}"><img src="${s.art}" alt=""><b>${s.name}</b><small>${s.code} • ${SET_DATA[id].length} cards</small></button>`).join('');
+    const setButtons = target => {
+      $(target).innerHTML = Object.entries(SET_META).map(([id, s]) => `<button class="set-choice" data-set="${id}"><img src="${s.art}" alt=""><b>${s.name}</b><small>${s.code} • ${money(s.price)} • ${SET_DATA[id].length} cards</small></button>`).join('');
+    };
+    setButtons('setPicker'); setButtons('gameSetPicker');
     $('setPicker').querySelectorAll('button').forEach(b => b.onclick = () => activateSet(b.dataset.set));
+    $('gameSetPicker').querySelectorAll('button').forEach(b => b.onclick = () => switchSet(b.dataset.set));
     activateSet(selectedSet);
     $('startBank').textContent = money(START_BANK);
     $('priceDate').textContent = PRICE_DATE;
@@ -364,6 +391,9 @@ html = r'''<!doctype html>
     $('btnSandbox').onclick = () => start('sandbox');
     $('btnContinue').onclick = () => { const s = load(); if (s) start('normal', s); };
     $('btnOpen').onclick = openPack;
+    $('btnSwitchSet').onclick = () => $('setSwitch').classList.add('on');
+    $('btnSetClose').onclick = () => $('setSwitch').classList.remove('on');
+    $('setSwitch').onclick = e => { if (e.target === $('setSwitch')) $('setSwitch').classList.remove('on'); };
     $('btnHome').onclick = home;
     $('btnShop').onclick = shop;
     $('btnShopClose').onclick = () => $('shop').classList.remove('on');
