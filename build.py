@@ -1,19 +1,21 @@
 import json, os
 here = os.path.dirname(os.path.abspath(__file__))
-cards = json.load(open(os.path.join(here, "me05-cards.json"), encoding="utf-8"))
-pre = "https://assets.tcgdex.net/en/me/me05/"
-out = []
-for c in cards:
-    img = c["img"][len(pre):] if c["img"].startswith(pre) else c["img"]
-    out.append({"id": c["id"], "n": c["n"], "r": c["r"], "img": img, "p": c["p"], "pr": c["pr"], "ph": c["ph"]})
-data = json.dumps(out, separators=(",", ":"), ensure_ascii=False)
+sets = {}
+for set_id in ("me04", "me05"):
+    cards = json.load(open(os.path.join(here, f"{set_id}-cards.json"), encoding="utf-8"))
+    pre = f"https://assets.tcgdex.net/en/me/{set_id}/"
+    sets[set_id] = [
+        {"id": c["id"], "n": c["n"], "r": c["r"], "img": c["img"][len(pre):] if c["img"].startswith(pre) else c["img"], "p": c["p"], "pr": c["pr"], "ph": c["ph"]}
+        for c in cards
+    ]
+data = json.dumps(sets, separators=(",", ":"), ensure_ascii=False)
 
 html = r'''<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Pokémon Pack Opener — Pitch Black</title>
+  <title>Pokémon Pack Opener</title>
   <style>
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
@@ -26,6 +28,11 @@ html = r'''<!doctype html>
     .screen.on { display: block; }
     #home.on { min-height: 92vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     .pack { width: min(260px, 64vw); border-radius: 14px; box-shadow: 0 20px 40px #000b; }
+    .set-picker { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 14px 0 2px; }
+    .set-choice { width: 190px; min-height: 92px; padding: 10px; background: #151020; color: #fff; border: 2px solid #3d2a57; }
+    .set-choice.on { border-color: #ffe066; box-shadow: 0 0 18px #ffb30055; }
+    .set-choice img { width: 100%; height: 45px; object-fit: contain; display: block; margin-bottom: 5px; }
+    .set-choice small { display: block; opacity: .72; }
     button, .btn { display: inline-block; border-radius: 14px; text-decoration: none; font-weight: 900; cursor: pointer; border: 0; font-family: inherit; font-size: 16px; padding: 14px 22px; margin: 6px 4px; color: #180b00; background: #ffe066; -webkit-tap-highlight-color: transparent; }
     button:disabled { opacity: .35; cursor: not-allowed; }
     .primary { padding: 18px 36px; background: linear-gradient(#ffe66b, #ff9800); font-size: 20px; box-shadow: 0 7px #985500; }
@@ -86,8 +93,9 @@ html = r'''<!doctype html>
 
     <section id="home" class="screen on">
       <h1>🎴 Pokémon Pack Opener</h1>
-      <p class="sub">Mega Evolution — Pitch Black • ME05</p>
-      <img class="pack" src="pack.jpg" alt="Pitch Black booster pack">
+      <p class="sub" id="setTitle"></p>
+      <img class="pack" id="packArt" src="pack.jpg" alt="Selected Pokémon set">
+      <div class="set-picker" id="setPicker"></div>
       <div class="modes">
         <button class="mode" id="btnNormal"><b>💸 Normal</b><small>Start with <span id="startBank"></span>. Packs cost real money, cards sell at live market value. Buy upgrades, don't go broke.</small></button>
         <button class="mode" id="btnSandbox"><b>🧪 Sandbox</b><small>Free rips forever. Still shows what every card is worth.</small></button>
@@ -130,18 +138,23 @@ html = r'''<!doctype html>
   </div>
 
   <script>
-    // ME05 Pitch Black — 120 cards, TCGplayer market prices (p = normal, pr = reverse holo, ph = holofoil). Source: TCGdex.
-    const IMG = 'https://assets.tcgdex.net/en/me/me05/';
-    const SET = __DATA__;
+    // TCGplayer market prices: p = normal, pr = reverse holo, ph = holofoil. Source: TCGdex.
+    const SET_DATA = __DATA__;
+    const SET_META = {
+      me04: { name: 'Chaos Rising', code: 'ME04', official: 86, art: 'chaos-rising-pack.png' },
+      me05: { name: 'Pitch Black', code: 'ME05', official: 84, art: 'pack.jpg' },
+    };
     const PRICE_DATE = '__DATE__';
 
     const START_BANK = 60;
     const PACK_COST = 4.99;
-    const SAVE_KEY = 'pbl-run-v1';
+    const SAVE_KEY = 'poke-tear-run-v2';
 
     // rank: 0 common · 1 uncommon · 2 rare/double rare · 3 ultra/illustration · 4 special illustration/hyper
     const RANK = r => { r = r.toLowerCase(); if (r === 'common') return 0; if (r === 'uncommon') return 1; if (r.includes('special') || r.includes('hyper')) return 4; if (r.includes('ultra') || r.includes('illustration')) return 3; return 2; };
-    const BY = {}; SET.forEach(c => (BY[c.r] = BY[c.r] || []).push(c));
+    let selectedSet = 'me05';
+    let SET = [];
+    let BY = {};
 
     // Hit-slot base weights (roughly real pull rates). Luck multiplies the chase tiers.
     const HIT_W = { 'Rare': 55, 'Double rare': 22, 'Illustration rare': 10, 'Ultra Rare': 5, 'Special illustration rare': 2, 'Mega Hyper Rare': 0.4 };
@@ -159,8 +172,19 @@ html = r'''<!doctype html>
     const money = v => (v < 0 ? '-' : '') + '$' + Math.abs(v).toFixed(2);
     const rand = a => a[Math.floor(Math.random() * a.length)];
 
+    const meta = () => SET_META[selectedSet];
+    const cardUrl = c => `https://assets.tcgdex.net/en/me/${c.id.split('-')[0]}/${c.img}/high.webp`;
+    function activateSet(id) {
+      selectedSet = SET_DATA[id] ? id : 'me05';
+      SET = SET_DATA[selectedSet]; BY = {};
+      SET.forEach(c => (BY[c.r] = BY[c.r] || []).push(c));
+      document.querySelectorAll('.set-choice').forEach(b => b.classList.toggle('on', b.dataset.set === selectedSet));
+      $('setTitle').textContent = `Mega Evolution — ${meta().name} • ${meta().code}`;
+      $('packArt').src = meta().art; $('packArt').alt = `${meta().name} pack`;
+    }
+
     function newState(mode) {
-      return { mode, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0 }, last: null };
+      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0 }, last: null };
     }
     function save() { try { if (S && S.mode === 'normal') localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
     function load() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -206,7 +230,7 @@ html = r'''<!doctype html>
       S.packs++; S.spent = +(S.spent + cost).toFixed(2); S.earned = +(S.earned + total).toFixed(2);
       S.peak = Math.max(S.peak, S.bank);
       const hit = pull.reduce((a, p) => p.v > a.v ? p : a, pull[0]);
-      if (!S.best || hit.v > S.best.v) S.best = { n: hit.c.n, r: hit.c.r, v: hit.v, img: hit.c.img };
+      if (!S.best || hit.v > S.best.v) S.best = { id: hit.c.id, n: hit.c.n, r: hit.c.r, v: hit.v, img: hit.c.img };
       S.last = { pull, cost, total };
       save();
       render(pull, cost, total);
@@ -222,9 +246,9 @@ html = r'''<!doctype html>
         const big = p.v >= 5;
         d.innerHTML = `${p.slot === 'rev' ? '<span class="tag">REVERSE</span>' : ''}
           <span class="val ${big ? 'big' : p.slot === 'rev' ? 'rev' : ''}" style="animation-delay:${i * 0.14 + 0.3}s">${money(p.v)}</span>
-          <img src="${IMG + c.img}/high.webp" alt="${c.n}" loading="lazy">
+          <img src="${cardUrl(c)}" alt="${c.n}" loading="lazy">
           <div class="name">${c.n}</div>
-          <div class="rarity">${c.r} • #${c.id.split('-')[1]}/084</div>`;
+          <div class="rarity">${c.r} • #${c.id.split('-')[1]}/${meta().official}</div>`;
         cardsEl.appendChild(d);
       });
       const delta = +(total - cost).toFixed(2);
@@ -242,7 +266,7 @@ html = r'''<!doctype html>
       const normal = S.mode === 'normal';
       $('bank').textContent = normal ? money(S.bank) : 'SANDBOX';
       $('bank').classList.toggle('low', normal && S.bank < packCost() * 2);
-      $('hudSub').textContent = normal ? `${S.packs} packs • spent ${money(S.spent)} • pulled ${money(S.earned)}` : `${S.packs} packs • pulled ${money(S.earned)}`;
+      $('hudSub').textContent = `${meta().name} • ` + (normal ? `${S.packs} packs • spent ${money(S.spent)} • pulled ${money(S.earned)}` : `${S.packs} packs • pulled ${money(S.earned)}`);
       const ups = UPGRADES.filter(u => S.up[u.k]).map(u => u.ico + (u.tiers.length > 1 ? S.up[u.k] : '')).join(' ');
       $('hudUp').textContent = ups || 'no upgrades';
       $('btnShop').hidden = !normal;
@@ -256,7 +280,7 @@ html = r'''<!doctype html>
       $('overStats').innerHTML = [
         ['Packs opened', S.packs], ['Peak bankroll', money(S.peak)], ['Spent', money(S.spent)], ['Pulled', money(S.earned)],
       ].map(([l, v]) => `<div class="stat"><b>${v}</b><small>${l}</small></div>`).join('');
-      $('overBest').innerHTML = S.best ? `<p class="sub">Best pull</p><div class="card r${RANK(S.best.r)} best"><span class="val big">${money(S.best.v)}</span><img src="${IMG + S.best.img}/high.webp" alt=""><div class="name">${S.best.n}</div><div class="rarity">${S.best.r}</div></div>` : '';
+      $('overBest').innerHTML = S.best ? `<p class="sub">Best pull</p><div class="card r${RANK(S.best.r)} best"><span class="val big">${money(S.best.v)}</span><img src="${cardUrl(S.best)}" alt=""><div class="name">${S.best.n}</div><div class="rarity">${S.best.r}</div></div>` : '';
       clearSave();
     }
 
@@ -278,6 +302,7 @@ html = r'''<!doctype html>
 
     function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); window.scrollTo(0, 0); }
     function start(mode, resume) {
+      if (resume) activateSet(resume.set || 'me05');
       S = resume || newState(mode);
       show('game');
       $('cards').innerHTML = '';
@@ -288,6 +313,9 @@ html = r'''<!doctype html>
     }
     function home() { show('home'); $('btnContinue').hidden = !load(); }
 
+    $('setPicker').innerHTML = Object.entries(SET_META).map(([id, s]) => `<button class="set-choice" data-set="${id}"><img src="${s.art}" alt=""><b>${s.name}</b><small>${s.code} • ${SET_DATA[id].length} cards</small></button>`).join('');
+    $('setPicker').querySelectorAll('button').forEach(b => b.onclick = () => activateSet(b.dataset.set));
+    activateSet(selectedSet);
     $('startBank').textContent = money(START_BANK);
     $('priceDate').textContent = PRICE_DATE;
     $('btnNormal').onclick = () => { clearSave(); start('normal'); };
@@ -304,7 +332,7 @@ html = r'''<!doctype html>
   </script>
 </body>
 </html>
-'''.replace("__DATA__", data).replace("__DATE__", "2026-09-10")
+'''.replace("__DATA__", data).replace("__DATE__", "2026-09-16")
 out_path = os.path.join(here, "index.html")
 open(out_path, "w", encoding="utf-8").write(html)
 print(len(html))
