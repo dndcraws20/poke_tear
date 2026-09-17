@@ -5,7 +5,7 @@ Single-file pack-opening game with a set picker for Mega Evolution — Chaos Ris
 - **Sandbox** — free rips, every card shows its market value.
 - **Normal** — start with $60, packs cost $4.99, cards auto-sell at real TCGplayer market prices, buy upgrades, don't go broke.
 - **PSA grading** — optionally grade any pulled card once. Grades 1–4 lose value, PSA 5 keeps its value, and grades 6–10 increase it; PSA 10 has a 2% chance and pays 10×.
-- **Set switching** — swap between Pitch Black ($4.99), Chaos Rising ($9.99), Destined Rivals ($15.00), and Phantasmal Flames ($22.50) during the same run without losing your bankroll, upgrades, quota, or stats. Higher-tier sets receive stronger game-value boosts, up to 40% for Phantasmal Flames.
+- **Set switching** — swap between Pitch Black ($4.99), Chaos Rising ($9.99), Destined Rivals ($15.00), and Phantasmal Flames ($22.50) during the same run without losing your bankroll, upgrades, quota, or stats. Higher-tier sets receive stronger game-value boosts, up to 60% for Phantasmal Flames.
 - **Quota challenge** — Normal mode gives you 60 seconds to reach a $50 bankroll quota. Each cleared quota is 1.5× larger; packs and upgrades reduce your bankroll progress. Missing the deadline ends the run, and the game remembers your highest quota.
 
 **Play it:** https://dndcraws20.github.io/poke_tear/ (GitHub Pages, publishes from `main`)
