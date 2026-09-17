@@ -48,6 +48,9 @@
     .val.big { background: #3a0b30dd; color: #ffb3f0; border-color: #ff5ce0; font-size: 15px; }
     .val.rev { color: #c9b6ff; border-color: #a78bfa; background: #1d1040dd; }
     .tag { position: absolute; top: 12px; left: 12px; font-size: 10px; font-weight: 900; padding: 3px 7px; border-radius: 999px; background: #a78bfa; color: #14092e; }
+    .grade-btn { width: 100%; margin: 8px 0 0; padding: 8px 6px; border-radius: 9px; font-size: 12px; background: linear-gradient(#e8f2ff, #77aee8); color: #071b31; }
+    .grade-btn:disabled { opacity: 1; cursor: default; background: #25364a; color: #d6e9ff; }
+    .grade-result { margin-top: 6px; padding: 6px; border-radius: 8px; background: #0b2138; color: #bdddff; font-size: 11px; font-weight: 800; }
     .summary { background: #151020; border: 1px solid #3d2a57; border-radius: 14px; padding: 10px 14px; margin: 8px auto; max-width: 520px; font-size: 15px; }
     .summary .delta { font-size: 24px; font-weight: 900; }
     .delta.up { color: #8dffb0; } .delta.down { color: #ff6b6b; }
@@ -138,6 +141,20 @@
     const PACK_COST = 4.99;
     const SAVE_KEY = 'poke-tear-run-v2';
 
+    // More cards lose value than gain it: 55% below PSA 5, 12% PSA 5, 33% above PSA 5.
+    const GRADES = [
+      { grade: 10, chance: 2,  mult: 10 },
+      { grade: 9,  chance: 5,  mult: 7 },
+      { grade: 8,  chance: 7,  mult: 4 },
+      { grade: 7,  chance: 9,  mult: 2 },
+      { grade: 6,  chance: 10, mult: 1.25 },
+      { grade: 5,  chance: 12, mult: 1 },
+      { grade: 4,  chance: 14, mult: .75 },
+      { grade: 3,  chance: 15, mult: .5 },
+      { grade: 2,  chance: 14, mult: .25 },
+      { grade: 1,  chance: 12, mult: 0 },
+    ];
+
     // rank: 0 common · 1 uncommon · 2 rare/double rare · 3 ultra/illustration · 4 special illustration/hyper
     const RANK = r => { r = r.toLowerCase(); if (r === 'common') return 0; if (r === 'uncommon') return 1; if (r.includes('special') || r.includes('hyper')) return 4; if (r.includes('ultra') || r.includes('illustration')) return 3; return 2; };
     let selectedSet = 'me05';
@@ -196,6 +213,27 @@
       return +v.toFixed(2);
     }
 
+    function rollGrade() {
+      let x = Math.random() * 100;
+      for (const result of GRADES) { x -= result.chance; if (x < 0) return result; }
+      return GRADES[GRADES.length - 1];
+    }
+
+    function gradeCard(index) {
+      const p = S.last && S.last.pull[index];
+      if (!p || p.grade) return;
+      const result = rollGrade();
+      const value = result.grade === 1 ? .01 : +(p.v * result.mult).toFixed(2);
+      const delta = +(value - p.v).toFixed(2);
+      p.grade = { n: result.grade, mult: result.mult, value, delta };
+      S.last.total = +(S.last.total + delta).toFixed(2);
+      S.earned = +(S.earned + delta).toFixed(2);
+      if (S.mode === 'normal') S.bank = +(S.bank + delta).toFixed(2);
+      if (!S.best || value > S.best.v) S.best = { id: p.c.id, n: p.c.n, r: p.c.r, v: value, img: p.c.img };
+      save();
+      render(S.last.pull, S.last.cost, S.last.total);
+    }
+
     function pullPack() {
       const used = new Set();
       const take = (pool, slot) => { let c, n = 0; do { c = rand(pool); } while (used.has(c.id) && n++ < 50); used.add(c.id); return { c, slot, v: 0 }; };
@@ -231,14 +269,18 @@
         const d = document.createElement('div');
         d.className = 'card r' + rk;
         d.style.animationDelay = (i * 0.14) + 's';
-        const big = p.v >= 5;
-        d.innerHTML = `${p.slot === 'rev' ? '<span class="tag">REVERSE</span>' : ''}
-          <span class="val ${big ? 'big' : p.slot === 'rev' ? 'rev' : ''}" style="animation-delay:${i * 0.14 + 0.3}s">${money(p.v)}</span>
+        const shownValue = p.grade ? p.grade.value : p.v;
+        const big = shownValue >= 5;
+        const gradeText = p.grade ? `PSA ${p.grade.n} • ${money(p.v)} → ${money(p.grade.value)} (${p.grade.delta >= 0 ? '+' : ''}${money(p.grade.delta)})` : '';
+        d.innerHTML = `${p.grade ? `<span class="tag">PSA ${p.grade.n}</span>` : p.slot === 'rev' ? '<span class="tag">REVERSE</span>' : ''}
+          <span class="val ${big ? 'big' : p.slot === 'rev' ? 'rev' : ''}" style="animation-delay:${i * 0.14 + 0.3}s">${money(shownValue)}</span>
           <img src="${cardUrl(c)}" alt="${c.n}" loading="lazy">
           <div class="name">${c.n}</div>
-          <div class="rarity">${c.r} • #${c.id.split('-')[1]}/${meta().official}</div>`;
+          <div class="rarity">${c.r} • #${c.id.split('-')[1]}/${meta().official}</div>
+          ${p.grade ? `<div class="grade-result">${gradeText}</div>` : `<button class="grade-btn" data-grade="${i}">GRADE WITH PSA</button>`}`;
         cardsEl.appendChild(d);
       });
+      cardsEl.querySelectorAll('[data-grade]').forEach(b => b.onclick = () => gradeCard(+b.dataset.grade));
       const delta = +(total - cost).toFixed(2);
       const hit = pull[pull.length - 1];
       $('summary').innerHTML = S.mode === 'normal'
