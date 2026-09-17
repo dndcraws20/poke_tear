@@ -1,9 +1,10 @@
 import json, os
 here = os.path.dirname(os.path.abspath(__file__))
 sets = {}
-for set_id in ("me04", "me05"):
+for set_id in ("me04", "me05", "sv10"):
     cards = json.load(open(os.path.join(here, f"{set_id}-cards.json"), encoding="utf-8"))
-    pre = f"https://assets.tcgdex.net/en/me/{set_id}/"
+    series_id = "".join(ch for ch in set_id if ch.isalpha())
+    pre = f"https://assets.tcgdex.net/en/{series_id}/{set_id}/"
     sets[set_id] = [
         {"id": c["id"], "n": c["n"], "r": c["r"], "img": c["img"][len(pre):] if c["img"].startswith(pre) else c["img"], "p": c["p"], "pr": c["pr"], "ph": c["ph"]}
         for c in cards
@@ -165,8 +166,9 @@ html = r'''<!doctype html>
     // TCGplayer market prices: p = normal, pr = reverse holo, ph = holofoil. Source: TCGdex.
     const SET_DATA = __DATA__;
     const SET_META = {
-      me04: { name: 'Chaos Rising', code: 'ME04', official: 86, art: 'chaos-rising-pack.png', price: 9.99, valueMult: 1.2 },
-      me05: { name: 'Pitch Black', code: 'ME05', official: 84, art: 'pack.jpg', price: 4.99, valueMult: 1 },
+      me04: { name: 'Chaos Rising', series: 'Mega Evolution', code: 'ME04', official: 86, art: 'chaos-rising-pack.png', price: 9.99, valueMult: 1.2 },
+      me05: { name: 'Pitch Black', series: 'Mega Evolution', code: 'ME05', official: 84, art: 'pack.jpg', price: 4.99, valueMult: 1 },
+      sv10: { name: 'Destined Rivals', series: 'Scarlet & Violet', code: 'SV10', official: 182, art: 'destined-rivals-pack.jpg', price: 15, valueMult: 1.3 },
     };
     const PRICE_DATE = '__DATE__';
 
@@ -198,8 +200,8 @@ html = r'''<!doctype html>
     let BY = {};
 
     // Hit-slot base weights (roughly real pull rates). Luck multiplies the chase tiers.
-    const HIT_W = { 'Rare': 55, 'Double rare': 22, 'Illustration rare': 10, 'Ultra Rare': 5, 'Special illustration rare': 2, 'Mega Hyper Rare': 0.4 };
-    const CHASE = new Set(['Illustration rare', 'Ultra Rare', 'Special illustration rare', 'Mega Hyper Rare']);
+    const HIT_W = { 'Rare': 55, 'Double rare': 22, 'Illustration rare': 10, 'Ultra Rare': 5, 'Special illustration rare': 2, 'Mega Hyper Rare': 0.4, 'Hyper rare': 0.4 };
+    const CHASE = new Set(['Illustration rare', 'Ultra Rare', 'Special illustration rare', 'Mega Hyper Rare', 'Hyper rare']);
 
     const UPGRADES = [
       { k: 'luck',  ico: '🍀', name: 'Lucky Charm', desc: 'Boosts the odds of the hit slot being an Illustration / Ultra / Special / Hyper rare.', tiers: [15, 40, 100], fx: ['1.6×', '2.6×', '4.5×'], mult: [1, 1.6, 2.6, 4.5] },
@@ -215,13 +217,13 @@ html = r'''<!doctype html>
     const rand = a => a[Math.floor(Math.random() * a.length)];
 
     const meta = () => SET_META[selectedSet];
-    const cardUrl = c => `https://assets.tcgdex.net/en/me/${c.id.split('-')[0]}/${c.img}/high.webp`;
+    const cardUrl = c => { const id = c.id.split('-')[0], series = id.replace(/\d+$/, ''); return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
     function activateSet(id) {
       selectedSet = SET_DATA[id] ? id : 'me05';
       SET = SET_DATA[selectedSet]; BY = {};
       SET.forEach(c => (BY[c.r] = BY[c.r] || []).push(c));
       document.querySelectorAll('.set-choice').forEach(b => b.classList.toggle('on', b.dataset.set === selectedSet));
-      $('setTitle').textContent = `Mega Evolution — ${meta().name} • ${meta().code}`;
+      $('setTitle').textContent = `${meta().series} — ${meta().name} • ${meta().code}`;
       $('packArt').src = meta().art; $('packArt').alt = `${meta().name} pack`;
     }
 
@@ -300,7 +302,7 @@ html = r'''<!doctype html>
     const luckMult = () => UPGRADES[0].mult[S.up.luck];
 
     function rollHitRarity() {
-      const entries = Object.entries(HIT_W).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() : w]);
+      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() : w]);
       const total = entries.reduce((a, e) => a + e[1], 0);
       let x = Math.random() * total;
       for (const [r, w] of entries) { x -= w; if (x <= 0) return r; }
