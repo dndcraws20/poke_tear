@@ -207,6 +207,9 @@
       { k: 'mint',  ico: '🧤', name: 'Mint Condition Kit', desc: 'Careful handling raises every PSA result, up to PSA 10.', tiers: [35, 90], fx: ['+1 PSA grade', '+2 PSA grades'], mult: [0, 1, 2] },
       { k: 'shine', ico: '🌟', name: 'Holo Amplifier', desc: 'Reverse-holo and hit cards sell for more.', tiers: [30, 80], fx: ['1.25× value', '1.6× value'], mult: [1, 1.25, 1.6] },
       { k: 'bonus', ico: '🎁', name: 'Bonus Hit', desc: 'Adds to the natural 10% chance for a second hit card.', tiers: [50, 140], fx: ['25% total chance', '40% total chance'], mult: [0, .15, .3] },
+      { k: 'clock', ico: '⏱️', name: 'Time Bank', desc: 'Adds more time to every quota, including the current one.', tiers: [25, 70], fx: ['+5 seconds', '+10 seconds'], mult: [0, 5, 10] },
+      { k: 'cover', ico: '🛡️', name: 'PSA Insurance', desc: 'PSA 2–4 cards keep a minimum percentage of their ungraded value. PSA 1 is still worth one cent.', tiers: [30, 85], fx: ['50% minimum', '75% minimum'], mult: [0, .5, .75] },
+      { k: 'jackpot', ico: '💰', name: 'Big Hit Bonus', desc: 'Cards worth at least $20 receive an extra value multiplier.', tiers: [45, 120], fx: ['1.25× value', '1.5× value'], mult: [1, 1.25, 1.5] },
     ];
 
     let S = null; // run state
@@ -219,7 +222,7 @@
     const paidMode = () => S && (S.mode === 'normal' || S.mode === 'hard');
     const quotaStart = () => S.mode === 'hard' ? HARD_QUOTA_START : QUOTA_START;
     const quotaMult = () => S.mode === 'hard' ? HARD_QUOTA_MULT : QUOTA_MULT;
-    const quotaSeconds = () => S.mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS;
+    const quotaSeconds = () => (S.mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) + UPGRADES[7].mult[S.up.clock];
     const cardUrl = c => { const id = c.id.split('-')[0], series = (id.match(/^[a-z]+/) || [''])[0]; return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
     function activateSet(id) {
       selectedSet = SET_DATA[id] ? id : 'me05';
@@ -244,7 +247,7 @@
     }
 
     function newState(mode) {
-      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0 }, last: null,
+      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0 }, last: null,
         quota: mode === 'normal' || mode === 'hard' ? { number: 1, cleared: 0, target: mode === 'hard' ? HARD_QUOTA_START : QUOTA_START, endsAt: Date.now() + (mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) * 1000 } : null };
     }
     function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
@@ -317,6 +320,7 @@
       v *= meta().valueMult;
       if (!CHASE.has(c.r)) v *= bulkMult();
       if (slot === 'rev' || slot === 'hit') v *= UPGRADES[5].mult[S.up.shine];
+      if (v >= 20) v *= UPGRADES[9].mult[S.up.jackpot];
       return +v.toFixed(2);
     }
 
@@ -333,7 +337,8 @@
       const p = S.last && S.last.pull[index];
       if (!p || p.grade) return;
       const result = rollGrade();
-      const value = result.grade === 1 ? .01 : +(p.v * result.mult).toFixed(2);
+      let value = result.grade === 1 ? .01 : +(p.v * result.mult).toFixed(2);
+      if (result.grade >= 2 && result.grade <= 4) value = Math.max(value, +(p.v * UPGRADES[8].mult[S.up.cover]).toFixed(2));
       const delta = +(value - p.v).toFixed(2);
       p.grade = { n: result.grade, mult: result.mult, value, delta };
       S.last.total = +(S.last.total + delta).toFixed(2);
@@ -451,14 +456,16 @@
     function buy(k) {
       const u = UPGRADES.find(u => u.k === k), t = S.up[k];
       if (t >= u.tiers.length || S.bank < u.tiers[t]) return;
-      S.bank = +(S.bank - u.tiers[t]).toFixed(2); S.up[k]++; save(); hud(); shop();
+      S.bank = +(S.bank - u.tiers[t]).toFixed(2); S.up[k]++;
+      if (k === 'clock' && S.quota) S.quota.endsAt += 5000;
+      save(); hud(); shop();
     }
 
     function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); window.scrollTo(0, 0); }
     function start(mode, resume) {
       if (resume) activateSet(resume.set || 'me05');
       S = resume || newState(mode);
-      S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, ...(S.up || {}) };
+      S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, ...(S.up || {}) };
       ensureQuota();
       show('game');
       $('cards').innerHTML = '';
