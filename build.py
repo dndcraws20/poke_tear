@@ -109,6 +109,7 @@ html = r'''<!doctype html>
       <div class="set-picker" id="setPicker"></div>
       <div class="modes">
         <button class="mode" id="btnNormal"><b>💸 Normal</b><small>Start with <span id="startBank"></span>. Packs cost real money, cards sell at live market value. Buy upgrades, don't go broke.</small></button>
+        <button class="mode" id="btnHard"><b>🔥 Hard</b><small>30-second quotas, faster quota growth, packs cost 25% more, and valuable cards are harder to pull. Losing ends the run.</small></button>
         <button class="mode" id="btnSandbox"><b>🧪 Sandbox</b><small>Free rips forever. Still shows what every card is worth.</small></button>
       </div>
       <button class="ghost" id="btnContinue" hidden>▶ Continue run</button>
@@ -178,6 +179,11 @@ html = r'''<!doctype html>
     const QUOTA_START = 50;
     const QUOTA_MULT = 1.5;
     const QUOTA_SECONDS = 60;
+    const HARD_QUOTA_START = 75;
+    const HARD_QUOTA_MULT = 1.75;
+    const HARD_QUOTA_SECONDS = 30;
+    const HARD_PACK_MULT = 1.25;
+    const HARD_CHASE_MULT = 0.5;
     const SAVE_KEY = 'poke-tear-run-v2';
     const QUOTA_RECORD_KEY = 'poke-tear-quota-record-v1';
 
@@ -219,6 +225,10 @@ html = r'''<!doctype html>
     const rand = a => a[Math.floor(Math.random() * a.length)];
 
     const meta = () => SET_META[selectedSet];
+    const paidMode = () => S && (S.mode === 'normal' || S.mode === 'hard');
+    const quotaStart = () => S.mode === 'hard' ? HARD_QUOTA_START : QUOTA_START;
+    const quotaMult = () => S.mode === 'hard' ? HARD_QUOTA_MULT : QUOTA_MULT;
+    const quotaSeconds = () => S.mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS;
     const cardUrl = c => { const id = c.id.split('-')[0], series = (id.match(/^[a-z]+/) || [''])[0]; return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
     function activateSet(id) {
       selectedSet = SET_DATA[id] ? id : 'me05';
@@ -244,19 +254,19 @@ html = r'''<!doctype html>
 
     function newState(mode) {
       return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0 }, last: null,
-        quota: mode === 'normal' ? { number: 1, cleared: 0, target: QUOTA_START, endsAt: Date.now() + QUOTA_SECONDS * 1000 } : null };
+        quota: mode === 'normal' || mode === 'hard' ? { number: 1, cleared: 0, target: mode === 'hard' ? HARD_QUOTA_START : QUOTA_START, endsAt: Date.now() + (mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) * 1000 } : null };
     }
-    function save() { try { if (S && S.mode === 'normal') localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+    function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
     function load() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
     function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
     function quotaRecord() { try { return +(localStorage.getItem(QUOTA_RECORD_KEY) || 0); } catch (e) { return 0; } }
     function saveQuotaRecord(n) { try { localStorage.setItem(QUOTA_RECORD_KEY, String(Math.max(n, quotaRecord()))); } catch (e) {} }
 
     function ensureQuota() {
-      if (S.mode === 'normal' && !S.quota) S.quota = { number: 1, cleared: 0, target: QUOTA_START, endsAt: Date.now() + QUOTA_SECONDS * 1000 };
+      if (paidMode() && !S.quota) S.quota = { number: 1, cleared: 0, target: quotaStart(), endsAt: Date.now() + quotaSeconds() * 1000 };
     }
     function updateQuotaHud() {
-      const active = S && S.mode === 'normal' && S.quota;
+      const active = paidMode() && S.quota;
       $('quotaBox').hidden = !active;
       if (!active) return;
       const left = Math.max(0, S.quota.endsAt - Date.now());
@@ -270,22 +280,22 @@ html = r'''<!doctype html>
     function advanceQuota() {
       S.quota.cleared++;
       S.quota.number++;
-      S.quota.target = +(QUOTA_START * Math.pow(QUOTA_MULT, S.quota.number - 1)).toFixed(2);
-      S.quota.endsAt = Date.now() + QUOTA_SECONDS * 1000;
+      S.quota.target = +(quotaStart() * Math.pow(quotaMult(), S.quota.number - 1)).toFixed(2);
+      S.quota.endsAt = Date.now() + quotaSeconds() * 1000;
       saveQuotaRecord(S.quota.number);
       save(); updateQuotaHud();
     }
     function checkQuotaProgress() {
-      if (S.mode !== 'normal' || !S.quota || S.bank < S.quota.target) return false;
+      if (!paidMode() || !S.quota || S.bank < S.quota.target) return false;
       advanceQuota();
       return true;
     }
     function startQuotaTimer() {
       clearInterval(quotaTimer);
-      if (S.mode !== 'normal') { updateQuotaHud(); return; }
+      if (!paidMode()) { updateQuotaHud(); return; }
       ensureQuota(); saveQuotaRecord(S.quota.number); updateQuotaHud();
       quotaTimer = setInterval(() => {
-        if (!S || S.mode !== 'normal' || !S.quota) return;
+        if (!paidMode() || !S.quota) return;
         if (Date.now() >= S.quota.endsAt) {
           if (S.bank >= S.quota.target) {
             advanceQuota();
@@ -298,13 +308,13 @@ html = r'''<!doctype html>
       }, 250);
     }
 
-    const packCost = () => S.mode === 'normal' ? +(meta().price * UPGRADES[3].mult[S.up.whole]).toFixed(2) : 0;
+    const packCost = () => paidMode() ? +(meta().price * UPGRADES[3].mult[S.up.whole] * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2) : 0;
     const minPackCost = () => Math.min(...Object.values(SET_META).map(s => +(s.price * UPGRADES[3].mult[S.up.whole]).toFixed(2)));
     const bulkMult = () => UPGRADES[1].mult[S.up.bulk];
     const luckMult = () => UPGRADES[0].mult[S.up.luck];
 
     function rollHitRarity() {
-      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() : w]);
+      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
       const total = entries.reduce((a, e) => a + e[1], 0);
       let x = Math.random() * total;
       for (const [r, w] of entries) { x -= w; if (x <= 0) return r; }
@@ -333,7 +343,7 @@ html = r'''<!doctype html>
       p.grade = { n: result.grade, mult: result.mult, value, delta };
       S.last.total = +(S.last.total + delta).toFixed(2);
       S.earned = +(S.earned + delta).toFixed(2);
-      if (S.mode === 'normal') S.bank = +(S.bank + delta).toFixed(2);
+      if (paidMode()) S.bank = +(S.bank + delta).toFixed(2);
       if (!S.best || value > S.best.v) S.best = { id: p.c.id, n: p.c.n, r: p.c.r, v: value, img: p.c.img };
       const clearedQuota = checkQuotaProgress();
       save();
@@ -356,7 +366,7 @@ html = r'''<!doctype html>
 
     function openPack() {
       const cost = packCost();
-      if (S.mode === 'normal' && S.bank < cost) return;
+      if (paidMode() && S.bank < cost) return;
       const pull = pullPack();
       const total = +pull.reduce((a, p) => a + p.v, 0).toFixed(2);
       S.bank = +(S.bank - cost + total).toFixed(2);
@@ -392,7 +402,7 @@ html = r'''<!doctype html>
       cardsEl.querySelectorAll('[data-grade]').forEach(b => b.onclick = () => gradeCard(+b.dataset.grade));
       const delta = +(total - cost).toFixed(2);
       const hit = pull[pull.length - 1];
-      $('summary').innerHTML = S.mode === 'normal'
+      $('summary').innerHTML = paidMode()
         ? `Pack ${money(cost)} → cards sold ${money(total)} <div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${money(delta)}</div><small style="opacity:.7">hit: ${hit.c.n} (${hit.c.r})</small>`
         : `Pack value ${money(total)} <small style="opacity:.7;display:block">hit: ${hit.c.n} (${hit.c.r})</small>`;
       $('title').textContent = delta >= 20 ? '💎 BIG HIT!' : '🔥 PACK OPENED!';
@@ -402,17 +412,17 @@ html = r'''<!doctype html>
     }
 
     function hud() {
-      const normal = S.mode === 'normal';
-      $('bank').textContent = normal ? money(S.bank) : 'SANDBOX';
-      $('bank').classList.toggle('low', normal && S.bank < packCost() * 2);
-      $('hudSub').textContent = `${meta().name} • ` + (normal ? `${S.packs} packs • spent ${money(S.spent)} • pulled ${money(S.earned)}` : `${S.packs} packs • pulled ${money(S.earned)}`);
+      const paid = paidMode();
+      $('bank').textContent = paid ? money(S.bank) : 'SANDBOX';
+      $('bank').classList.toggle('low', paid && S.bank < packCost() * 2);
+      $('hudSub').textContent = `${S.mode === 'hard' ? '🔥 HARD • ' : ''}${meta().name} • ` + (paid ? `${S.packs} packs • spent ${money(S.spent)} • pulled ${money(S.earned)}` : `${S.packs} packs • pulled ${money(S.earned)}`);
       const ups = UPGRADES.filter(u => S.up[u.k]).map(u => u.ico + (u.tiers.length > 1 ? S.up[u.k] : '')).join(' ');
       $('hudUp').textContent = ups || 'no upgrades';
-      $('btnShop').hidden = !normal;
-      $('btnOpen').textContent = normal ? `BUY & OPEN • ${money(packCost())}` : 'OPEN PACK';
-      $('btnOpen').disabled = normal && S.bank < packCost();
+      $('btnShop').hidden = !paid;
+      $('btnOpen').textContent = paid ? `BUY & OPEN • ${money(packCost())}` : 'OPEN PACK';
+      $('btnOpen').disabled = paid && S.bank < packCost();
       updateQuotaHud();
-      if (normal && S.bank < minPackCost()) setTimeout(bust, 1200);
+      if (paid && S.bank < minPackCost()) setTimeout(bust, 1200);
     }
 
     function bust(reason = '💀 BUSTED') {
@@ -451,8 +461,8 @@ html = r'''<!doctype html>
       ensureQuota();
       show('game');
       $('cards').innerHTML = '';
-      $('title').textContent = mode === 'normal' ? '💸 NORMAL MODE' : '🧪 SANDBOX';
-      $('summary').innerHTML = mode === 'normal' ? `You have <b>${money(S.bank)}</b>. Packs cost <b>${money(packCost())}</b>. Every card auto-sells at market value. Don't go broke.` : 'Free rips. Values shown for fun.';
+      $('title').textContent = mode === 'hard' ? '🔥 HARD MODE' : mode === 'normal' ? '💸 NORMAL MODE' : '🧪 SANDBOX';
+      $('summary').innerHTML = mode === 'hard' ? `You have <b>${money(S.bank)}</b>. Reach <b>${money(S.quota.target)}</b> in 30 seconds. Packs cost 25% more and chase cards are harder to pull.` : mode === 'normal' ? `You have <b>${money(S.bank)}</b>. Packs cost <b>${money(packCost())}</b>. Every card auto-sells at market value. Don't go broke.` : 'Free rips. Values shown for fun.';
       hud();
       save(); startQuotaTimer();
       if (S.last) render(S.last.pull, S.last.cost, S.last.total);
@@ -469,8 +479,9 @@ html = r'''<!doctype html>
     $('startBank').textContent = money(START_BANK);
     $('priceDate').textContent = PRICE_DATE;
     $('btnNormal').onclick = () => { clearSave(); start('normal'); };
+    $('btnHard').onclick = () => { clearSave(); start('hard'); };
     $('btnSandbox').onclick = () => start('sandbox');
-    $('btnContinue').onclick = () => { const s = load(); if (s) start('normal', s); };
+    $('btnContinue').onclick = () => { const s = load(); if (s) start(s.mode || 'normal', s); };
     $('btnOpen').onclick = openPack;
     $('btnSwitchSet').onclick = () => $('setSwitch').classList.add('on');
     $('btnSetClose').onclick = () => $('setSwitch').classList.remove('on');
@@ -479,7 +490,7 @@ html = r'''<!doctype html>
     $('btnShop').onclick = shop;
     $('btnShopClose').onclick = () => $('shop').classList.remove('on');
     $('shop').onclick = e => { if (e.target === $('shop')) $('shop').classList.remove('on'); };
-    $('btnRestart').onclick = () => start('normal');
+    $('btnRestart').onclick = () => start(S && S.mode === 'hard' ? 'hard' : 'normal');
     $('btnOverHome').onclick = home;
     home();
   </script>
