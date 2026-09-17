@@ -1,7 +1,7 @@
 import json, os
 here = os.path.dirname(os.path.abspath(__file__))
 sets = {}
-for set_id in ("me04", "me05", "sv10"):
+for set_id in ("me04", "me05", "sv10", "me02"):
     cards = json.load(open(os.path.join(here, f"{set_id}-cards.json"), encoding="utf-8"))
     series_id = "".join(ch for ch in set_id if ch.isalpha())
     pre = f"https://assets.tcgdex.net/en/{series_id}/{set_id}/"
@@ -169,6 +169,7 @@ html = r'''<!doctype html>
       me04: { name: 'Chaos Rising', series: 'Mega Evolution', code: 'ME04', official: 86, art: 'chaos-rising-pack.png', price: 9.99, valueMult: 1.2 },
       me05: { name: 'Pitch Black', series: 'Mega Evolution', code: 'ME05', official: 84, art: 'pack.jpg', price: 4.99, valueMult: 1 },
       sv10: { name: 'Destined Rivals', series: 'Scarlet & Violet', code: 'SV10', official: 182, art: 'destined-rivals-pack.jpg', price: 15, valueMult: 1.3 },
+      me02: { name: 'Phantasmal Flames', series: 'Mega Evolution', code: 'ME02', official: 94, art: 'phantasmal-flames-pack.png', price: 22.5, valueMult: 1.4 },
     };
     const PRICE_DATE = '__DATE__';
 
