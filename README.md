@@ -8,7 +8,7 @@ Single-file pack-opening game with a set picker for Mega Evolution — Chaos Ris
 - **Set switching** — swap between Pitch Black ($4.99), Chaos Rising ($9.99), Destined Rivals ($15.00), Phantasmal Flames ($22.50), and 151 ($35.00) during the same run without losing your bankroll, upgrades, quota, or stats. The premium 151 set receives a 2× game-value boost.
 - **Quota challenge** — Normal mode gives you 60 seconds to reach a $50 bankroll quota. Each cleared quota is 1.5× larger; packs and upgrades reduce your bankroll progress. Missing the deadline ends the run, and the game remembers your highest quota.
 - **Hard mode** — 30-second rounds begin with a $75 quota, quotas grow by 1.75×, packs cost 25% more, and chase-card odds are cut in half. Missing a quota or running out of money ends the run.
-- **Seven upgrades** — improve chase odds, bulk values, reverse slots, pack discounts, PSA grades, holo values, and the chance of pulling a bonus hit card. Every pack naturally has a 10% double-hit chance, and cards appear in a randomized order. Upgrades last for the entire run.
+- **Ten upgrades** — improve chase odds, bulk values, reverse slots, pack discounts, PSA grades, holo values, double-hit odds, quota time, low-grade protection, and valuable-card bonuses. Every pack naturally has a 10% double-hit chance, and cards appear in a randomized order. Upgrades last for the entire run.
 
 **Play it:** https://dndcraws20.github.io/poke_tear/ (GitHub Pages, publishes from `main`)
 
