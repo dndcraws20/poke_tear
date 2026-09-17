@@ -36,6 +36,13 @@
     .hud .bank.low { color: #ff6b6b; }
     .hud small { opacity: .7; display: block; font-size: 11px; }
     .hud .r { text-align: right; }
+    .quota { background: #151020; border: 1px solid #ffd54a; border-radius: 14px; padding: 10px 14px; margin: 0 auto 10px; max-width: 620px; text-align: left; }
+    .quota-top { display: flex; justify-content: space-between; gap: 12px; font-weight: 900; }
+    .quota-time { color: #ffe066; }
+    .quota-time.danger { color: #ff6b6b; animation: glow 1s ease-in-out infinite alternate; }
+    .quota-track { height: 10px; margin-top: 8px; background: #08050d; border-radius: 999px; overflow: hidden; }
+    .quota-fill { height: 100%; width: 0; background: linear-gradient(90deg, #ff9800, #ffe66b, #8dffb0); transition: width .25s; }
+    .quota small { opacity: .72; display: block; margin-top: 6px; }
     .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-width: 900px; margin: 16px auto; }
     .card { position: relative; background: #151020; border: 1px solid #654d83; border-radius: 14px; padding: 8px; box-shadow: 0 12px 24px #0008; animation: pop .45s both; }
     .card.r2 { border-color: #7fb8ff; }
@@ -100,6 +107,11 @@
         <div><div class="bank" id="bank"></div><small id="hudSub"></small></div>
         <div class="r"><button class="ghost" id="btnShop" style="margin:0;padding:10px 14px">🛒 Upgrades</button><small id="hudUp"></small></div>
       </div>
+      <div class="quota" id="quotaBox" hidden>
+        <div class="quota-top"><span id="quotaLabel"></span><span class="quota-time" id="quotaTime"></span></div>
+        <div class="quota-track"><div class="quota-fill" id="quotaFill"></div></div>
+        <small id="quotaProgress"></small>
+      </div>
       <h2 id="title">🔥 PACK OPENED!</h2>
       <div class="summary" id="summary"></div>
       <div class="cards" id="cards"></div>
@@ -111,7 +123,7 @@
     </section>
 
     <section id="over" class="screen">
-      <h1>💀 BUSTED</h1>
+      <h1 id="overTitle">💀 BUSTED</h1>
       <p class="sub">You can't afford another pack.</p>
       <div class="stats" id="overStats"></div>
       <div id="overBest"></div>
@@ -147,7 +159,11 @@
     const PRICE_DATE = '2026-09-16';
 
     const START_BANK = 60;
+    const QUOTA_START = 50;
+    const QUOTA_MULT = 1.5;
+    const QUOTA_SECONDS = 60;
     const SAVE_KEY = 'poke-tear-run-v2';
+    const QUOTA_RECORD_KEY = 'poke-tear-quota-record-v1';
 
     // More cards lose value than gain it: 55% below PSA 5, 12% PSA 5, 33% above PSA 5.
     const GRADES = [
@@ -181,6 +197,7 @@
     ];
 
     let S = null; // run state
+    let quotaTimer = null;
     const $ = id => document.getElementById(id);
     const money = v => (v < 0 ? '-' : '') + '$' + Math.abs(v).toFixed(2);
     const rand = a => a[Math.floor(Math.random() * a.length)];
@@ -210,11 +227,60 @@
     }
 
     function newState(mode) {
-      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0 }, last: null };
+      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0 }, last: null,
+        quota: mode === 'normal' ? { number: 1, cleared: 0, target: QUOTA_START, endsAt: Date.now() + QUOTA_SECONDS * 1000 } : null };
     }
     function save() { try { if (S && S.mode === 'normal') localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
     function load() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
     function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+    function quotaRecord() { try { return +(localStorage.getItem(QUOTA_RECORD_KEY) || 0); } catch (e) { return 0; } }
+    function saveQuotaRecord(n) { try { localStorage.setItem(QUOTA_RECORD_KEY, String(Math.max(n, quotaRecord()))); } catch (e) {} }
+
+    function ensureQuota() {
+      if (S.mode === 'normal' && !S.quota) S.quota = { number: 1, cleared: 0, target: QUOTA_START, endsAt: Date.now() + QUOTA_SECONDS * 1000 };
+    }
+    function updateQuotaHud() {
+      const active = S && S.mode === 'normal' && S.quota;
+      $('quotaBox').hidden = !active;
+      if (!active) return;
+      const left = Math.max(0, S.quota.endsAt - Date.now());
+      const seconds = Math.ceil(left / 1000);
+      $('quotaLabel').textContent = `QUOTA ${S.quota.number} • ${money(S.quota.target)}`;
+      $('quotaTime').textContent = `0:${String(seconds).padStart(2, '0')}`;
+      $('quotaTime').classList.toggle('danger', seconds <= 10);
+      $('quotaFill').style.width = Math.min(100, S.bank / S.quota.target * 100) + '%';
+      $('quotaProgress').textContent = `${money(S.bank)} / ${money(S.quota.target)} • ${S.quota.cleared} cleared • highest quota ${Math.max(S.quota.number, quotaRecord())}`;
+    }
+    function advanceQuota() {
+      S.quota.cleared++;
+      S.quota.number++;
+      S.quota.target = +(QUOTA_START * Math.pow(QUOTA_MULT, S.quota.number - 1)).toFixed(2);
+      S.quota.endsAt = Date.now() + QUOTA_SECONDS * 1000;
+      saveQuotaRecord(S.quota.number);
+      save(); updateQuotaHud();
+    }
+    function checkQuotaProgress() {
+      if (S.mode !== 'normal' || !S.quota || S.bank < S.quota.target) return false;
+      advanceQuota();
+      return true;
+    }
+    function startQuotaTimer() {
+      clearInterval(quotaTimer);
+      if (S.mode !== 'normal') { updateQuotaHud(); return; }
+      ensureQuota(); saveQuotaRecord(S.quota.number); updateQuotaHud();
+      quotaTimer = setInterval(() => {
+        if (!S || S.mode !== 'normal' || !S.quota) return;
+        if (Date.now() >= S.quota.endsAt) {
+          if (S.bank >= S.quota.target) {
+            advanceQuota();
+            $('title').textContent = '✅ QUOTA CLEARED!';
+          } else {
+            bust('⏰ QUOTA FAILED');
+          }
+        }
+        updateQuotaHud();
+      }, 250);
+    }
 
     const packCost = () => S.mode === 'normal' ? +(meta().price * UPGRADES[3].mult[S.up.whole]).toFixed(2) : 0;
     const minPackCost = () => Math.min(...Object.values(SET_META).map(s => +(s.price * UPGRADES[3].mult[S.up.whole]).toFixed(2)));
@@ -253,8 +319,10 @@
       S.earned = +(S.earned + delta).toFixed(2);
       if (S.mode === 'normal') S.bank = +(S.bank + delta).toFixed(2);
       if (!S.best || value > S.best.v) S.best = { id: p.c.id, n: p.c.n, r: p.c.r, v: value, img: p.c.img };
+      const clearedQuota = checkQuotaProgress();
       save();
       render(S.last.pull, S.last.cost, S.last.total);
+      if (clearedQuota) $('title').textContent = '✅ QUOTA CLEARED!';
     }
 
     function pullPack() {
@@ -281,8 +349,10 @@
       const hit = pull.reduce((a, p) => p.v > a.v ? p : a, pull[0]);
       if (!S.best || hit.v > S.best.v) S.best = { id: hit.c.id, n: hit.c.n, r: hit.c.r, v: hit.v, img: hit.c.img };
       S.last = { pull, cost, total };
+      const clearedQuota = checkQuotaProgress();
       save();
       render(pull, cost, total);
+      if (clearedQuota) $('title').textContent = '✅ QUOTA CLEARED!';
     }
 
     function render(pull, cost, total) {
@@ -325,13 +395,18 @@
       $('btnShop').hidden = !normal;
       $('btnOpen').textContent = normal ? `BUY & OPEN • ${money(packCost())}` : 'OPEN PACK';
       $('btnOpen').disabled = normal && S.bank < packCost();
+      updateQuotaHud();
       if (normal && S.bank < minPackCost()) setTimeout(bust, 1200);
     }
 
-    function bust() {
+    function bust(reason = '💀 BUSTED') {
+      clearInterval(quotaTimer);
+      if (S.quota) saveQuotaRecord(S.quota.number);
       show('over');
+      $('overTitle').textContent = reason;
       $('overStats').innerHTML = [
         ['Packs opened', S.packs], ['Peak bankroll', money(S.peak)], ['Spent', money(S.spent)], ['Pulled', money(S.earned)],
+        ['Quotas cleared', S.quota ? S.quota.cleared : 0], ['Highest quota', S.quota ? Math.max(S.quota.number, quotaRecord()) : quotaRecord()],
       ].map(([l, v]) => `<div class="stat"><b>${v}</b><small>${l}</small></div>`).join('');
       $('overBest').innerHTML = S.best ? `<p class="sub">Best pull</p><div class="card r${RANK(S.best.r)} best"><span class="val big">${money(S.best.v)}</span><img src="${cardUrl(S.best)}" alt=""><div class="name">${S.best.n}</div><div class="rarity">${S.best.r}</div></div>` : '';
       clearSave();
@@ -357,11 +432,13 @@
     function start(mode, resume) {
       if (resume) activateSet(resume.set || 'me05');
       S = resume || newState(mode);
+      ensureQuota();
       show('game');
       $('cards').innerHTML = '';
       $('title').textContent = mode === 'normal' ? '💸 NORMAL MODE' : '🧪 SANDBOX';
       $('summary').innerHTML = mode === 'normal' ? `You have <b>${money(S.bank)}</b>. Packs cost <b>${money(packCost())}</b>. Every card auto-sells at market value. Don't go broke.` : 'Free rips. Values shown for fun.';
       hud();
+      save(); startQuotaTimer();
       if (S.last) render(S.last.pull, S.last.cost, S.last.total);
     }
     function home() { show('home'); $('btnContinue').hidden = !load(); }
