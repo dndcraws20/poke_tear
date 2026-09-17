@@ -6,6 +6,7 @@ Single-file pack-opening game with a set picker for Mega Evolution — Chaos Ris
 - **Normal** — start with $60, packs cost $4.99, cards auto-sell at real TCGplayer market prices, buy upgrades, don't go broke.
 - **PSA grading** — optionally grade any pulled card once. Grades 1–4 lose value, PSA 5 keeps its value, and grades 6–10 increase it; PSA 10 has a 2% chance and pays 10×.
 - **Set switching** — swap between Pitch Black ($4.99) and Chaos Rising ($9.99) during the same run without losing your bankroll, upgrades, or stats. Chaos Rising card values receive a 20% game-value boost.
+- **Quota challenge** — Normal mode gives you 60 seconds to reach a $50 bankroll quota. Each cleared quota is 1.5× larger; packs and upgrades reduce your bankroll progress. Missing the deadline ends the run, and the game remembers your highest quota.
 
 **Play it:** https://dndcraws20.github.io/poke_tear/ (GitHub Pages, publishes from `main`)
 
