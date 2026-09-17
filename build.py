@@ -1,7 +1,7 @@
 import json, os
 here = os.path.dirname(os.path.abspath(__file__))
 sets = {}
-for set_id in ("me04", "me05", "sv10", "me02"):
+for set_id in ("me04", "me05", "sv10", "me02", "sv03.5"):
     cards = json.load(open(os.path.join(here, f"{set_id}-cards.json"), encoding="utf-8"))
     series_id = "".join(ch for ch in set_id if ch.isalpha())
     pre = f"https://assets.tcgdex.net/en/{series_id}/{set_id}/"
@@ -170,6 +170,7 @@ html = r'''<!doctype html>
       me05: { name: 'Pitch Black', series: 'Mega Evolution', code: 'ME05', official: 84, art: 'pack.jpg', price: 4.99, valueMult: 1 },
       sv10: { name: 'Destined Rivals', series: 'Scarlet & Violet', code: 'SV10', official: 182, art: 'destined-rivals-pack.jpg', price: 15, valueMult: 1.3 },
       me02: { name: 'Phantasmal Flames', series: 'Mega Evolution', code: 'ME02', official: 94, art: 'phantasmal-flames-pack.png', price: 22.5, valueMult: 1.6 },
+      'sv03.5': { name: '151', series: 'Scarlet & Violet', code: 'SV03.5', official: 165, art: 'pokemon-151-pack.png', price: 35, valueMult: 2 },
     };
     const PRICE_DATE = '__DATE__';
 
@@ -218,7 +219,7 @@ html = r'''<!doctype html>
     const rand = a => a[Math.floor(Math.random() * a.length)];
 
     const meta = () => SET_META[selectedSet];
-    const cardUrl = c => { const id = c.id.split('-')[0], series = id.replace(/\d+$/, ''); return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
+    const cardUrl = c => { const id = c.id.split('-')[0], series = (id.match(/^[a-z]+/) || [''])[0]; return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
     function activateSet(id) {
       selectedSet = SET_DATA[id] ? id : 'me05';
       SET = SET_DATA[selectedSet]; BY = {};
