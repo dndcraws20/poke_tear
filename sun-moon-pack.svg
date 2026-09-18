@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 650" role="img" aria-labelledby="title desc">
+  <title id="title">Sun and Moon booster pack</title>
+  <desc id="desc">A blue and orange fantasy booster wrapper with a glowing sun and crescent moon.</desc>
+  <defs>
+    <linearGradient id="wrap" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#071c5d"/><stop offset=".48" stop-color="#45217a"/><stop offset="1" stop-color="#eb5b25"/>
+    </linearGradient>
+    <radialGradient id="sun"><stop stop-color="#fff9b0"/><stop offset=".45" stop-color="#ffc52e"/><stop offset="1" stop-color="#f05a22"/></radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="10" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <path fill="#d7d9ed" d="M18 12h384l-18 24 18 24-18 24 18 24H18L36 84 18 60l18-24zM18 542h384l-18 24 18 24-18 24 18 24H18l18-24-18-24 18-24z"/>
+  <rect x="25" y="92" width="370" height="458" rx="18" fill="url(#wrap)" stroke="#fbdb67" stroke-width="8"/>
+  <circle cx="130" cy="290" r="92" fill="url(#sun)" filter="url(#glow)"/>
+  <circle cx="292" cy="292" r="100" fill="#b9dcff" filter="url(#glow)"/>
+  <circle cx="326" cy="257" r="99" fill="#30185f"/>
+  <g fill="#fff" opacity=".85"><circle cx="310" cy="150" r="5"/><circle cx="353" cy="193" r="3"/><circle cx="271" cy="124" r="3"/><circle cx="337" cy="370" r="4"/><circle cx="88" cy="402" r="3"/></g>
+  <text x="210" y="158" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="34" font-weight="900" stroke="#17265f" stroke-width="7" paint-order="stroke">POKÉMON</text>
+  <text x="210" y="448" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="50" font-weight="900" stroke="#24114f" stroke-width="10" paint-order="stroke">SUN &amp; MOON</text>
+  <text x="210" y="490" text-anchor="middle" fill="#ffe98a" font-family="Arial,sans-serif" font-size="22" font-weight="700">10 ADDITIONAL GAME CARDS</text>
+  <text x="210" y="526" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="18">SM1 • $50 PACK</text>
+</svg>
