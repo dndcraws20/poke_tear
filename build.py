@@ -136,6 +136,7 @@ html = r'''<!doctype html>
       <div class="cards" id="cards"></div>
       <div class="actions">
         <button class="primary" id="btnOpen">OPEN PACK</button>
+        <button class="ghost" id="btnKiss">💋 KISS THE PACK</button>
         <button class="ghost" id="btnBox">BUY 6-PACK BOX</button>
         <button class="ghost music-toggle">🔇 MUSIC: OFF</button>
         <button class="ghost track-toggle">🎼 ELECTRONIC</button>
@@ -211,6 +212,8 @@ html = r'''<!doctype html>
     const HARD_PACK_MULT = 1.25;
     const HARD_CHASE_MULT = 0.5;
     const DOUBLE_HIT_CHANCE = .10;
+    const KISS_LUCK_MULT = 2;
+    const KISS_COOLDOWN_SECONDS = 30;
     const BOX_PACKS = 6;
     const SAVE_KEY = 'poke-tear-run-v2';
     const QUOTA_RECORD_KEY = 'poke-tear-quota-record-v1';
@@ -265,6 +268,7 @@ html = r'''<!doctype html>
     let S = null; // run state
     let quotaTimer = null;
     let binderTimer = null;
+    let kissTimer = null;
     let audioCtx = null, musicTimer = null, musicOn = false, musicStyle = 'electronic', musicStep = 0, nextMusicStep = 0;
     const $ = id => document.getElementById(id);
     const money = v => (v < 0 ? '-' : '') + '$' + Math.abs(v).toFixed(2);
@@ -391,7 +395,7 @@ html = r'''<!doctype html>
     }
 
     function newState(mode) {
-      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0 }, boxes: {}, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
+      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0 }, boxes: {}, kissBoost: false, kissReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
         quota: mode === 'normal' || mode === 'hard' ? { number: 1, cleared: 0, target: mode === 'hard' ? HARD_QUOTA_START : QUOTA_START, endsAt: Date.now() + (mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) * 1000 } : null };
     }
     function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
@@ -524,7 +528,7 @@ html = r'''<!doctype html>
     const luckMult = () => UPGRADES[0].mult[S.up.luck];
 
     function rollHitRarity() {
-      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
+      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * (S.kissBoost ? KISS_LUCK_MULT : 1) * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
       const total = entries.reduce((a, e) => a + e[1], 0);
       let x = Math.random() * total;
       for (const [r, w] of entries) { x -= w; if (x <= 0) return r; }
@@ -603,6 +607,7 @@ html = r'''<!doctype html>
       if (paidMode() && S.bank < cost) return;
       if (fromBox) S.boxes[selectedSet]--;
       const pull = pullPack();
+      S.kissBoost = false;
       const total = +pull.reduce((a, p) => a + p.v, 0).toFixed(2);
       S.bank = +(S.bank - cost + total).toFixed(2);
       S.packs++; S.spent = +(S.spent + cost).toFixed(2); S.earned = +(S.earned + total).toFixed(2);
@@ -620,6 +625,21 @@ html = r'''<!doctype html>
       save();
       render(pull, cost, total);
       if (clearedQuota) $('title').textContent = '✅ QUOTA CLEARED!';
+    }
+
+    function updateKissButton() {
+      if (!S) return;
+      const left = Math.max(0, Math.ceil(((S.kissReadyAt || 0) - Date.now()) / 1000));
+      $('btnKiss').disabled = !!S.kissBoost || left > 0;
+      $('btnKiss').textContent = S.kissBoost ? '💋 2× LUCK READY' : left > 0 ? `💋 KISS AGAIN IN ${left}s` : '💋 KISS THE PACK';
+    }
+    function kissPack() {
+      if (!S || S.kissBoost || Date.now() < (S.kissReadyAt || 0)) return;
+      S.kissBoost = true;
+      S.kissReadyAt = Date.now() + KISS_COOLDOWN_SECONDS * 1000;
+      save(); updateKissButton();
+      $('title').textContent = '💋 PACK KISSED!';
+      $('summary').innerHTML = 'Your next pack has <b>2× chase-card luck</b>. The luck is used when you open the pack.';
     }
 
     function render(pull, cost, total) {
@@ -670,6 +690,7 @@ html = r'''<!doctype html>
       $('btnBox').hidden = !paid;
       $('btnBox').textContent = `BUY 6-PACK BOX • ${money(boxCost())} (SAVE ${Math.round(boxDiscount() * 100)}%)`;
       $('btnBox').disabled = paid && S.bank < boxCost();
+      updateKissButton();
       updateQuotaHud();
       if (paid && !totalBoxPacks() && S.bank < minPackCost()) setTimeout(bust, 1200);
     }
@@ -726,6 +747,8 @@ html = r'''<!doctype html>
       S = resume || newState(mode);
       S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, ...(S.up || {}) };
       S.boxes = { ...(S.boxes || {}) };
+      S.kissBoost = !!S.kissBoost;
+      S.kissReadyAt = S.kissReadyAt || 0;
       const oldMissions = S.missions || {};
       S.missions = { packs: 0, grades: 0, big: 0, ...oldMissions, claimed: { ...(oldMissions.claimed || {}) } };
       ensureQuota();
@@ -735,6 +758,7 @@ html = r'''<!doctype html>
       $('summary').innerHTML = mode === 'hard' ? `You have <b>${money(S.bank)}</b>. Reach <b>${money(S.quota.target)}</b> in 30 seconds. Packs cost 25% more and chase cards are harder to pull.` : mode === 'normal' ? `You have <b>${money(S.bank)}</b>. Packs cost <b>${money(packCost())}</b>. Every card auto-sells at market value. Don't go broke.` : mode === 'chill' ? `No quota and no timer. You have <b>${money(S.bank)}</b>; keep buying packs and upgrades, but don't go broke.` : 'Free packs and free upgrades forever. Values shown for fun.';
       hud();
       save(); startQuotaTimer();
+      clearInterval(kissTimer); kissTimer = setInterval(updateKissButton, 250);
       if (S.last) render(S.last.pull, S.last.cost, S.last.total);
     }
     function home() { show('home'); $('btnContinue').hidden = !load(); }
@@ -754,6 +778,7 @@ html = r'''<!doctype html>
     $('btnSandbox').onclick = () => start('sandbox');
     $('btnContinue').onclick = () => { const s = load(); if (s) start(s.mode || 'normal', s); };
     $('btnOpen').onclick = openPack;
+    $('btnKiss').onclick = kissPack;
     $('btnBox').onclick = buyBox;
     $('btnSwitchSet').onclick = () => $('setSwitch').classList.add('on');
     $('btnSetClose').onclick = () => $('setSwitch').classList.remove('on');
