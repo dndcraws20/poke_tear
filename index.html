@@ -96,8 +96,9 @@
       <div class="set-picker" id="setPicker"></div>
       <div class="modes">
         <button class="mode" id="btnNormal"><b>💸 Normal</b><small>Start with <span id="startBank"></span>. Packs cost real money, cards sell at live market value. Buy upgrades, don't go broke.</small></button>
+        <button class="mode" id="btnChill"><b>😌 Chill</b><small>No quota or timer. Packs and upgrades still cost money, and the run ends if you go broke.</small></button>
         <button class="mode" id="btnHard"><b>🔥 Hard</b><small>30-second quotas, faster quota growth, packs cost 25% more, and valuable cards are harder to pull. Losing ends the run.</small></button>
-        <button class="mode" id="btnSandbox"><b>🧪 Sandbox</b><small>Free rips forever. Still shows what every card is worth.</small></button>
+        <button class="mode" id="btnSandbox"><b>🧪 Sandbox</b><small>Free packs and free upgrades forever. Still shows what every card is worth.</small></button>
       </div>
       <button class="ghost" id="btnContinue" hidden>▶ Continue run</button>
       <p class="note">Prices: TCGplayer market (USD), updated <span id="priceDate"></span>.</p>
@@ -232,7 +233,8 @@
     const rand = a => a[Math.floor(Math.random() * a.length)];
 
     const meta = () => SET_META[selectedSet];
-    const paidMode = () => S && (S.mode === 'normal' || S.mode === 'hard');
+    const paidMode = () => S && (S.mode === 'normal' || S.mode === 'hard' || S.mode === 'chill');
+    const quotaMode = () => S && (S.mode === 'normal' || S.mode === 'hard');
     const quotaStart = () => S.mode === 'hard' ? HARD_QUOTA_START : QUOTA_START;
     const quotaMult = () => S.mode === 'hard' ? HARD_QUOTA_MULT : QUOTA_MULT;
     const quotaSeconds = () => (S.mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) + UPGRADES[7].mult[S.up.clock];
@@ -292,10 +294,10 @@
     }
 
     function ensureQuota() {
-      if (paidMode() && !S.quota) S.quota = { number: 1, cleared: 0, target: quotaStart(), endsAt: Date.now() + quotaSeconds() * 1000 };
+      if (quotaMode() && !S.quota) S.quota = { number: 1, cleared: 0, target: quotaStart(), endsAt: Date.now() + quotaSeconds() * 1000 };
     }
     function updateQuotaHud() {
-      const active = paidMode() && S.quota;
+      const active = quotaMode() && S.quota;
       $('quotaBox').hidden = !active;
       if (!active) return;
       const left = Math.max(0, S.quota.endsAt - Date.now());
@@ -315,16 +317,16 @@
       save(); updateQuotaHud();
     }
     function checkQuotaProgress() {
-      if (!paidMode() || !S.quota || S.bank < S.quota.target) return false;
+      if (!quotaMode() || !S.quota || S.bank < S.quota.target) return false;
       advanceQuota();
       return true;
     }
     function startQuotaTimer() {
       clearInterval(quotaTimer);
-      if (!paidMode()) { updateQuotaHud(); return; }
+      if (!quotaMode()) { updateQuotaHud(); return; }
       ensureQuota(); saveQuotaRecord(S.quota.number); updateQuotaHud();
       quotaTimer = setInterval(() => {
-        if (!paidMode() || !S.quota) return;
+        if (!quotaMode() || !S.quota) return;
         if (Date.now() >= S.quota.endsAt) {
           if (S.bank >= S.quota.target) {
             advanceQuota();
@@ -466,7 +468,7 @@
       $('hudSub').textContent = `${S.mode === 'hard' ? '🔥 HARD • ' : ''}${meta().name} • ` + (paid ? `${S.packs} packs • spent ${money(S.spent)} • pulled ${money(S.earned)}` : `${S.packs} packs • pulled ${money(S.earned)}`);
       const ups = UPGRADES.filter(u => S.up[u.k]).map(u => u.ico + (u.tiers.length > 1 ? S.up[u.k] : '')).join(' ');
       $('hudUp').textContent = ups || 'no upgrades';
-      $('btnShop').hidden = !paid;
+      $('btnShop').hidden = false;
       $('btnMissions').hidden = !paid;
       $('btnOpen').textContent = paid ? `BUY & OPEN • ${money(packCost())}` : 'OPEN PACK';
       $('btnOpen').disabled = paid && S.bank < packCost();
@@ -488,19 +490,21 @@
     }
 
     function shop() {
-      $('shopBank').textContent = money(S.bank);
+      const free = S.mode === 'sandbox';
+      $('shopBank').textContent = free ? 'FREE' : money(S.bank);
       $('shopList').innerHTML = UPGRADES.map(u => {
-        const t = S.up[u.k], max = t >= u.tiers.length, cost = max ? 0 : u.tiers[t];
+        const t = S.up[u.k], max = t >= u.tiers.length, cost = max || free ? 0 : u.tiers[t];
         return `<div class="up ${max ? 'max' : ''}"><div class="ico">${u.ico}</div><div class="body"><b>${u.name} ${u.tiers.length > 1 ? `<span style="opacity:.6;font-weight:400">tier ${t}/${u.tiers.length}</span>` : ''}</b><small>${u.desc}</small><div class="tier">${max ? 'MAXED: ' + u.fx[t - 1] : (t ? 'now ' + u.fx[t - 1] + ' → ' : '') + 'next ' + u.fx[t]}</div></div>
-          <button data-k="${u.k}" ${max || S.bank < cost ? 'disabled' : ''}>${max ? '✓' : money(cost)}</button></div>`;
+          <button data-k="${u.k}" ${max || (!free && S.bank < cost) ? 'disabled' : ''}>${max ? '✓' : free ? 'FREE' : money(cost)}</button></div>`;
       }).join('');
       $('shopList').querySelectorAll('button').forEach(b => b.onclick = () => buy(b.dataset.k));
       $('shop').classList.add('on');
     }
     function buy(k) {
       const u = UPGRADES.find(u => u.k === k), t = S.up[k];
-      if (t >= u.tiers.length || S.bank < u.tiers[t]) return;
-      S.bank = +(S.bank - u.tiers[t]).toFixed(2); S.up[k]++;
+      const cost = S.mode === 'sandbox' ? 0 : u.tiers[t];
+      if (t >= u.tiers.length || S.bank < cost) return;
+      S.bank = +(S.bank - cost).toFixed(2); S.up[k]++;
       if (k === 'clock' && S.quota) S.quota.endsAt += 5000;
       save(); hud(); shop();
     }
@@ -515,8 +519,8 @@
       ensureQuota();
       show('game');
       $('cards').innerHTML = '';
-      $('title').textContent = mode === 'hard' ? '🔥 HARD MODE' : mode === 'normal' ? '💸 NORMAL MODE' : '🧪 SANDBOX';
-      $('summary').innerHTML = mode === 'hard' ? `You have <b>${money(S.bank)}</b>. Reach <b>${money(S.quota.target)}</b> in 30 seconds. Packs cost 25% more and chase cards are harder to pull.` : mode === 'normal' ? `You have <b>${money(S.bank)}</b>. Packs cost <b>${money(packCost())}</b>. Every card auto-sells at market value. Don't go broke.` : 'Free rips. Values shown for fun.';
+      $('title').textContent = mode === 'hard' ? '🔥 HARD MODE' : mode === 'normal' ? '💸 NORMAL MODE' : mode === 'chill' ? '😌 CHILL MODE' : '🧪 SANDBOX';
+      $('summary').innerHTML = mode === 'hard' ? `You have <b>${money(S.bank)}</b>. Reach <b>${money(S.quota.target)}</b> in 30 seconds. Packs cost 25% more and chase cards are harder to pull.` : mode === 'normal' ? `You have <b>${money(S.bank)}</b>. Packs cost <b>${money(packCost())}</b>. Every card auto-sells at market value. Don't go broke.` : mode === 'chill' ? `No quota and no timer. You have <b>${money(S.bank)}</b>; keep buying packs and upgrades, but don't go broke.` : 'Free packs and free upgrades forever. Values shown for fun.';
       hud();
       save(); startQuotaTimer();
       if (S.last) render(S.last.pull, S.last.cost, S.last.total);
@@ -533,6 +537,7 @@
     $('startBank').textContent = money(START_BANK);
     $('priceDate').textContent = PRICE_DATE;
     $('btnNormal').onclick = () => { clearSave(); start('normal'); };
+    $('btnChill').onclick = () => { clearSave(); start('chill'); };
     $('btnHard').onclick = () => { clearSave(); start('hard'); };
     $('btnSandbox').onclick = () => start('sandbox');
     $('btnContinue').onclick = () => { const s = load(); if (s) start(s.mode || 'normal', s); };
@@ -547,7 +552,7 @@
     $('btnMissions').onclick = showMissions;
     $('btnMissionsClose').onclick = () => $('missions').classList.remove('on');
     $('missions').onclick = e => { if (e.target === $('missions')) $('missions').classList.remove('on'); };
-    $('btnRestart').onclick = () => start(S && S.mode === 'hard' ? 'hard' : 'normal');
+    $('btnRestart').onclick = () => start(S && ['hard', 'chill'].includes(S.mode) ? S.mode : 'normal');
     $('btnOverHome').onclick = home;
     home();
   </script>
