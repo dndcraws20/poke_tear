@@ -14,6 +14,7 @@ Single-file pack-opening game with a set picker for Mega Evolution — Chaos Ris
 - **Run missions** — complete three goals by opening packs, grading cards, and finding a $20+ pull. Missions track progress in their own panel and automatically pay cash rewards that can help reach the next quota.
 - **Persistent card binder** — keep any pulled card instead of selling it, carry the collection across runs, gain a one-time 20% value increase after one real minute, and sell cards back into an active money-mode run.
 - **Original instrumental soundtrack** — optional wordless electronic background music generated live in the browser, with drums, bass, synth pads, a two-phrase melody variation, and Music On/Off controls.
+- **Six-pack boxes** — buy six packs of the selected set together for 10% less than purchasing them one at a time, then open the stored packs individually.
 
 **Play it:** https://dndcraws20.github.io/poke_tear/ (GitHub Pages, publishes from `main`)
 

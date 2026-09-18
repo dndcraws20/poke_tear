@@ -135,6 +135,7 @@ html = r'''<!doctype html>
       <div class="cards" id="cards"></div>
       <div class="actions">
         <button class="primary" id="btnOpen">OPEN PACK</button>
+        <button class="ghost" id="btnBox">BUY 6-PACK BOX</button>
         <button class="ghost music-toggle">🔇 MUSIC: OFF</button>
         <button class="ghost" id="btnBinder">📚 BINDER</button>
         <button class="ghost" id="btnSwitchSet">SWITCH SET</button>
@@ -207,6 +208,8 @@ html = r'''<!doctype html>
     const HARD_PACK_MULT = 1.25;
     const HARD_CHASE_MULT = 0.5;
     const DOUBLE_HIT_CHANCE = .10;
+    const BOX_PACKS = 6;
+    const BOX_DISCOUNT = .10;
     const SAVE_KEY = 'poke-tear-run-v2';
     const QUOTA_RECORD_KEY = 'poke-tear-quota-record-v1';
     const BINDER_KEY = 'poke-tear-binder-v1';
@@ -361,7 +364,7 @@ html = r'''<!doctype html>
     }
 
     function newState(mode) {
-      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0 }, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
+      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0 }, boxes: {}, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
         quota: mode === 'normal' || mode === 'hard' ? { number: 1, cleared: 0, target: mode === 'hard' ? HARD_QUOTA_START : QUOTA_START, endsAt: Date.now() + (mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) * 1000 } : null };
     }
     function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
@@ -485,6 +488,9 @@ html = r'''<!doctype html>
     }
 
     const packCost = () => paidMode() ? +(meta().price * UPGRADES[3].mult[S.up.whole] * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2) : 0;
+    const boxCost = () => +(packCost() * BOX_PACKS * (1 - BOX_DISCOUNT)).toFixed(2);
+    const currentBoxPacks = () => (S.boxes && S.boxes[selectedSet]) || 0;
+    const totalBoxPacks = () => Object.values(S.boxes || {}).reduce((sum, n) => sum + n, 0);
     const minPackCost = () => Math.min(...Object.values(SET_META).map(s => +(s.price * UPGRADES[3].mult[S.up.whole] * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2)));
     const bulkMult = () => UPGRADES[1].mult[S.up.bulk];
     const luckMult = () => UPGRADES[0].mult[S.up.luck];
@@ -554,8 +560,10 @@ html = r'''<!doctype html>
     }
 
     function openPack() {
-      const cost = packCost();
+      const fromBox = currentBoxPacks() > 0;
+      const cost = fromBox ? 0 : packCost();
       if (paidMode() && S.bank < cost) return;
+      if (fromBox) S.boxes[selectedSet]--;
       const pull = pullPack();
       const total = +pull.reduce((a, p) => a + p.v, 0).toFixed(2);
       S.bank = +(S.bank - cost + total).toFixed(2);
@@ -564,6 +572,7 @@ html = r'''<!doctype html>
       const hit = pull.reduce((a, p) => p.v > a.v ? p : a, pull[0]);
       if (!S.best || hit.v > S.best.v) S.best = { id: hit.c.id, n: hit.c.n, r: hit.c.r, v: hit.v, img: hit.c.img };
       S.last = { pull, cost, total };
+      S.last.fromBox = fromBox;
       const missionRewards = [
         ...missionStep('packs'),
         ...(pull.some(p => p.v >= 20) ? missionStep('big') : []),
@@ -599,7 +608,7 @@ html = r'''<!doctype html>
       const delta = +(total - cost).toFixed(2);
       const hit = pull.reduce((best, p) => p.v > best.v ? p : best, pull[0]);
       $('summary').innerHTML = paidMode()
-        ? `Pack ${money(cost)} → cards sold ${money(total)} <div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${money(delta)}</div><small style="opacity:.7">hit: ${hit.c.n} (${hit.c.r})</small>`
+        ? `${S.last && S.last.fromBox ? 'Box pack' : `Pack ${money(cost)}`} → cards sold ${money(total)} <div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${money(delta)}</div><small style="opacity:.7">hit: ${hit.c.n} (${hit.c.r})</small>`
         : `Pack value ${money(total)} <small style="opacity:.7;display:block">hit: ${hit.c.n} (${hit.c.r})</small>`;
       if (S.last && S.last.mission && S.last.mission.length) $('summary').innerHTML += `<div style="margin-top:8px;color:#ffe066;font-weight:900">MISSION COMPLETE<br>${S.last.mission.join('<br>')}</div>`;
       $('title').textContent = delta >= 20 ? '💎 BIG HIT!' : '🔥 PACK OPENED!';
@@ -612,15 +621,31 @@ html = r'''<!doctype html>
       const paid = paidMode();
       $('bank').textContent = paid ? money(S.bank) : 'SANDBOX';
       $('bank').classList.toggle('low', paid && S.bank < packCost() * 2);
-      $('hudSub').textContent = `${S.mode === 'hard' ? '🔥 HARD • ' : ''}${meta().name} • ` + (paid ? `${S.packs} packs • spent ${money(S.spent)} • pulled ${money(S.earned)}` : `${S.packs} packs • pulled ${money(S.earned)}`);
+      $('hudSub').textContent = `${S.mode === 'hard' ? '🔥 HARD • ' : ''}${meta().name} • ` + (paid ? `${S.packs} opened • ${currentBoxPacks()} box packs • spent ${money(S.spent)} • pulled ${money(S.earned)}` : `${S.packs} packs • pulled ${money(S.earned)}`);
       const ups = UPGRADES.filter(u => S.up[u.k]).map(u => u.ico + (u.tiers.length > 1 ? S.up[u.k] : '')).join(' ');
       $('hudUp').textContent = ups || 'no upgrades';
       $('btnShop').hidden = false;
       $('btnMissions').hidden = !paid;
       $('btnOpen').textContent = paid ? `BUY & OPEN • ${money(packCost())}` : 'OPEN PACK';
-      $('btnOpen').disabled = paid && S.bank < packCost();
+      if (paid && currentBoxPacks()) $('btnOpen').textContent = `OPEN BOX PACK • ${currentBoxPacks()} LEFT`;
+      $('btnOpen').disabled = paid && !currentBoxPacks() && S.bank < packCost();
+      $('btnBox').hidden = !paid;
+      $('btnBox').textContent = `BUY 6-PACK BOX • ${money(boxCost())} (SAVE 10%)`;
+      $('btnBox').disabled = paid && S.bank < boxCost();
       updateQuotaHud();
-      if (paid && S.bank < minPackCost()) setTimeout(bust, 1200);
+      if (paid && !totalBoxPacks() && S.bank < minPackCost()) setTimeout(bust, 1200);
+    }
+
+    function buyBox() {
+      if (!paidMode()) return;
+      const cost = boxCost();
+      if (S.bank < cost) return;
+      S.bank = +(S.bank - cost).toFixed(2);
+      S.spent = +(S.spent + cost).toFixed(2);
+      S.boxes[selectedSet] = currentBoxPacks() + BOX_PACKS;
+      save(); hud();
+      $('title').textContent = '📦 BOX PURCHASED!';
+      $('summary').innerHTML = `You bought <b>${BOX_PACKS} ${meta().name} packs</b> for ${money(cost)}, saving 10% compared with single packs.`;
     }
 
     function bust(reason = '💀 BUSTED') {
@@ -662,6 +687,7 @@ html = r'''<!doctype html>
       if (resume) activateSet(resume.set || 'me05');
       S = resume || newState(mode);
       S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, ...(S.up || {}) };
+      S.boxes = { ...(S.boxes || {}) };
       const oldMissions = S.missions || {};
       S.missions = { packs: 0, grades: 0, big: 0, ...oldMissions, claimed: { ...(oldMissions.claimed || {}) } };
       ensureQuota();
@@ -690,6 +716,7 @@ html = r'''<!doctype html>
     $('btnSandbox').onclick = () => start('sandbox');
     $('btnContinue').onclick = () => { const s = load(); if (s) start(s.mode || 'normal', s); };
     $('btnOpen').onclick = openPack;
+    $('btnBox').onclick = buyBox;
     $('btnSwitchSet').onclick = () => $('setSwitch').classList.add('on');
     $('btnSetClose').onclick = () => $('setSwitch').classList.remove('on');
     $('setSwitch').onclick = e => { if (e.target === $('setSwitch')) $('setSwitch').classList.remove('on'); };
