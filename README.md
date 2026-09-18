@@ -3,6 +3,8 @@
 Single-file pack-opening game with a set picker for Mega Evolution — Chaos Rising (ME04), Pitch Black (ME05), Phantasmal Flames (ME02), Scarlet & Violet — Destined Rivals (SV10), and Scarlet & Violet — 151 (SV03.5).
 
 - **Sandbox** — free rips, every card shows its market value.
+- **Chill** — no quota or timer, but packs and upgrades still cost money and the run ends if you cannot afford another pack.
+- **Sandbox upgrades** — the full upgrade shop is available for free in Sandbox mode.
 - **Normal** — start with $60, packs cost $4.99, cards auto-sell at real TCGplayer market prices, buy upgrades, don't go broke.
 - **PSA grading** — optionally grade any pulled card once. Grades 1–4 lose value, PSA 5 keeps its value, and grades 6–10 increase it; PSA 10 has a 2% chance and pays 10×.
 - **Set switching** — swap between Pitch Black ($4.99), Chaos Rising ($9.99), Destined Rivals ($15.00), Phantasmal Flames ($22.50), and 151 ($35.00) during the same run without losing your bankroll, upgrades, quota, or stats. The premium 151 set receives a 2× game-value boost.
