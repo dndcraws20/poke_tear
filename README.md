@@ -16,6 +16,7 @@ Single-file pack-opening game with a set picker for Mega Evolution — Chaos Ris
 - **Two original soundtracks** — switch between the wordless Electronic track and Pixel Calm, a slower ambient track with peaceful piano-like notes. Both are generated live in the browser and include Music On/Off controls.
 - **Six-pack boxes** — buy six packs of the selected set together for 10% less than purchasing them one at a time, then open the stored packs individually.
 - **Base Set First Edition** — a $10,000 premium pack with all 102 original cards, an authentic 11-card layout, premium First Edition values, and extremely low holographic odds.
+- **Kiss the Pack** — activate a 2× chase-card luck boost for the next opened pack, then wait through a visible 30-second cooldown before kissing another pack.
 
 **Play it:** https://dndcraws20.github.io/poke_tear/ (GitHub Pages, publishes from `main`)
 
