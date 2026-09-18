@@ -70,6 +70,7 @@ html = r'''<!doctype html>
     .tag { position: absolute; top: 12px; left: 12px; font-size: 10px; font-weight: 900; padding: 3px 7px; border-radius: 999px; background: #a78bfa; color: #14092e; }
     .grade-btn { width: 100%; margin: 8px 0 0; padding: 8px 6px; border-radius: 9px; font-size: 12px; background: linear-gradient(#e8f2ff, #77aee8); color: #071b31; }
     .grade-btn:disabled { opacity: 1; cursor: default; background: #25364a; color: #d6e9ff; }
+    .keep-btn { width: 100%; margin: 6px 0 0; padding: 8px 6px; border-radius: 9px; font-size: 12px; background: linear-gradient(#b7ffd0, #38c76f); color: #052612; }
     .grade-result { margin-top: 6px; padding: 6px; border-radius: 8px; background: #0b2138; color: #bdddff; font-size: 11px; font-weight: 800; }
     .summary { background: #151020; border: 1px solid #3d2a57; border-radius: 14px; padding: 10px 14px; margin: 8px auto; max-width: 520px; font-size: 15px; }
     .summary .delta { font-size: 24px; font-weight: 900; }
@@ -114,6 +115,7 @@ html = r'''<!doctype html>
         <button class="mode" id="btnSandbox"><b>🧪 Sandbox</b><small>Free packs and free upgrades forever. Still shows what every card is worth.</small></button>
       </div>
       <button class="ghost" id="btnContinue" hidden>▶ Continue run</button>
+      <button class="ghost" id="btnBinderHome">📚 Binder</button>
       <p class="note">Prices: TCGplayer market (USD), updated <span id="priceDate"></span>.</p>
     </section>
 
@@ -132,6 +134,7 @@ html = r'''<!doctype html>
       <div class="cards" id="cards"></div>
       <div class="actions">
         <button class="primary" id="btnOpen">OPEN PACK</button>
+        <button class="ghost" id="btnBinder">📚 BINDER</button>
         <button class="ghost" id="btnSwitchSet">SWITCH SET</button>
         <button class="ghost" id="btnHome">HOME</button>
       </div>
@@ -172,6 +175,14 @@ html = r'''<!doctype html>
     </div>
   </div>
 
+  <div class="overlay" id="binder">
+    <div class="sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">📚 Card Binder</h2><button class="ghost" id="btnBinderClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub" style="font-size:13px">Kept cards gain 20% value after one minute. Selling adds the money to your active Normal, Hard, or Chill run.</p>
+      <div class="cards" id="binderList"></div>
+    </div>
+  </div>
+
   <script>
     // TCGplayer market prices: p = normal, pr = reverse holo, ph = holofoil. Source: TCGdex.
     const SET_DATA = __DATA__;
@@ -196,6 +207,8 @@ html = r'''<!doctype html>
     const DOUBLE_HIT_CHANCE = .10;
     const SAVE_KEY = 'poke-tear-run-v2';
     const QUOTA_RECORD_KEY = 'poke-tear-quota-record-v1';
+    const BINDER_KEY = 'poke-tear-binder-v1';
+    const BINDER_GROW_MS = 60 * 1000;
 
     // More cards lose value than gain it: 55% below PSA 5, 12% PSA 5, 33% above PSA 5.
     const GRADES = [
@@ -241,12 +254,16 @@ html = r'''<!doctype html>
 
     let S = null; // run state
     let quotaTimer = null;
+    let binderTimer = null;
     const $ = id => document.getElementById(id);
     const money = v => (v < 0 ? '-' : '') + '$' + Math.abs(v).toFixed(2);
     const rand = a => a[Math.floor(Math.random() * a.length)];
+    const loadBinder = () => { try { return JSON.parse(localStorage.getItem(BINDER_KEY)) || []; } catch (e) { return []; } };
+    const saveBinder = () => { try { localStorage.setItem(BINDER_KEY, JSON.stringify(BINDER)); } catch (e) {} };
+    let BINDER = loadBinder();
 
     const meta = () => SET_META[selectedSet];
-    const paidMode = () => S && (S.mode === 'normal' || S.mode === 'hard' || S.mode === 'chill');
+    const paidMode = () => S && !S.ended && (S.mode === 'normal' || S.mode === 'hard' || S.mode === 'chill');
     const quotaMode = () => S && (S.mode === 'normal' || S.mode === 'hard');
     const quotaStart = () => S.mode === 'hard' ? HARD_QUOTA_START : QUOTA_START;
     const quotaMult = () => S.mode === 'hard' ? HARD_QUOTA_MULT : QUOTA_MULT;
@@ -283,6 +300,52 @@ html = r'''<!doctype html>
     function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
     function quotaRecord() { try { return +(localStorage.getItem(QUOTA_RECORD_KEY) || 0); } catch (e) { return 0; } }
     function saveQuotaRecord(n) { try { localStorage.setItem(QUOTA_RECORD_KEY, String(Math.max(n, quotaRecord()))); } catch (e) {} }
+
+    const binderValue = item => +(item.value * (Date.now() - item.keptAt >= BINDER_GROW_MS ? 1.2 : 1)).toFixed(2);
+    function keepCard(index) {
+      const p = S.last && S.last.pull[index];
+      if (!p || p.kept) return;
+      const value = p.grade ? p.grade.value : p.v;
+      if (paidMode() && S.bank < value) return;
+      if (paidMode()) {
+        S.bank = +(S.bank - value).toFixed(2);
+        S.earned = +(S.earned - value).toFixed(2);
+      }
+      S.last.total = +(S.last.total - value).toFixed(2);
+      p.kept = true;
+      BINDER.unshift({ uid: `${Date.now()}-${Math.random()}`, c: p.c, value, keptAt: Date.now(), grade: p.grade ? p.grade.n : null, set: selectedSet });
+      saveBinder(); save();
+      render(S.last.pull, S.last.cost, S.last.total);
+    }
+    function sellBinder(uid) {
+      if (!paidMode()) return;
+      const index = BINDER.findIndex(item => item.uid === uid);
+      if (index < 0) return;
+      const value = binderValue(BINDER[index]);
+      BINDER.splice(index, 1);
+      S.bank = +(S.bank + value).toFixed(2);
+      S.earned = +(S.earned + value).toFixed(2);
+      saveBinder();
+      const clearedQuota = checkQuotaProgress();
+      save(); hud(); renderBinder();
+      if (clearedQuota) $('title').textContent = '✅ QUOTA CLEARED!';
+    }
+    function renderBinder() {
+      const canSell = paidMode();
+      $('binderList').innerHTML = BINDER.length ? BINDER.map(item => {
+        const grown = Date.now() - item.keptAt >= BINDER_GROW_MS;
+        const left = Math.max(0, Math.ceil((BINDER_GROW_MS - (Date.now() - item.keptAt)) / 1000));
+        return `<div class="card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}">${money(binderValue(item))}</span>${item.grade ? `<span class="tag">PSA ${item.grade}</span>` : ''}<img src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy"><div class="name">${item.c.n}</div><div class="rarity">${item.c.r}</div><div class="grade-result">${grown ? '📈 20% growth unlocked' : `📈 +20% in ${left}s`}</div><button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `SELL • ${money(binderValue(item))}` : 'START A MONEY RUN TO SELL'}</button></div>`;
+      }).join('') : '<p class="sub" style="grid-column:1/-1">Your binder is empty. Open a pack and press KEEP IN BINDER on any card.</p>';
+      $('binderList').querySelectorAll('[data-sell]').forEach(b => b.onclick = () => sellBinder(b.dataset.sell));
+    }
+    function showBinder() {
+      clearInterval(binderTimer);
+      renderBinder();
+      $('binder').classList.add('on');
+      binderTimer = setInterval(() => { if ($('binder').classList.contains('on')) renderBinder(); }, 1000);
+    }
+    function closeBinder() { clearInterval(binderTimer); $('binder').classList.remove('on'); }
 
     function missionStep(k, amount = 1) {
       if (!paidMode()) return [];
@@ -385,7 +448,7 @@ html = r'''<!doctype html>
 
     function gradeCard(index) {
       const p = S.last && S.last.pull[index];
-      if (!p || p.grade) return;
+      if (!p || p.grade || p.kept) return;
       const result = rollGrade();
       let value = result.grade === 1 ? .01 : +(p.v * result.mult).toFixed(2);
       if (result.grade >= 2 && result.grade <= 4) value = Math.max(value, +(p.v * UPGRADES[8].mult[S.up.cover]).toFixed(2));
@@ -452,16 +515,18 @@ html = r'''<!doctype html>
         d.style.animationDelay = (i * 0.14) + 's';
         const shownValue = p.grade ? p.grade.value : p.v;
         const big = shownValue >= 5;
+        const canKeep = !paidMode() || S.bank >= shownValue;
         const gradeText = p.grade ? `PSA ${p.grade.n} • ${money(p.v)} → ${money(p.grade.value)} (${p.grade.delta >= 0 ? '+' : ''}${money(p.grade.delta)})` : '';
         d.innerHTML = `${p.grade ? `<span class="tag">PSA ${p.grade.n}</span>` : p.slot === 'rev' ? '<span class="tag">REVERSE</span>' : ''}
           <span class="val ${big ? 'big' : p.slot === 'rev' ? 'rev' : ''}" style="animation-delay:${i * 0.14 + 0.3}s">${money(shownValue)}</span>
           <img src="${cardUrl(c)}" alt="${c.n}" loading="lazy">
           <div class="name">${c.n}</div>
           <div class="rarity">${c.r} • #${c.id.split('-')[1]}/${meta().official}</div>
-          ${p.grade ? `<div class="grade-result">${gradeText}</div>` : `<button class="grade-btn" data-grade="${i}">GRADE WITH PSA</button>`}`;
+          ${p.kept ? '<div class="grade-result">📚 SAVED IN BINDER</div>' : `${p.grade ? `<div class="grade-result">${gradeText}</div>` : `<button class="grade-btn" data-grade="${i}">GRADE WITH PSA</button>`}<button class="keep-btn" data-keep="${i}" ${canKeep ? '' : 'disabled'}>${canKeep ? 'KEEP IN BINDER' : 'NOT ENOUGH MONEY TO KEEP'}</button>`}`;
         cardsEl.appendChild(d);
       });
       cardsEl.querySelectorAll('[data-grade]').forEach(b => b.onclick = () => gradeCard(+b.dataset.grade));
+      cardsEl.querySelectorAll('[data-keep]').forEach(b => b.onclick = () => keepCard(+b.dataset.keep));
       const delta = +(total - cost).toFixed(2);
       const hit = pull.reduce((best, p) => p.v > best.v ? p : best, pull[0]);
       $('summary').innerHTML = paidMode()
@@ -492,6 +557,7 @@ html = r'''<!doctype html>
     function bust(reason = '💀 BUSTED') {
       clearInterval(quotaTimer);
       if (S.quota) saveQuotaRecord(S.quota.number);
+      S.ended = true;
       show('over');
       $('overTitle').textContent = reason;
       $('overStats').innerHTML = [
@@ -559,6 +625,10 @@ html = r'''<!doctype html>
     $('btnSetClose').onclick = () => $('setSwitch').classList.remove('on');
     $('setSwitch').onclick = e => { if (e.target === $('setSwitch')) $('setSwitch').classList.remove('on'); };
     $('btnHome').onclick = home;
+    $('btnBinder').onclick = showBinder;
+    $('btnBinderHome').onclick = showBinder;
+    $('btnBinderClose').onclick = closeBinder;
+    $('binder').onclick = e => { if (e.target === $('binder')) closeBinder(); };
     $('btnShop').onclick = shop;
     $('btnShopClose').onclick = () => $('shop').classList.remove('on');
     $('shop').onclick = e => { if (e.target === $('shop')) $('shop').classList.remove('on'); };
