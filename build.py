@@ -116,6 +116,7 @@ html = r'''<!doctype html>
       </div>
       <button class="ghost" id="btnContinue" hidden>▶ Continue run</button>
       <button class="ghost" id="btnBinderHome">📚 Binder</button>
+      <button class="ghost music-toggle">🔇 Music: Off</button>
       <p class="note">Prices: TCGplayer market (USD), updated <span id="priceDate"></span>.</p>
     </section>
 
@@ -134,6 +135,7 @@ html = r'''<!doctype html>
       <div class="cards" id="cards"></div>
       <div class="actions">
         <button class="primary" id="btnOpen">OPEN PACK</button>
+        <button class="ghost music-toggle">🔇 MUSIC: OFF</button>
         <button class="ghost" id="btnBinder">📚 BINDER</button>
         <button class="ghost" id="btnSwitchSet">SWITCH SET</button>
         <button class="ghost" id="btnHome">HOME</button>
@@ -255,12 +257,72 @@ html = r'''<!doctype html>
     let S = null; // run state
     let quotaTimer = null;
     let binderTimer = null;
+    let audioCtx = null, musicTimer = null, musicOn = false, musicStep = 0, nextMusicStep = 0;
     const $ = id => document.getElementById(id);
     const money = v => (v < 0 ? '-' : '') + '$' + Math.abs(v).toFixed(2);
     const rand = a => a[Math.floor(Math.random() * a.length)];
     const loadBinder = () => { try { return JSON.parse(localStorage.getItem(BINDER_KEY)) || []; } catch (e) { return []; } };
     const saveBinder = () => { try { localStorage.setItem(BINDER_KEY, JSON.stringify(BINDER)); } catch (e) {} };
     let BINDER = loadBinder();
+
+    // Original procedural instrumental: 108 BPM drums, bass, and atmospheric synth pads.
+    const MUSIC_BPM = 108;
+    const MUSIC_STEP = 60 / MUSIC_BPM / 4;
+    const MUSIC_CHORDS = [[220, 261.63, 329.63], [174.61, 220, 261.63], [261.63, 329.63, 392], [196, 246.94, 293.66]];
+    const MUSIC_BASS = [110, 87.31, 130.81, 98];
+    function musicTone(freq, time, duration, type, volume, destination) {
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.type = type; osc.frequency.setValueAtTime(freq, time);
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.exponentialRampToValueAtTime(volume, time + .02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+      osc.connect(gain).connect(destination || audioCtx.destination);
+      osc.start(time); osc.stop(time + duration + .03);
+    }
+    function musicKick(time) {
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.frequency.setValueAtTime(145, time); osc.frequency.exponentialRampToValueAtTime(45, time + .16);
+      gain.gain.setValueAtTime(.22, time); gain.gain.exponentialRampToValueAtTime(.0001, time + .22);
+      osc.connect(gain).connect(audioCtx.destination); osc.start(time); osc.stop(time + .23);
+    }
+    function musicNoise(time, volume, duration) {
+      const size = Math.max(1, Math.floor(audioCtx.sampleRate * duration)), buffer = audioCtx.createBuffer(1, size, audioCtx.sampleRate), data = buffer.getChannelData(0);
+      for (let i = 0; i < size; i++) data[i] = Math.random() * 2 - 1;
+      const source = audioCtx.createBufferSource(), filter = audioCtx.createBiquadFilter(), gain = audioCtx.createGain();
+      source.buffer = buffer; filter.type = 'highpass'; filter.frequency.value = 5000;
+      gain.gain.setValueAtTime(volume, time); gain.gain.exponentialRampToValueAtTime(.0001, time + duration);
+      source.connect(filter).connect(gain).connect(audioCtx.destination); source.start(time);
+    }
+    function scheduleMusicStep(time, step) {
+      const beat = step % 16, bar = Math.floor(step / 16) % 4;
+      if (beat % 4 === 0) musicKick(time);
+      if (beat === 4 || beat === 12) musicNoise(time, .045, .12);
+      if (beat % 2 === 0) musicNoise(time, .018, .035);
+      if (beat % 4 === 0) musicTone(MUSIC_BASS[bar], time, MUSIC_STEP * 2.7, 'sawtooth', .035);
+      if (beat === 0) MUSIC_CHORDS[bar].forEach((f, i) => musicTone(f, time + i * .015, MUSIC_STEP * 14, 'sine', .018));
+      if (beat === 2 || beat === 6 || beat === 10 || beat === 14) musicTone(MUSIC_CHORDS[bar][(beat / 4 | 0) % 3] * 2, time, MUSIC_STEP * 1.4, 'triangle', .018);
+    }
+    function pumpMusic() {
+      if (!musicOn || !audioCtx) return;
+      while (nextMusicStep < audioCtx.currentTime + .2) {
+        scheduleMusicStep(nextMusicStep, musicStep++);
+        nextMusicStep += MUSIC_STEP;
+      }
+    }
+    function updateMusicButtons() {
+      document.querySelectorAll('.music-toggle').forEach(b => b.textContent = musicOn ? '🔊 MUSIC: ON' : '🔇 MUSIC: OFF');
+    }
+    async function toggleMusic() {
+      if (musicOn) {
+        musicOn = false; clearInterval(musicTimer);
+        if (audioCtx) await audioCtx.close();
+        audioCtx = null; updateMusicButtons(); return;
+      }
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      await audioCtx.resume();
+      musicOn = true; musicStep = 0; nextMusicStep = audioCtx.currentTime + .05;
+      pumpMusic(); musicTimer = setInterval(pumpMusic, 50); updateMusicButtons();
+    }
 
     const meta = () => SET_META[selectedSet];
     const paidMode = () => S && !S.ended && (S.mode === 'normal' || S.mode === 'hard' || S.mode === 'chill');
@@ -629,6 +691,7 @@ html = r'''<!doctype html>
     $('btnBinderHome').onclick = showBinder;
     $('btnBinderClose').onclick = closeBinder;
     $('binder').onclick = e => { if (e.target === $('binder')) closeBinder(); };
+    document.querySelectorAll('.music-toggle').forEach(b => b.onclick = toggleMusic);
     $('btnShop').onclick = shop;
     $('btnShopClose').onclick = () => $('shop').classList.remove('on');
     $('shop').onclick = e => { if (e.target === $('shop')) $('shop').classList.remove('on'); };
