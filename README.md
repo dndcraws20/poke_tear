@@ -9,6 +9,7 @@ Single-file pack-opening game with a set picker for Mega Evolution — Chaos Ris
 - **Quota challenge** — Normal mode gives you 60 seconds to reach a $50 bankroll quota. Each cleared quota is 1.5× larger; packs and upgrades reduce your bankroll progress. Missing the deadline ends the run, and the game remembers your highest quota.
 - **Hard mode** — 30-second rounds begin with a $75 quota, quotas grow by 1.75×, packs cost 25% more, and chase-card odds are cut in half. Missing a quota or running out of money ends the run.
 - **Ten upgrades** — improve chase odds, bulk values, reverse slots, pack discounts, PSA grades, holo values, double-hit odds, quota time, low-grade protection, and valuable-card bonuses. Every pack naturally has a 10% double-hit chance, and cards appear in a randomized order. Upgrades last for the entire run.
+- **Run missions** — complete three goals by opening packs, grading cards, and finding a $20+ pull. Missions track progress in their own panel and automatically pay cash rewards that can help reach the next quota.
 
 **Play it:** https://dndcraws20.github.io/poke_tear/ (GitHub Pages, publishes from `main`)
 
