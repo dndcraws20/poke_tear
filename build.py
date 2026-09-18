@@ -93,11 +93,16 @@ html = r'''<!doctype html>
     .stat b { display: block; font-size: 20px; }
     .stat small { opacity: .7; font-size: 11px; }
     .best { max-width: 220px; margin: 10px auto; }
+    .binder-sheet { width: min(820px, 100%); }
+    .binder-cards { display: grid; grid-template-columns: 1fr; gap: 20px; margin: 16px auto; }
+    .binder-card { width: 100%; max-width: 360px; margin: auto; padding: 12px; }
+    .binder-card img { cursor: zoom-in; }
+    .zoom-card { max-width: min(440px, 94vw); max-height: 88vh; border-radius: 16px; box-shadow: 0 20px 60px #000; }
     @keyframes pop { from { opacity: 0; transform: scale(.7) translateY(25px); } to { opacity: 1; transform: none; } }
     @keyframes glow { from { box-shadow: 0 0 18px #ff4fd088; } to { box-shadow: 0 0 44px #ff4fd0ee, 0 0 80px #ff9800aa; } }
     @keyframes flash { 0% { background: #22c55e66; } 100% { background: #120c1c; } }
     .flash { animation: flash .8s; }
-    @media (min-width: 700px) { .cards { grid-template-columns: repeat(5, 1fr); } .overlay { align-items: center; } .sheet { border-radius: 20px; } }
+    @media (min-width: 700px) { .cards { grid-template-columns: repeat(5, 1fr); } .binder-cards { grid-template-columns: repeat(2, 1fr); } .overlay { align-items: center; } .sheet { border-radius: 20px; } }
   </style>
 </head>
 <body>
@@ -183,11 +188,15 @@ html = r'''<!doctype html>
   </div>
 
   <div class="overlay" id="binder">
-    <div class="sheet">
-      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">📚 Card Binder</h2><button class="ghost" id="btnBinderClose" style="margin:0;padding:8px 14px">✕</button></div>
-      <p class="sub" style="font-size:13px">Kept cards gain 20% value after one minute. Selling adds the money to your active Normal, Hard, or Chill run.</p>
-      <div class="cards" id="binderList"></div>
+    <div class="sheet binder-sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">📚 Card Binder <small id="binderCount"></small></h2><button class="ghost" id="btnBinderClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub" style="font-size:13px">Keep up to eight cards. Tap a card to inspect it, grade it with PSA, keep it, or sell it into an active money-mode run.</p>
+      <div class="binder-cards" id="binderList"></div>
     </div>
+  </div>
+
+  <div class="overlay" id="cardZoom">
+    <div style="position:relative;padding:12px"><img class="zoom-card" id="zoomImage" alt="Enlarged card"><button class="ghost" id="btnZoomClose" style="position:absolute;right:14px;top:14px;padding:8px 13px">✕</button></div>
   </div>
 
   <script>
@@ -220,6 +229,7 @@ html = r'''<!doctype html>
     const QUOTA_RECORD_KEY = 'poke-tear-quota-record-v1';
     const BINDER_KEY = 'poke-tear-binder-v1';
     const BINDER_GROW_MS = 60 * 1000;
+    const BINDER_LIMIT = 8;
 
     // More cards lose value than gain it: 55% below PSA 5, 12% PSA 5, 33% above PSA 5.
     const GRADES = [
@@ -410,7 +420,7 @@ html = r'''<!doctype html>
     const binderValue = item => +(item.value * (Date.now() - item.keptAt >= BINDER_GROW_MS ? 1.2 : 1)).toFixed(2);
     function keepCard(index) {
       const p = S.last && S.last.pull[index];
-      if (!p || p.kept) return;
+      if (!p || p.kept || BINDER.length >= BINDER_LIMIT) return;
       const value = p.grade ? p.grade.value : p.v;
       if (paidMode() && S.bank < value) return;
       if (paidMode()) {
@@ -419,7 +429,7 @@ html = r'''<!doctype html>
       }
       S.last.total = +(S.last.total - value).toFixed(2);
       p.kept = true;
-      BINDER.unshift({ uid: `${Date.now()}-${Math.random()}`, c: p.c, value, keptAt: Date.now(), grade: p.grade ? p.grade.n : null, set: selectedSet });
+      BINDER.unshift({ uid: `${Date.now()}-${Math.random()}`, c: p.c, value, keptAt: Date.now(), grade: p.grade ? p.grade.n : null, shaken: !!p.shaken, set: selectedSet });
       saveBinder(); save();
       render(S.last.pull, S.last.cost, S.last.total);
     }
@@ -436,14 +446,41 @@ html = r'''<!doctype html>
       save(); hud(); renderBinder();
       if (clearedQuota) $('title').textContent = '✅ QUOTA CLEARED!';
     }
+    function gradeBinderCard(uid) {
+      const item = BINDER.find(item => item.uid === uid);
+      if (!item || item.grade) return;
+      const result = item.shaken ? GRADES.find(g => g.grade === 1) : rollGrade();
+      let value = result.grade === 1 ? .01 : +(item.value * result.mult).toFixed(2);
+      const coverLevel = S && S.up ? S.up.cover || 0 : 0;
+      if (result.grade >= 2 && result.grade <= 4) value = Math.max(value, +(item.value * UPGRADES[8].mult[coverLevel]).toFixed(2));
+      item.value = value;
+      item.grade = result.grade;
+      saveBinder();
+      if (paidMode()) {
+        missionStep('grades');
+        const clearedQuota = checkQuotaProgress();
+        save(); hud();
+        if (clearedQuota) $('title').textContent = '✅ QUOTA CLEARED!';
+      }
+      renderBinder();
+    }
+    function zoomBinderCard(uid) {
+      const item = BINDER.find(item => item.uid === uid);
+      if (!item) return;
+      $('zoomImage').src = cardUrl(item.c);
+      $('zoomImage').alt = item.c.n;
+      $('cardZoom').classList.add('on');
+    }
+    function closeCardZoom() { $('cardZoom').classList.remove('on'); }
     function renderBinder() {
       const canSell = paidMode();
+      $('binderCount').textContent = `${BINDER.length}/${BINDER_LIMIT}`;
       $('binderList').innerHTML = BINDER.length ? BINDER.map(item => {
-        const grown = Date.now() - item.keptAt >= BINDER_GROW_MS;
-        const left = Math.max(0, Math.ceil((BINDER_GROW_MS - (Date.now() - item.keptAt)) / 1000));
-        return `<div class="card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}">${money(binderValue(item))}</span>${item.grade ? `<span class="tag">PSA ${item.grade}</span>` : ''}<img src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy"><div class="name">${item.c.n}</div><div class="rarity">${item.c.r}</div><div class="grade-result">${grown ? '📈 20% growth unlocked' : `📈 +20% in ${left}s`}</div><button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `SELL • ${money(binderValue(item))}` : 'START A MONEY RUN TO SELL'}</button></div>`;
+        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}">${money(binderValue(item))}</span>${item.grade ? `<span class="tag">PSA ${item.grade}</span>` : ''}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy">${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}">${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `SELL • ${money(binderValue(item))}` : 'START A MONEY RUN TO SELL'}</button></div>`;
       }).join('') : '<p class="sub" style="grid-column:1/-1">Your binder is empty. Open a pack and press KEEP IN BINDER on any card.</p>';
       $('binderList').querySelectorAll('[data-sell]').forEach(b => b.onclick = () => sellBinder(b.dataset.sell));
+      $('binderList').querySelectorAll('[data-binder-grade]').forEach(b => b.onclick = () => gradeBinderCard(b.dataset.binderGrade));
+      $('binderList').querySelectorAll('[data-view]').forEach(img => img.onclick = () => zoomBinderCard(img.dataset.view));
     }
     function showBinder() {
       clearInterval(binderTimer);
@@ -550,16 +587,18 @@ html = r'''<!doctype html>
     }
 
     function rollGradeOnce() {
+      const mintLevel = S && S.up ? S.up.mint || 0 : 0;
       let x = Math.random() * 100;
       for (const result of GRADES) {
         x -= result.chance;
-        if (x < 0) return GRADES.find(g => g.grade === Math.min(10, result.grade + S.up.mint));
+        if (x < 0) return GRADES.find(g => g.grade === Math.min(10, result.grade + mintLevel));
       }
       return GRADES[GRADES.length - 1];
     }
     function rollGrade() {
+      const recheckLevel = S && S.up ? S.up.recheck || 0 : 0;
       let best = rollGradeOnce();
-      for (let i = 1; i < UPGRADES[11].mult[S.up.recheck]; i++) {
+      for (let i = 1; i < UPGRADES[11].mult[recheckLevel]; i++) {
         const result = rollGradeOnce();
         if (result.grade > best.grade) best = result;
       }
@@ -672,14 +711,16 @@ html = r'''<!doctype html>
         d.style.animationDelay = (i * 0.14) + 's';
         const shownValue = p.grade ? p.grade.value : p.v;
         const big = shownValue >= 5;
-        const canKeep = !paidMode() || S.bank >= shownValue;
+        const binderFull = BINDER.length >= BINDER_LIMIT;
+        const canKeep = !binderFull && (!paidMode() || S.bank >= shownValue);
+        const keepText = binderFull ? 'BINDER FULL • 8/8' : canKeep ? 'KEEP IN BINDER' : 'NOT ENOUGH MONEY TO KEEP';
         const gradeText = p.grade ? `PSA ${p.grade.n} • ${money(p.v)} → ${money(p.grade.value)} (${p.grade.delta >= 0 ? '+' : ''}${money(p.grade.delta)})` : '';
         d.innerHTML = `${p.grade ? `<span class="tag">PSA ${p.grade.n}</span>` : p.shaken ? '<span class="tag">SHAKEN</span>' : p.slot === 'rev' ? '<span class="tag">REVERSE</span>' : ''}
           <span class="val ${big ? 'big' : p.slot === 'rev' ? 'rev' : ''}" style="animation-delay:${i * 0.14 + 0.3}s">${money(shownValue)}</span>
           <img src="${cardUrl(c)}" alt="${c.n}" loading="lazy">
           <div class="name">${c.n}</div>
           <div class="rarity">${c.r} • #${c.id.split('-')[1]}/${meta().official}</div>
-          ${p.kept ? '<div class="grade-result">📚 SAVED IN BINDER</div>' : `${p.grade ? `<div class="grade-result">${gradeText}</div>` : `<button class="grade-btn" data-grade="${i}">${p.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="keep-btn" data-keep="${i}" ${canKeep ? '' : 'disabled'}>${canKeep ? 'KEEP IN BINDER' : 'NOT ENOUGH MONEY TO KEEP'}</button>`}`;
+          ${p.kept ? '<div class="grade-result">📚 SAVED IN BINDER</div>' : `${p.grade ? `<div class="grade-result">${gradeText}</div>` : `<button class="grade-btn" data-grade="${i}">${p.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="keep-btn" data-keep="${i}" ${canKeep ? '' : 'disabled'}>${keepText}</button>`}`;
         cardsEl.appendChild(d);
       });
       cardsEl.querySelectorAll('[data-grade]').forEach(b => b.onclick = () => gradeCard(+b.dataset.grade));
@@ -813,6 +854,8 @@ html = r'''<!doctype html>
     $('btnBinderHome').onclick = showBinder;
     $('btnBinderClose').onclick = closeBinder;
     $('binder').onclick = e => { if (e.target === $('binder')) closeBinder(); };
+    $('btnZoomClose').onclick = closeCardZoom;
+    $('cardZoom').onclick = e => { if (e.target === $('cardZoom')) closeCardZoom(); };
     document.querySelectorAll('.music-toggle').forEach(b => b.onclick = toggleMusic);
     document.querySelectorAll('.track-toggle').forEach(b => b.onclick = toggleTrack);
     $('btnShop').onclick = shop;
