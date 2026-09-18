@@ -1,6 +1,6 @@
 # poke_tear — Pokémon Pack Opener
 
-Single-file pack-opening game with a set picker for Mega Evolution — Chaos Rising (ME04), Pitch Black (ME05), Phantasmal Flames (ME02), Scarlet & Violet — Destined Rivals (SV10), and Scarlet & Violet — 151 (SV03.5).
+Single-file pack-opening game with a set picker for Mega Evolution — Chaos Rising (ME04), Pitch Black (ME05), Phantasmal Flames (ME02), Scarlet & Violet — Destined Rivals (SV10), Scarlet & Violet — 151 (SV03.5), and the original 1999 Base Set First Edition (BASE1).
 
 - **Sandbox** — free rips, every card shows its market value.
 - **Chill** — no quota or timer, but packs and upgrades still cost money and the run ends if you cannot afford another pack.
@@ -15,6 +15,7 @@ Single-file pack-opening game with a set picker for Mega Evolution — Chaos Ris
 - **Persistent card binder** — keep any pulled card instead of selling it, carry the collection across runs, gain a one-time 20% value increase after one real minute, and sell cards back into an active money-mode run.
 - **Two original soundtracks** — switch between the wordless Electronic track and Pixel Calm, a slower ambient track with peaceful piano-like notes. Both are generated live in the browser and include Music On/Off controls.
 - **Six-pack boxes** — buy six packs of the selected set together for 10% less than purchasing them one at a time, then open the stored packs individually.
+- **Base Set First Edition** — a $10,000 premium pack with all 102 original cards, an authentic 11-card layout, premium First Edition values, and extremely low holographic odds.
 
 **Play it:** https://dndcraws20.github.io/poke_tear/ (GitHub Pages, publishes from `main`)
 
@@ -31,10 +32,12 @@ Mirror: https://preview.sasta.ai/pack-opener/
 | `sv10-cards.json` | All 244 Destined Rivals cards with rarity + TCGplayer/cardmarket prices (from TCGdex). |
 | `me02-cards.json` | All 130 Phantasmal Flames cards with rarity + TCGplayer/cardmarket prices (from TCGdex). |
 | `sv03.5-cards.json` | All 207 Scarlet & Violet—151 cards with rarity + TCGplayer/cardmarket prices (from TCGdex). |
+| `base1-cards.json` | All 102 original Base Set cards with First Edition variant values (from TCGdex). |
 | `chaos-rising-pack.png` | Chaos Rising booster pack art. |
 | `destined-rivals-pack.jpg` | Destined Rivals booster pack art. |
 | `phantasmal-flames-pack.png` | Phantasmal Flames booster pack art. |
 | `pokemon-151-pack.png` | Scarlet & Violet—151 booster pack art. |
+| `first-edition-pack.svg` | Original gold-and-black First Edition pack artwork used by the game. |
 | `pack.jpg` | Pitch Black booster pack art. |
 
 `build.py` writes `index.html` next to itself.
@@ -46,7 +49,7 @@ Re-fetch each card from `https://api.tcgdex.net/v2/en/cards/SET-NNN` (fields `ra
 ## Deploy
 
 ```
-scp index.html pack.jpg chaos-rising-pack.png destined-rivals-pack.jpg phantasmal-flames-pack.png pokemon-151-pack.png root@<vps>:/var/www/pack-opener/
+scp index.html pack.jpg chaos-rising-pack.png destined-rivals-pack.jpg phantasmal-flames-pack.png pokemon-151-pack.png first-edition-pack.svg root@<vps>:/var/www/pack-opener/
 ```
 
 Card art is hotlinked from `assets.tcgdex.net`; the nginx location block for `/pack-opener/` carries its own CSP allowing that host.

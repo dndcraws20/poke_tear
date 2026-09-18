@@ -1,7 +1,7 @@
 import json, os
 here = os.path.dirname(os.path.abspath(__file__))
 sets = {}
-for set_id in ("me04", "me05", "sv10", "me02", "sv03.5"):
+for set_id in ("me04", "me05", "sv10", "me02", "sv03.5", "base1"):
     cards = json.load(open(os.path.join(here, f"{set_id}-cards.json"), encoding="utf-8"))
     series_id = "".join(ch for ch in set_id if ch.isalpha())
     pre = f"https://assets.tcgdex.net/en/{series_id}/{set_id}/"
@@ -197,6 +197,7 @@ html = r'''<!doctype html>
       sv10: { name: 'Destined Rivals', series: 'Scarlet & Violet', code: 'SV10', official: 182, art: 'destined-rivals-pack.jpg', price: 15, valueMult: 1.3 },
       me02: { name: 'Phantasmal Flames', series: 'Mega Evolution', code: 'ME02', official: 94, art: 'phantasmal-flames-pack.png', price: 22.5, valueMult: 1.6 },
       'sv03.5': { name: '151', series: 'Scarlet & Violet', code: 'SV03.5', official: 165, art: 'pokemon-151-pack.png', price: 35, valueMult: 2 },
+      base1: { name: 'Base Set First Edition', series: '1999 Original', code: 'BASE1', official: 102, art: 'first-edition-pack.svg', price: 10000, valueMult: 3 },
     };
     const PRICE_DATE = '__DATE__';
 
@@ -232,14 +233,14 @@ html = r'''<!doctype html>
     ];
 
     // rank: 0 common · 1 uncommon · 2 rare/double rare · 3 ultra/illustration · 4 special illustration/hyper
-    const RANK = r => { r = r.toLowerCase(); if (r === 'common') return 0; if (r === 'uncommon') return 1; if (r.includes('special') || r.includes('hyper')) return 4; if (r.includes('ultra') || r.includes('illustration')) return 3; return 2; };
+    const RANK = r => { r = r.toLowerCase(); if (r === 'common') return 0; if (r === 'uncommon') return 1; if (r.includes('holo rare') || r.includes('special') || r.includes('hyper')) return 4; if (r.includes('ultra') || r.includes('illustration')) return 3; return 2; };
     let selectedSet = 'me05';
     let SET = [];
     let BY = {};
 
     // Hit-slot base weights (roughly real pull rates). Luck multiplies the chase tiers.
-    const HIT_W = { 'Rare': 55, 'Double rare': 22, 'Illustration rare': 10, 'Ultra Rare': 5, 'Special illustration rare': 2, 'Mega Hyper Rare': 0.4, 'Hyper rare': 0.4 };
-    const CHASE = new Set(['Illustration rare', 'Ultra Rare', 'Special illustration rare', 'Mega Hyper Rare', 'Hyper rare']);
+    const HIT_W = { 'Rare': 55, 'Holo Rare': .8, 'Double rare': 22, 'Illustration rare': 10, 'Ultra Rare': 5, 'Special illustration rare': 2, 'Mega Hyper Rare': 0.4, 'Hyper rare': 0.4 };
+    const CHASE = new Set(['Holo Rare', 'Illustration rare', 'Ultra Rare', 'Special illustration rare', 'Mega Hyper Rare', 'Hyper rare']);
 
     const UPGRADES = [
       { k: 'luck',  ico: '🍀', name: 'Lucky Charm', desc: 'Boosts the odds of the hit slot being an Illustration / Ultra / Special / Hyper rare.', tiers: [15, 40, 100], fx: ['1.6×', '2.6×', '4.5×'], mult: [1, 1.6, 2.6, 4.5] },
@@ -570,9 +571,10 @@ html = r'''<!doctype html>
       const take = (pool, slot) => { let c, n = 0; do { c = rand(pool); } while (used.has(c.id) && n++ < 50); used.add(c.id); return { c, slot, v: 0 }; };
       const base = [...BY['Common'], ...BY['Uncommon'], ...BY['Rare']];
       const pull = [];
-      for (let i = 0; i < 4; i++) pull.push(take(BY['Common'], 'base'));
+      const firstEdition = selectedSet === 'base1';
+      for (let i = 0; i < (firstEdition ? 7 : 4); i++) pull.push(take(BY['Common'], 'base'));
       for (let i = 0; i < 3; i++) pull.push(take(BY['Uncommon'], 'base'));
-      for (let i = 0; i < 2 + S.up.rev; i++) pull.push(take(base, 'rev'));
+      if (!firstEdition) for (let i = 0; i < 2 + S.up.rev; i++) pull.push(take(base, 'rev'));
       pull.push(take(BY[rollHitRarity()], 'hit'));
       if (Math.random() < DOUBLE_HIT_CHANCE + UPGRADES[6].mult[S.up.bonus]) pull.push(take(BY[rollHitRarity()], 'hit'));
       for (let i = pull.length - 1; i > 0; i--) {
