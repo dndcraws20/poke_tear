@@ -476,17 +476,30 @@ html = r'''<!doctype html>
       const canSell = paidMode();
       $('binderCount').textContent = `${BINDER.length}/${BINDER_LIMIT}`;
       $('binderList').innerHTML = BINDER.length ? BINDER.map(item => {
-        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}">${money(binderValue(item))}</span>${item.grade ? `<span class="tag">PSA ${item.grade}</span>` : ''}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy">${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}">${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `SELL • ${money(binderValue(item))}` : 'START A MONEY RUN TO SELL'}</button></div>`;
+        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}" data-binder-price="${item.uid}">${money(binderValue(item))}</span>${item.grade ? `<span class="tag">PSA ${item.grade}</span>` : ''}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy">${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}">${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `SELL • ${money(binderValue(item))}` : 'START A MONEY RUN TO SELL'}</button></div>`;
       }).join('') : '<p class="sub" style="grid-column:1/-1">Your binder is empty. Open a pack and press KEEP IN BINDER on any card.</p>';
       $('binderList').querySelectorAll('[data-sell]').forEach(b => b.onclick = () => sellBinder(b.dataset.sell));
       $('binderList').querySelectorAll('[data-binder-grade]').forEach(b => b.onclick = () => gradeBinderCard(b.dataset.binderGrade));
       $('binderList').querySelectorAll('[data-view]').forEach(img => img.onclick = () => zoomBinderCard(img.dataset.view));
     }
+    function refreshBinderPrices() {
+      document.querySelectorAll('[data-binder-price]').forEach(el => {
+        const item = BINDER.find(item => item.uid === el.dataset.binderPrice);
+        if (!item) return;
+        const value = binderValue(item);
+        el.textContent = money(value);
+        el.classList.toggle('big', value >= 5);
+      });
+      document.querySelectorAll('#binderList [data-sell]').forEach(button => {
+        const item = BINDER.find(item => item.uid === button.dataset.sell);
+        if (item && paidMode()) button.textContent = `SELL • ${money(binderValue(item))}`;
+      });
+    }
     function showBinder() {
       clearInterval(binderTimer);
       renderBinder();
       $('binder').classList.add('on');
-      binderTimer = setInterval(() => { if ($('binder').classList.contains('on')) renderBinder(); }, 1000);
+      binderTimer = setInterval(() => { if ($('binder').classList.contains('on')) refreshBinderPrices(); }, 1000);
     }
     function closeBinder() { clearInterval(binderTimer); $('binder').classList.remove('on'); }
 
