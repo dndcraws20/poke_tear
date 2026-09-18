@@ -270,6 +270,7 @@ html = r'''<!doctype html>
     const MUSIC_STEP = 60 / MUSIC_BPM / 4;
     const MUSIC_CHORDS = [[220, 261.63, 329.63], [174.61, 220, 261.63], [261.63, 329.63, 392], [196, 246.94, 293.66]];
     const MUSIC_BASS = [110, 87.31, 130.81, 98];
+    const MUSIC_MELODY = [[440, 523.25, 659.25, 523.25], [349.23, 440, 523.25, 440], [523.25, 659.25, 783.99, 659.25], [392, 493.88, 587.33, 493.88]];
     function musicTone(freq, time, duration, type, volume, destination) {
       const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
       osc.type = type; osc.frequency.setValueAtTime(freq, time);
@@ -294,13 +295,19 @@ html = r'''<!doctype html>
       source.connect(filter).connect(gain).connect(audioCtx.destination); source.start(time);
     }
     function scheduleMusicStep(time, step) {
-      const beat = step % 16, bar = Math.floor(step / 16) % 4;
+      const beat = step % 16, bar = Math.floor(step / 16) % 4, secondPhrase = Math.floor(step / 64) % 2;
       if (beat % 4 === 0) musicKick(time);
       if (beat === 4 || beat === 12) musicNoise(time, .045, .12);
       if (beat % 2 === 0) musicNoise(time, .018, .035);
+      if (secondPhrase && beat === 14) musicNoise(time, .026, .09);
       if (beat % 4 === 0) musicTone(MUSIC_BASS[bar], time, MUSIC_STEP * 2.7, 'sawtooth', .035);
+      if (secondPhrase && beat === 8) musicTone(MUSIC_BASS[bar] * 2, time, MUSIC_STEP * 1.8, 'triangle', .016);
       if (beat === 0) MUSIC_CHORDS[bar].forEach((f, i) => musicTone(f, time + i * .015, MUSIC_STEP * 14, 'sine', .018));
-      if (beat === 2 || beat === 6 || beat === 10 || beat === 14) musicTone(MUSIC_CHORDS[bar][(beat / 4 | 0) % 3] * 2, time, MUSIC_STEP * 1.4, 'triangle', .018);
+      if (beat === 2 || beat === 6 || beat === 10 || beat === 14) {
+        let note = MUSIC_MELODY[bar][(beat - 2) / 4];
+        if (secondPhrase && beat === 14) note *= 1.125;
+        musicTone(note, time, MUSIC_STEP * 1.5, 'triangle', .02);
+      }
     }
     function pumpMusic() {
       if (!musicOn || !audioCtx) return;
