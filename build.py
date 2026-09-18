@@ -119,7 +119,7 @@ html = r'''<!doctype html>
     <section id="game" class="screen">
       <div class="hud" id="hud">
         <div><div class="bank" id="bank"></div><small id="hudSub"></small></div>
-        <div class="r"><button class="ghost" id="btnShop" style="margin:0;padding:10px 14px">🛒 Upgrades</button><small id="hudUp"></small></div>
+        <div class="r"><button class="ghost" id="btnMissions" style="margin:0;padding:10px 12px">🎯 Missions</button><button class="ghost" id="btnShop" style="margin:0;padding:10px 12px">🛒 Upgrades</button><small id="hudUp"></small></div>
       </div>
       <div class="quota" id="quotaBox" hidden>
         <div class="quota-top"><span id="quotaLabel"></span><span class="quota-time" id="quotaTime"></span></div>
@@ -160,6 +160,14 @@ html = r'''<!doctype html>
       <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🎴 Switch set</h2><button class="ghost" id="btnSetClose" style="margin:0;padding:8px 14px">✕</button></div>
       <p class="sub" style="font-size:13px">Your bankroll, upgrades, stats, and save stay the same.</p>
       <div class="set-picker" id="gameSetPicker"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="missions">
+    <div class="sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🎯 Run Missions</h2><button class="ghost" id="btnMissionsClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub" style="font-size:13px">Finish goals during this run. Cash rewards are collected automatically.</p>
+      <div id="missionList"></div>
     </div>
   </div>
 
@@ -224,6 +232,11 @@ html = r'''<!doctype html>
       { k: 'cover', ico: '🛡️', name: 'PSA Insurance', desc: 'PSA 2–4 cards keep a minimum percentage of their ungraded value. PSA 1 is still worth one cent.', tiers: [30, 85], fx: ['50% minimum', '75% minimum'], mult: [0, .5, .75] },
       { k: 'jackpot', ico: '💰', name: 'Big Hit Bonus', desc: 'Cards worth at least $20 receive an extra value multiplier.', tiers: [45, 120], fx: ['1.25× value', '1.5× value'], mult: [1, 1.25, 1.5] },
     ];
+    const MISSIONS = [
+      { k: 'packs', ico: '🎴', name: 'Pack Rookie', desc: 'Open 3 packs in this run.', goal: 3, reward: 10 },
+      { k: 'grades', ico: '🏅', name: 'PSA Apprentice', desc: 'Grade 2 cards in this run.', goal: 2, reward: 12 },
+      { k: 'big', ico: '💎', name: 'Treasure Hunter', desc: 'Pull a card worth at least $20.', goal: 1, reward: 15 },
+    ];
 
     let S = null; // run state
     let quotaTimer = null;
@@ -260,7 +273,7 @@ html = r'''<!doctype html>
     }
 
     function newState(mode) {
-      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0 }, last: null,
+      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0 }, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
         quota: mode === 'normal' || mode === 'hard' ? { number: 1, cleared: 0, target: mode === 'hard' ? HARD_QUOTA_START : QUOTA_START, endsAt: Date.now() + (mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) * 1000 } : null };
     }
     function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
@@ -268,6 +281,28 @@ html = r'''<!doctype html>
     function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
     function quotaRecord() { try { return +(localStorage.getItem(QUOTA_RECORD_KEY) || 0); } catch (e) { return 0; } }
     function saveQuotaRecord(n) { try { localStorage.setItem(QUOTA_RECORD_KEY, String(Math.max(n, quotaRecord()))); } catch (e) {} }
+
+    function missionStep(k, amount = 1) {
+      if (!paidMode()) return [];
+      S.missions[k] = (S.missions[k] || 0) + amount;
+      const completed = [];
+      MISSIONS.forEach(m => {
+        if (!S.missions.claimed[m.k] && S.missions[m.k] >= m.goal) {
+          S.missions.claimed[m.k] = true;
+          S.bank = +(S.bank + m.reward).toFixed(2);
+          completed.push(`${m.ico} ${m.name} +${money(m.reward)}`);
+        }
+      });
+      return completed;
+    }
+
+    function showMissions() {
+      $('missionList').innerHTML = MISSIONS.map(m => {
+        const progress = Math.min(m.goal, S.missions[m.k] || 0), done = !!S.missions.claimed[m.k];
+        return `<div class="up ${done ? 'max' : ''}"><div class="ico">${m.ico}</div><div class="body"><b>${m.name}</b><small>${m.desc}</small><div class="quota-track"><div class="quota-fill" style="width:${progress / m.goal * 100}%"></div></div><div class="tier">${done ? 'COMPLETED' : `${progress}/${m.goal}`} • reward ${money(m.reward)}</div></div></div>`;
+      }).join('');
+      $('missions').classList.add('on');
+    }
 
     function ensureQuota() {
       if (paidMode() && !S.quota) S.quota = { number: 1, cleared: 0, target: quotaStart(), endsAt: Date.now() + quotaSeconds() * 1000 };
@@ -357,6 +392,8 @@ html = r'''<!doctype html>
       S.last.total = +(S.last.total + delta).toFixed(2);
       S.earned = +(S.earned + delta).toFixed(2);
       if (paidMode()) S.bank = +(S.bank + delta).toFixed(2);
+      const missionRewards = missionStep('grades');
+      if (missionRewards.length) S.last.mission = [...(S.last.mission || []), ...missionRewards];
       if (!S.best || value > S.best.v) S.best = { id: p.c.id, n: p.c.n, r: p.c.r, v: value, img: p.c.img };
       const clearedQuota = checkQuotaProgress();
       save();
@@ -393,6 +430,11 @@ html = r'''<!doctype html>
       const hit = pull.reduce((a, p) => p.v > a.v ? p : a, pull[0]);
       if (!S.best || hit.v > S.best.v) S.best = { id: hit.c.id, n: hit.c.n, r: hit.c.r, v: hit.v, img: hit.c.img };
       S.last = { pull, cost, total };
+      const missionRewards = [
+        ...missionStep('packs'),
+        ...(pull.some(p => p.v >= 20) ? missionStep('big') : []),
+      ];
+      if (missionRewards.length) S.last.mission = missionRewards;
       const clearedQuota = checkQuotaProgress();
       save();
       render(pull, cost, total);
@@ -423,6 +465,7 @@ html = r'''<!doctype html>
       $('summary').innerHTML = paidMode()
         ? `Pack ${money(cost)} → cards sold ${money(total)} <div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${money(delta)}</div><small style="opacity:.7">hit: ${hit.c.n} (${hit.c.r})</small>`
         : `Pack value ${money(total)} <small style="opacity:.7;display:block">hit: ${hit.c.n} (${hit.c.r})</small>`;
+      if (S.last && S.last.mission && S.last.mission.length) $('summary').innerHTML += `<div style="margin-top:8px;color:#ffe066;font-weight:900">MISSION COMPLETE<br>${S.last.mission.join('<br>')}</div>`;
       $('title').textContent = delta >= 20 ? '💎 BIG HIT!' : '🔥 PACK OPENED!';
       $('hud').classList.remove('flash'); void $('hud').offsetWidth; $('hud').classList.add('flash');
       hud();
@@ -437,6 +480,7 @@ html = r'''<!doctype html>
       const ups = UPGRADES.filter(u => S.up[u.k]).map(u => u.ico + (u.tiers.length > 1 ? S.up[u.k] : '')).join(' ');
       $('hudUp').textContent = ups || 'no upgrades';
       $('btnShop').hidden = !paid;
+      $('btnMissions').hidden = !paid;
       $('btnOpen').textContent = paid ? `BUY & OPEN • ${money(packCost())}` : 'OPEN PACK';
       $('btnOpen').disabled = paid && S.bank < packCost();
       updateQuotaHud();
@@ -479,6 +523,8 @@ html = r'''<!doctype html>
       if (resume) activateSet(resume.set || 'me05');
       S = resume || newState(mode);
       S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, ...(S.up || {}) };
+      const oldMissions = S.missions || {};
+      S.missions = { packs: 0, grades: 0, big: 0, ...oldMissions, claimed: { ...(oldMissions.claimed || {}) } };
       ensureQuota();
       show('game');
       $('cards').innerHTML = '';
@@ -511,6 +557,9 @@ html = r'''<!doctype html>
     $('btnShop').onclick = shop;
     $('btnShopClose').onclick = () => $('shop').classList.remove('on');
     $('shop').onclick = e => { if (e.target === $('shop')) $('shop').classList.remove('on'); };
+    $('btnMissions').onclick = showMissions;
+    $('btnMissionsClose').onclick = () => $('missions').classList.remove('on');
+    $('missions').onclick = e => { if (e.target === $('missions')) $('missions').classList.remove('on'); };
     $('btnRestart').onclick = () => start(S && S.mode === 'hard' ? 'hard' : 'normal');
     $('btnOverHome').onclick = home;
     home();
