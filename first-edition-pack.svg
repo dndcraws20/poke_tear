@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 600" role="img" aria-label="First Edition Base Set pack">
+  <defs>
+    <linearGradient id="foil" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff1a6"/><stop offset=".22" stop-color="#b77b12"/><stop offset=".48" stop-color="#ffe98a"/><stop offset=".72" stop-color="#8a5708"/><stop offset="1" stop-color="#f8d45d"/>
+    </linearGradient>
+    <radialGradient id="glow"><stop stop-color="#ffef9b"/><stop offset="1" stop-color="#291600"/></radialGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-opacity=".65"/></filter>
+  </defs>
+  <rect x="14" y="8" width="332" height="584" rx="24" fill="url(#foil)" stroke="#160d00" stroke-width="12" filter="url(#shadow)"/>
+  <path d="M20 62h320M20 538h320" stroke="#211000" stroke-width="20" stroke-dasharray="18 8"/>
+  <rect x="42" y="82" width="276" height="430" rx="18" fill="#100b08" stroke="#ffe178" stroke-width="5"/>
+  <circle cx="180" cy="290" r="116" fill="url(#glow)" stroke="#d69a27" stroke-width="8"/>
+  <circle cx="180" cy="290" r="72" fill="#130b02" stroke="#ffde70" stroke-width="5"/>
+  <path d="M180 212l18 54 57 1-46 33 17 55-46-33-46 33 17-55-46-33 57-1z" fill="#ffe26f" stroke="#8e5a0a" stroke-width="5"/>
+  <text x="180" y="128" text-anchor="middle" fill="#ffe784" font-family="Arial Black,Arial" font-size="31" font-weight="900">ORIGINAL BASE</text>
+  <text x="180" y="161" text-anchor="middle" fill="#fff7cc" font-family="Arial, sans-serif" font-size="18" letter-spacing="5">1999 SERIES</text>
+  <rect x="70" y="404" width="220" height="58" rx="10" fill="#f1c84d" stroke="#fff0a0" stroke-width="3"/>
+  <text x="180" y="442" text-anchor="middle" fill="#171006" font-family="Arial Black,Arial" font-size="29" font-weight="900">1st EDITION</text>
+  <text x="180" y="492" text-anchor="middle" fill="#ffe784" font-family="Arial, sans-serif" font-size="16" font-weight="700">11 TRADING CARDS</text>
+</svg>
