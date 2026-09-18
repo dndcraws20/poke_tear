@@ -117,6 +117,7 @@ html = r'''<!doctype html>
       <button class="ghost" id="btnContinue" hidden>▶ Continue run</button>
       <button class="ghost" id="btnBinderHome">📚 Binder</button>
       <button class="ghost music-toggle">🔇 Music: Off</button>
+      <button class="ghost track-toggle">🎼 Track: Electronic</button>
       <p class="note">Prices: TCGplayer market (USD), updated <span id="priceDate"></span>.</p>
     </section>
 
@@ -137,6 +138,7 @@ html = r'''<!doctype html>
         <button class="primary" id="btnOpen">OPEN PACK</button>
         <button class="ghost" id="btnBox">BUY 6-PACK BOX</button>
         <button class="ghost music-toggle">🔇 MUSIC: OFF</button>
+        <button class="ghost track-toggle">🎼 ELECTRONIC</button>
         <button class="ghost" id="btnBinder">📚 BINDER</button>
         <button class="ghost" id="btnSwitchSet">SWITCH SET</button>
         <button class="ghost" id="btnHome">HOME</button>
@@ -260,7 +262,7 @@ html = r'''<!doctype html>
     let S = null; // run state
     let quotaTimer = null;
     let binderTimer = null;
-    let audioCtx = null, musicTimer = null, musicOn = false, musicStep = 0, nextMusicStep = 0;
+    let audioCtx = null, musicTimer = null, musicOn = false, musicStyle = 'electronic', musicStep = 0, nextMusicStep = 0;
     const $ = id => document.getElementById(id);
     const money = v => (v < 0 ? '-' : '') + '$' + Math.abs(v).toFixed(2);
     const rand = a => a[Math.floor(Math.random() * a.length)];
@@ -274,6 +276,10 @@ html = r'''<!doctype html>
     const MUSIC_CHORDS = [[220, 261.63, 329.63], [174.61, 220, 261.63], [261.63, 329.63, 392], [196, 246.94, 293.66]];
     const MUSIC_BASS = [110, 87.31, 130.81, 98];
     const MUSIC_MELODY = [[440, 523.25, 659.25, 523.25], [349.23, 440, 523.25, 440], [523.25, 659.25, 783.99, 659.25], [392, 493.88, 587.33, 493.88]];
+    const PIXEL_BPM = 68;
+    const PIXEL_STEP = 60 / PIXEL_BPM / 4;
+    const PIXEL_CHORDS = [[146.83, 220, 293.66], [123.47, 185, 246.94], [164.81, 246.94, 329.63], [110, 164.81, 220]];
+    const PIXEL_NOTES = [[293.66, 369.99, 440, 329.63], [246.94, 293.66, 369.99, 277.18], [329.63, 440, 493.88, 369.99], [220, 277.18, 329.63, 246.94]];
     function musicTone(freq, time, duration, type, volume, destination) {
       const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
       osc.type = type; osc.frequency.setValueAtTime(freq, time);
@@ -312,15 +318,33 @@ html = r'''<!doctype html>
         musicTone(note, time, MUSIC_STEP * 1.5, 'triangle', .02);
       }
     }
+    function schedulePixelStep(time, step) {
+      const beat = step % 16, bar = Math.floor(step / 16) % 4, phrase = Math.floor(step / 64) % 2;
+      if (beat === 0) PIXEL_CHORDS[bar].forEach((f, i) => musicTone(f, time + i * .04, PIXEL_STEP * 15, 'sine', .014));
+      if (beat === 0 || beat === 4 || beat === 8 || beat === 12) {
+        const note = PIXEL_NOTES[bar][beat / 4] * (phrase && beat === 12 ? 2 : 1);
+        musicTone(note, time, PIXEL_STEP * 3.2, 'triangle', .026);
+        musicTone(note * 2, time + .025, PIXEL_STEP * 2.2, 'sine', .008);
+      }
+      if (phrase && beat === 10) musicTone(PIXEL_NOTES[bar][2] * 1.5, time, PIXEL_STEP * 2.5, 'sine', .009);
+    }
     function pumpMusic() {
       if (!musicOn || !audioCtx) return;
       while (nextMusicStep < audioCtx.currentTime + .2) {
-        scheduleMusicStep(nextMusicStep, musicStep++);
-        nextMusicStep += MUSIC_STEP;
+        if (musicStyle === 'pixel') schedulePixelStep(nextMusicStep, musicStep++);
+        else scheduleMusicStep(nextMusicStep, musicStep++);
+        nextMusicStep += musicStyle === 'pixel' ? PIXEL_STEP : MUSIC_STEP;
       }
     }
     function updateMusicButtons() {
       document.querySelectorAll('.music-toggle').forEach(b => b.textContent = musicOn ? '🔊 MUSIC: ON' : '🔇 MUSIC: OFF');
+      document.querySelectorAll('.track-toggle').forEach(b => b.textContent = musicStyle === 'pixel' ? '🎹 PIXEL CALM' : '🎼 ELECTRONIC');
+    }
+    function toggleTrack() {
+      musicStyle = musicStyle === 'electronic' ? 'pixel' : 'electronic';
+      musicStep = 0;
+      if (audioCtx) nextMusicStep = audioCtx.currentTime + .25;
+      updateMusicButtons();
     }
     async function toggleMusic() {
       if (musicOn) {
@@ -726,6 +750,7 @@ html = r'''<!doctype html>
     $('btnBinderClose').onclick = closeBinder;
     $('binder').onclick = e => { if (e.target === $('binder')) closeBinder(); };
     document.querySelectorAll('.music-toggle').forEach(b => b.onclick = toggleMusic);
+    document.querySelectorAll('.track-toggle').forEach(b => b.onclick = toggleTrack);
     $('btnShop').onclick = shop;
     $('btnShopClose').onclick = () => $('shop').classList.remove('on');
     $('shop').onclick = e => { if (e.target === $('shop')) $('shop').classList.remove('on'); };
