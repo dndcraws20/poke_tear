@@ -115,10 +115,18 @@ html = r'''<!doctype html>
     .battle-arena { display: grid; grid-template-columns: 1fr 42px 1fr; gap: 8px; align-items: center; margin: 12px 0; }
     .battle-lineup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
     .battle-fighter { min-width: 0; text-align: center; padding: 5px; background: #1c1529; border: 1px solid #3d2a57; border-radius: 10px; }
+    button.battle-fighter { margin: 0; color: #fff; cursor: pointer; }
+    button.battle-fighter:not(:disabled):active { transform: scale(.96); }
+    .battle-fighter.ready { border-color: #ffe066; box-shadow: 0 0 15px #ffb30055; }
+    .battle-fighter.target { border-color: #ff5c5c; box-shadow: 0 0 16px #ff333355; }
+    .battle-fighter.ko { opacity: .35; filter: grayscale(1); }
     .battle-fighter img { width: 100%; aspect-ratio: 63/88; object-fit: contain; background: #222; border-radius: 6px; }
     .battle-fighter b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; margin-top: 3px; }
     .battle-fighter small { display: block; color: #8dffb0; font-size: 9px; }
     .battle-vs { text-align: center; color: #ffe066; font-size: 20px; font-weight: 1000; }
+    .health-track { height: 7px; background: #09060d; border-radius: 99px; overflow: hidden; margin: 4px 0; }
+    .health-fill { height: 100%; background: linear-gradient(90deg, #ef4444, #facc15, #22c55e); transition: width .25s; }
+    .battle-prompt { text-align: center; color: #ffe066; font-size: 18px; font-weight: 1000; margin: 10px 0; }
     @keyframes pop { from { opacity: 0; transform: scale(.7) translateY(25px); } to { opacity: 1; transform: none; } }
     @keyframes glow { from { box-shadow: 0 0 18px #ff4fd088; } to { box-shadow: 0 0 44px #ff4fd0ee, 0 0 80px #ff9800aa; } }
     @keyframes flash { 0% { background: #22c55e66; } 100% { background: #120c1c; } }
@@ -226,7 +234,7 @@ html = r'''<!doctype html>
   <div class="overlay" id="battle">
     <div class="sheet battle-sheet">
       <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">⚔️ Binder Battles</h2><button class="ghost" id="btnBattleClose" style="margin:0;padding:8px 14px">✕</button></div>
-      <p class="sub" style="font-size:13px">Choose exactly three Binder cards. Enemies attack first; every card automatically uses its strongest attack. Knocked-out cards always stay in your Binder.</p>
+      <p class="sub" style="font-size:13px">Choose exactly three Binder cards. During battle, tap any Pokémon that still has HP to make it attack. The trainer strikes back after every move. Knocked-out cards always stay in your Binder.</p>
       <div id="battleStatus" class="summary" style="max-width:none"></div>
       <h3>Your deck <small id="battleDeckCount"></small></h3>
       <div class="battle-grid" id="battleCards"></div>
@@ -234,7 +242,7 @@ html = r'''<!doctype html>
       <p class="sub" style="font-size:12px">One random trainer. Win once and collect cash.</p>
       <div class="battle-modes" id="singleBattles"></div>
       <h3>Tournament</h3>
-      <p class="sub" style="font-size:12px">Fight five trainers. Win at least three matches for a much larger prize.</p>
+      <p class="sub" style="font-size:12px">Play a best-of-five tournament. Be the first to win three matches for a much larger prize.</p>
       <div class="battle-modes" id="tournamentBattles"></div>
       <div id="battleResult"></div>
     </div>
@@ -340,7 +348,7 @@ html = r'''<!doctype html>
     let BATTLE_DECK = loadBattleDeck();
     const loadBattleCooldowns = () => { try { return { single: 0, tournament: 0, ...(JSON.parse(localStorage.getItem(BATTLE_COOLDOWN_KEY)) || {}) }; } catch (e) { return { single: 0, tournament: 0 }; } };
     const saveBattleCooldowns = () => { try { localStorage.setItem(BATTLE_COOLDOWN_KEY, JSON.stringify(BATTLE_COOLDOWNS)); } catch (e) {} };
-    let BATTLE_COOLDOWNS = loadBattleCooldowns(), battleCooldownTimer = null;
+    let BATTLE_COOLDOWNS = loadBattleCooldowns(), battleCooldownTimer = null, ACTIVE_BATTLE = null;
     const BATTLE_LEVELS = {
       easy: { label: 'Easy', ico: '🌱', hp: [110, 190], dmg: [40, 75], single: 250, tournament: 1000, rank: [0, 1] },
       medium: { label: 'Normal', ico: '⚡', hp: [180, 280], dmg: [75, 125], single: 750, tournament: 5000, rank: [1, 2] },
@@ -640,32 +648,6 @@ html = r'''<!doctype html>
         return { name: card.n, image: cardUrl(card), hp: roundBattle(randomBetween(level.hp) * ramp, 10), dmg: roundBattle(randomBetween(level.dmg) * ramp) };
       });
     }
-    function simulateBattle(difficulty) {
-      const player = BATTLE_DECK.map(uid => battleStats(BINDER.find(item => item.uid === uid))).map(card => ({ ...card, left: card.hp }));
-      const enemy = enemyTeam(difficulty).map(card => ({ ...card, left: card.hp }));
-      let pi = 0, ei = 0, enemyTurn = true, turns = 0;
-      const log = [`<b>${enemy[0].name}</b> attacks first.`];
-      while (pi < player.length && ei < enemy.length && turns++ < 100) {
-        const p = player[pi], e = enemy[ei];
-        if (enemyTurn) {
-          p.left = Math.max(0, p.left - e.dmg);
-          log.push(`${e.name} hits ${p.name} for <b>${e.dmg}</b> damage. ${p.name}: ${p.left}/${p.hp} HP`);
-          if (p.left <= 0) {
-            log.push(`💥 ${p.name} is knocked out${pi + 1 < player.length ? ` — ${player[pi + 1].name} enters!` : ''}`);
-            pi++;
-          }
-        } else {
-          e.left = Math.max(0, e.left - p.dmg);
-          log.push(`${p.name} hits ${e.name} for <b>${p.dmg}</b> damage. ${e.name}: ${e.left}/${e.hp} HP`);
-          if (e.left <= 0) {
-            log.push(`⭐ ${e.name} is knocked out${ei + 1 < enemy.length ? ` — ${enemy[ei + 1].name} enters!` : ''}`);
-            ei++;
-          }
-        }
-        enemyTurn = !enemyTurn;
-      }
-      return { win: ei >= enemy.length, player, enemy, log };
-    }
     function awardBattleCash(amount) {
       if (!paidMode() || !amount) return 0;
       S.bank = +(S.bank + amount).toFixed(2);
@@ -682,12 +664,8 @@ html = r'''<!doctype html>
       saveBattleCooldowns();
       updateBattleModeButtons();
     }
-    function battleArenaHtml(result, enemyTitle) {
-      const lineup = cards => `<div class="battle-lineup">${cards.map(card => `<div class="battle-fighter"><img src="${card.image}" alt="${card.name}" loading="lazy"><b>${card.name}</b><small>${card.hp} HP</small><small>${card.dmg} DMG</small></div>`).join('')}</div>`;
-      return `<div class="battle-arena"><div><b>Your three cards</b>${lineup(result.player)}</div><div class="battle-vs">VS</div><div><b>${enemyTitle}</b>${lineup(result.enemy)}</div></div>`;
-    }
     function updateBattleModeButtons() {
-      const ready = battleReady();
+      const ready = battleReady() && !(ACTIVE_BATTLE && !ACTIVE_BATTLE.finished);
       document.querySelectorAll('[data-single]').forEach(button => {
         const level = BATTLE_LEVELS[button.dataset.single], seconds = Math.ceil(battleCooldownLeft('single') / 1000);
         button.disabled = !ready || seconds > 0;
@@ -699,34 +677,92 @@ html = r'''<!doctype html>
         button.innerHTML = `${level.ico} ${level.label}<br><small>${seconds ? `READY IN ${seconds}s` : `Prize ${money(level.tournament)}`}</small>`;
       });
     }
-    function runSingleBattle(difficulty) {
-      if (!battleReady() || battleCooldownLeft('single')) return;
-      startBattleCooldown('single');
-      const result = simulateBattle(difficulty), level = BATTLE_LEVELS[difficulty];
-      const reward = result.win ? awardBattleCash(level.single) : 0;
-      $('battleResult').innerHTML = `<div class="battle-result ${result.win ? 'win' : 'loss'}"><h2>${result.win ? '🏆 YOU WON!' : '💀 YOU LOST'}</h2><p>${result.win ? `${paidMode() ? `You earned <b>${money(reward)}</b>.` : 'Practice victory — Sandbox does not pay cash.'}` : 'Your cards are safe. Train them or change your deck and try again.'}</p>${battleArenaHtml(result, `${level.label} trainer`)}<div class="battle-log">${result.log.join('<br>')}</div></div>`;
+    function startInteractiveMatch() {
+      ACTIVE_BATTLE.player = BATTLE_DECK.map(uid => ({ ...battleStats(BINDER.find(item => item.uid === uid)), uid })).map(card => ({ ...card, left: card.hp }));
+      ACTIVE_BATTLE.enemy = enemyTeam(ACTIVE_BATTLE.difficulty).map((card, index) => ({ ...card, uid: `enemy-${index}`, left: card.hp }));
+      ACTIVE_BATTLE.log = [`Match ${ACTIVE_BATTLE.match}: choose one of your three Pokémon to attack.`];
+      ACTIVE_BATTLE.waitingNext = false;
+      renderInteractiveBattle();
+    }
+    function beginInteractiveBattle(type, difficulty) {
+      if (!battleReady() || battleCooldownLeft(type)) return;
+      startBattleCooldown(type);
+      ACTIVE_BATTLE = { type, difficulty, match: 1, wins: 0, losses: 0, finished: false, waitingNext: false };
+      startInteractiveMatch();
       renderBattleCardsOnly();
     }
-    function runTournament(difficulty) {
-      if (!battleReady() || battleCooldownLeft('tournament')) return;
-      startBattleCooldown('tournament');
-      const level = BATTLE_LEVELS[difficulty], matches = [];
-      for (let i = 0; i < 5; i++) matches.push(simulateBattle(difficulty));
-      const wins = matches.filter(match => match.win).length, won = wins >= 3;
-      const reward = won ? awardBattleCash(level.tournament) : 0;
-      const summaries = matches.map((match, i) => `Match ${i + 1}: ${match.win ? '✅ WIN' : '❌ LOSS'} — ${match.enemy.map(card => card.name).join(', ')}`).join('<br>');
-      const deciding = matches[matches.length - 1];
-      $('battleResult').innerHTML = `<div class="battle-result ${won ? 'win' : 'loss'}"><h2>${won ? '🏆 TOURNAMENT CHAMPION!' : '💀 TOURNAMENT LOST'}</h2><p>You won <b>${wins} of 5</b> matches. ${won ? (paidMode() ? `Prize: <b>${money(reward)}</b>.` : 'Sandbox tournament complete — no cash prize.') : 'You needed at least three wins. Your Binder cards are safe.'}</p>${battleArenaHtml(deciding, `Final ${level.label} trainer`)}<div class="battle-log">${summaries}<hr><b>Final match play-by-play</b><br>${deciding.log.join('<br>')}</div></div>`;
+    function living(cards) { return cards.filter(card => card.left > 0); }
+    function playerBattleAttack(uid) {
+      if (!ACTIVE_BATTLE || ACTIVE_BATTLE.finished || ACTIVE_BATTLE.waitingNext) return;
+      const attacker = ACTIVE_BATTLE.player.find(card => card.uid === uid && card.left > 0);
+      const target = living(ACTIVE_BATTLE.enemy)[0];
+      if (!attacker || !target) return;
+      target.left = Math.max(0, target.left - attacker.dmg);
+      ACTIVE_BATTLE.log.push(`${attacker.name} attacks ${target.name} for <b>${attacker.dmg}</b> damage. ${target.name}: ${target.left}/${target.hp} HP`);
+      if (target.left <= 0) ACTIVE_BATTLE.log.push(`⭐ ${target.name} is knocked out!`);
+      if (!living(ACTIVE_BATTLE.enemy).length) return finishInteractiveMatch(true);
+      const enemyAttacker = rand(living(ACTIVE_BATTLE.enemy));
+      const playerTarget = rand(living(ACTIVE_BATTLE.player));
+      playerTarget.left = Math.max(0, playerTarget.left - enemyAttacker.dmg);
+      ACTIVE_BATTLE.log.push(`${enemyAttacker.name} strikes back at ${playerTarget.name} for <b>${enemyAttacker.dmg}</b> damage. ${playerTarget.name}: ${playerTarget.left}/${playerTarget.hp} HP`);
+      if (playerTarget.left <= 0) ACTIVE_BATTLE.log.push(`💥 ${playerTarget.name} is knocked out!`);
+      if (!living(ACTIVE_BATTLE.player).length) return finishInteractiveMatch(false);
+      renderInteractiveBattle();
+    }
+    function finishInteractiveMatch(won) {
+      if (won) ACTIVE_BATTLE.wins++;
+      else ACTIVE_BATTLE.losses++;
+      ACTIVE_BATTLE.log.push(won ? '✅ You won this match!' : '❌ The trainer won this match.');
+      if (ACTIVE_BATTLE.type === 'single') return finishInteractiveBattle(won);
+      if (ACTIVE_BATTLE.wins >= 3 || ACTIVE_BATTLE.losses >= 3 || ACTIVE_BATTLE.match >= 5) return finishInteractiveBattle(ACTIVE_BATTLE.wins >= 3);
+      ACTIVE_BATTLE.waitingNext = true;
+      renderInteractiveBattle();
+    }
+    function nextTournamentMatch() {
+      if (!ACTIVE_BATTLE || !ACTIVE_BATTLE.waitingNext) return;
+      ACTIVE_BATTLE.match++;
+      startInteractiveMatch();
+    }
+    function finishInteractiveBattle(won) {
+      const level = BATTLE_LEVELS[ACTIVE_BATTLE.difficulty];
+      const rewardAmount = ACTIVE_BATTLE.type === 'single' ? level.single : level.tournament;
+      const reward = won ? awardBattleCash(rewardAmount) : 0;
+      ACTIVE_BATTLE.finished = true;
+      ACTIVE_BATTLE.won = won;
+      ACTIVE_BATTLE.reward = reward;
+      renderInteractiveBattle();
       renderBattleCardsOnly();
     }
+    function interactiveFighterHtml(card, playerCard, currentTarget) {
+      const percent = Math.max(0, card.left / card.hp * 100), knockedOut = card.left <= 0;
+      const classes = `battle-fighter ${knockedOut ? 'ko' : playerCard ? 'ready' : currentTarget ? 'target' : ''}`;
+      const body = `<img src="${card.image}" alt="${card.name}" loading="lazy"><b>${card.name}</b><div class="health-track"><div class="health-fill" style="width:${percent}%"></div></div><small>${card.left}/${card.hp} HP</small><small>${card.dmg} DMG</small>${playerCard && !knockedOut ? '<small>👆 TAP TO ATTACK</small>' : ''}`;
+      return playerCard ? `<button class="${classes}" data-player-attack="${card.uid}" ${knockedOut ? 'disabled' : ''}>${body}</button>` : `<div class="${classes}">${body}</div>`;
+    }
+    function renderInteractiveBattle() {
+      const battle = ACTIVE_BATTLE;
+      if (!battle) { $('battleResult').innerHTML = ''; return; }
+      const level = BATTLE_LEVELS[battle.difficulty], target = living(battle.enemy)[0];
+      const score = battle.type === 'tournament' ? `Tournament match ${battle.match}/5 • You ${battle.wins}–${battle.losses} Trainer` : `${level.label} single battle`;
+      let heading = battle.finished ? (battle.won ? '🏆 YOU WON!' : '💀 YOU LOST') : battle.waitingNext ? (battle.log[battle.log.length - 1]) : 'CHOOSE A POKÉMON TO ATTACK';
+      let action = '';
+      if (battle.waitingNext) action = '<button class="primary" id="btnNextBattleMatch">NEXT MATCH</button>';
+      if (battle.finished) action = `<p>${battle.won ? (paidMode() ? `Reward: <b>${money(battle.reward)}</b>` : 'Sandbox victory — no cash reward.') : 'Your cards are safe. Train or change your deck and try again.'}</p>`;
+      $('battleResult').innerHTML = `<div class="battle-result ${battle.finished ? battle.won ? 'win' : 'loss' : ''}"><h2>${heading}</h2><div class="battle-prompt">${score}</div><div class="battle-arena"><div><b>Your team</b><div class="battle-lineup">${battle.player.map(card => interactiveFighterHtml(card, true, false)).join('')}</div></div><div class="battle-vs">VS</div><div><b>Trainer team</b><div class="battle-lineup">${battle.enemy.map(card => interactiveFighterHtml(card, false, target === card)).join('')}</div></div></div>${action}<div class="battle-log">${battle.log.slice(-12).join('<br>')}</div></div>`;
+      $('battleResult').querySelectorAll('[data-player-attack]').forEach(button => button.onclick = () => playerBattleAttack(button.dataset.playerAttack));
+      if ($('btnNextBattleMatch')) $('btnNextBattleMatch').onclick = nextTournamentMatch;
+    }
+    function runSingleBattle(difficulty) { beginInteractiveBattle('single', difficulty); }
+    function runTournament(difficulty) { beginInteractiveBattle('tournament', difficulty); }
     function renderBattleCardsOnly() {
       cleanBattleDeck();
+      const locked = ACTIVE_BATTLE && !ACTIVE_BATTLE.finished;
       $('battleDeckCount').textContent = `(${BATTLE_DECK.length}/3 selected)`;
       $('battleCards').innerHTML = BINDER.length ? BINDER.map(item => {
         const stats = battleStats(item), selected = BATTLE_DECK.includes(item.uid), maxed = stats.training >= 10;
         const free = S && S.mode === 'sandbox', cost = free ? 0 : trainingCost(item);
-        const canTrain = S && !S.ended && !maxed && (free || (paidMode() && S.bank >= cost));
-        return `<div class="battle-choice ${selected ? 'selected' : ''}"><img src="${stats.image}" alt="${item.c.n}" loading="lazy"><b>${item.c.n}</b><div class="battle-stats">❤️ ${stats.hp} HP<br>💥 ${stats.dmg} MAX DMG<br>🏋️ Training ${stats.training}/10</div><button data-battle-pick="${item.uid}">${selected ? '✓ IN DECK' : BATTLE_DECK.length >= 3 ? 'DECK FULL' : 'ADD TO DECK'}</button><button class="ghost" data-battle-train="${item.uid}" ${canTrain ? '' : 'disabled'}>${maxed ? 'MAX TRAINED' : free ? 'TRAIN • FREE' : `TRAIN • ${money(cost)}`}</button></div>`;
+        const canTrain = !locked && S && !S.ended && !maxed && (free || (paidMode() && S.bank >= cost));
+        return `<div class="battle-choice ${selected ? 'selected' : ''}"><img src="${stats.image}" alt="${item.c.n}" loading="lazy"><b>${item.c.n}</b><div class="battle-stats">❤️ ${stats.hp} HP<br>💥 ${stats.dmg} MAX DMG<br>🏋️ Training ${stats.training}/10</div><button data-battle-pick="${item.uid}" ${locked ? 'disabled' : ''}>${locked ? 'BATTLE IN PROGRESS' : selected ? '✓ IN DECK' : BATTLE_DECK.length >= 3 ? 'DECK FULL' : 'ADD TO DECK'}</button><button class="ghost" data-battle-train="${item.uid}" ${canTrain ? '' : 'disabled'}>${maxed ? 'MAX TRAINED' : locked ? 'BATTLE IN PROGRESS' : free ? 'TRAIN • FREE' : `TRAIN • ${money(cost)}`}</button></div>`;
       }).join('') : '<p class="sub" style="grid-column:1/-1">Your Binder is empty. Keep cards from opened packs before battling.</p>';
       $('battleCards').querySelectorAll('[data-battle-pick]').forEach(button => button.onclick = () => toggleBattleCard(button.dataset.battlePick));
       $('battleCards').querySelectorAll('[data-battle-train]').forEach(button => button.onclick = () => trainBattleCard(button.dataset.battleTrain));
@@ -750,7 +786,7 @@ html = r'''<!doctype html>
       clearInterval(battleCooldownTimer);
       battleCooldownTimer = setInterval(updateBattleModeButtons, 250);
     }
-    function closeBattle() { clearInterval(battleCooldownTimer); $('battle').classList.remove('on'); }
+    function closeBattle() { clearInterval(battleCooldownTimer); ACTIVE_BATTLE = null; $('battle').classList.remove('on'); }
 
     function missionStep(k, amount = 1) {
       if (!paidMode()) return [];
