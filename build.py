@@ -239,10 +239,10 @@ html = r'''<!doctype html>
       <h3>Your deck <small id="battleDeckCount"></small></h3>
       <div class="battle-grid" id="battleCards"></div>
       <h3>Single battle</h3>
-      <p class="sub" style="font-size:12px">One random trainer. Win once and collect cash.</p>
+      <p class="sub" style="font-size:12px">One random trainer. Single battles are always free; win once and collect cash.</p>
       <div class="battle-modes" id="singleBattles"></div>
       <h3>Tournament</h3>
-      <p class="sub" style="font-size:12px">Play a best-of-five tournament. Be the first to win three matches for a much larger prize.</p>
+      <p class="sub" style="font-size:12px">Pay a small entry fee for a best-of-five tournament. Higher difficulties cost a little more and award much larger prizes.</p>
       <div class="battle-modes" id="tournamentBattles"></div>
       <div id="battleResult"></div>
     </div>
@@ -354,10 +354,10 @@ html = r'''<!doctype html>
     const saveBattleCooldowns = () => { try { localStorage.setItem(BATTLE_COOLDOWN_KEY, JSON.stringify(BATTLE_COOLDOWNS)); } catch (e) {} };
     let BATTLE_COOLDOWNS = loadBattleCooldowns(), battleCooldownTimer = null, ACTIVE_BATTLE = null, battleQuotaPausedAt = 0;
     const BATTLE_LEVELS = {
-      easy: { label: 'Easy', ico: '🌱', hp: [110, 190], dmg: [40, 75], single: 250, tournament: 1000, rank: [0, 1] },
-      medium: { label: 'Normal', ico: '⚡', hp: [180, 280], dmg: [75, 125], single: 750, tournament: 5000, rank: [1, 2] },
-      hard: { label: 'Hard', ico: '🔥', hp: [280, 410], dmg: [125, 190], single: 1500, tournament: 10000, rank: [2, 4] },
-      impossible: { label: 'Impossible', ico: '☠️', hp: [450, 650], dmg: [220, 330], single: 3000, tournament: 20000, rank: [3, 4] },
+      easy: { label: 'Easy', ico: '🌱', hp: [110, 190], dmg: [40, 75], single: 250, tournament: 1000, entry: 50, rank: [0, 1] },
+      medium: { label: 'Normal', ico: '⚡', hp: [180, 280], dmg: [75, 125], single: 750, tournament: 5000, entry: 200, rank: [1, 2] },
+      hard: { label: 'Hard', ico: '🔥', hp: [280, 410], dmg: [125, 190], single: 1500, tournament: 10000, entry: 500, rank: [2, 4] },
+      impossible: { label: 'Impossible', ico: '☠️', hp: [450, 650], dmg: [220, 330], single: 3000, tournament: 20000, entry: 1000, rank: [3, 4] },
     };
 
     // Original procedural instrumental: 108 BPM drums, bass, and atmospheric synth pads.
@@ -683,8 +683,9 @@ html = r'''<!doctype html>
       });
       document.querySelectorAll('[data-tournament]').forEach(button => {
         const level = BATTLE_LEVELS[button.dataset.tournament], seconds = Math.ceil(battleCooldownLeft('tournament') / 1000);
-        button.disabled = !ready || seconds > 0;
-        button.innerHTML = `${level.ico} ${level.label}<br><small>${seconds ? `READY IN ${seconds}s` : `Prize ${money(level.tournament)}`}</small>`;
+        const lacksEntry = paidMode() && S.bank < level.entry;
+        button.disabled = !ready || seconds > 0 || lacksEntry;
+        button.innerHTML = `${level.ico} ${level.label}<br><small>${seconds ? `READY IN ${seconds}s` : lacksEntry ? `NEED ${money(level.entry)}` : `Entry ${paidMode() ? money(level.entry) : 'FREE'} • Prize ${money(level.tournament)}`}</small>`;
       });
     }
     function startInteractiveMatch() {
@@ -698,9 +699,22 @@ html = r'''<!doctype html>
     }
     function beginInteractiveBattle(type, difficulty) {
       if (!battleReady() || battleCooldownLeft(type)) return;
+      const level = BATTLE_LEVELS[difficulty];
+      const entryFee = type === 'tournament' && paidMode() ? level.entry : 0;
+      if (entryFee && S.bank < entryFee) return;
       ACTIVE_BATTLE = { type, difficulty, match: 1, wins: 0, losses: 0, finished: false, waitingNext: false };
+      if (entryFee) {
+        S.bank = +(S.bank - entryFee).toFixed(2);
+        S.spent = +(S.spent + entryFee).toFixed(2);
+        ACTIVE_BATTLE.entryFee = entryFee;
+        save(); hud();
+      }
       pauseQuotaForBattle();
       startInteractiveMatch();
+      if (entryFee) {
+        ACTIVE_BATTLE.log.unshift(`🎟️ Tournament entry paid: <b>${money(entryFee)}</b>.`);
+        renderInteractiveBattle();
+      }
       renderBattleCardsOnly();
     }
     function living(cards) { return cards.filter(card => card.left > 0); }
@@ -809,7 +823,7 @@ html = r'''<!doctype html>
       const active = S && !S.ended;
       $('battleStatus').innerHTML = !active ? 'Start or continue a run before battling.' : S.mode === 'sandbox' ? '<b>Sandbox practice:</b> training is free, but battles do not award cash.' : `<b>Bankroll: ${money(S.bank)}</b> • Training permanently improves Binder cards.`;
       $('singleBattles').innerHTML = Object.entries(BATTLE_LEVELS).map(([key, level]) => `<button data-single="${key}">${level.ico} ${level.label}<br><small>Win ${money(level.single)}</small></button>`).join('');
-      $('tournamentBattles').innerHTML = Object.entries(BATTLE_LEVELS).map(([key, level]) => `<button data-tournament="${key}">${level.ico} ${level.label}<br><small>Prize ${money(level.tournament)}</small></button>`).join('');
+      $('tournamentBattles').innerHTML = Object.entries(BATTLE_LEVELS).map(([key, level]) => `<button data-tournament="${key}">${level.ico} ${level.label}<br><small>Entry ${paidMode() ? money(level.entry) : 'FREE'} • Prize ${money(level.tournament)}</small></button>`).join('');
       $('singleBattles').querySelectorAll('[data-single]').forEach(button => button.onclick = () => runSingleBattle(button.dataset.single));
       $('tournamentBattles').querySelectorAll('[data-tournament]').forEach(button => button.onclick = () => runTournament(button.dataset.tournament));
       renderBattleCardsOnly();
