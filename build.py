@@ -98,11 +98,25 @@ html = r'''<!doctype html>
     .binder-card { width: 100%; max-width: 360px; margin: auto; padding: 12px; }
     .binder-card img { cursor: zoom-in; }
     .zoom-card { max-width: min(440px, 94vw); max-height: 88vh; border-radius: 16px; box-shadow: 0 20px 60px #000; }
+    .battle-sheet { width: min(920px, 100%); }
+    .battle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 12px 0; }
+    .battle-choice { background: #1c1529; border: 2px solid #3d2a57; border-radius: 14px; padding: 8px; text-align: center; }
+    .battle-choice.selected { border-color: #ffe066; box-shadow: 0 0 18px #ffb30055; }
+    .battle-choice img { width: 100%; max-height: 210px; aspect-ratio: 63/88; object-fit: contain; border-radius: 9px; background: #222; }
+    .battle-choice button { width: 100%; margin: 5px 0 0; padding: 8px 5px; font-size: 12px; }
+    .battle-stats { color: #8dffb0; font-size: 12px; font-weight: 900; margin: 6px 0; }
+    .battle-modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .battle-modes button { margin: 0; padding: 11px 6px; font-size: 13px; }
+    .battle-result { margin-top: 14px; padding: 12px; background: #0d0915; border: 1px solid #654d83; border-radius: 14px; }
+    .battle-result.win { border-color: #22c55e; }
+    .battle-result.loss { border-color: #ef4444; }
+    .battle-log { max-height: 260px; overflow: auto; margin-top: 10px; padding: 9px; background: #08050d; border-radius: 10px; font-size: 12px; line-height: 1.5; }
+    .battle-log b { color: #ffe066; }
     @keyframes pop { from { opacity: 0; transform: scale(.7) translateY(25px); } to { opacity: 1; transform: none; } }
     @keyframes glow { from { box-shadow: 0 0 18px #ff4fd088; } to { box-shadow: 0 0 44px #ff4fd0ee, 0 0 80px #ff9800aa; } }
     @keyframes flash { 0% { background: #22c55e66; } 100% { background: #120c1c; } }
     .flash { animation: flash .8s; }
-    @media (min-width: 700px) { .cards { grid-template-columns: repeat(5, 1fr); } .binder-cards { grid-template-columns: repeat(2, 1fr); } .overlay { align-items: center; } .sheet { border-radius: 20px; } }
+    @media (min-width: 700px) { .cards { grid-template-columns: repeat(5, 1fr); } .binder-cards { grid-template-columns: repeat(2, 1fr); } .battle-grid { grid-template-columns: repeat(4, 1fr); } .battle-modes { grid-template-columns: repeat(4, 1fr); } .overlay { align-items: center; } .sheet { border-radius: 20px; } }
   </style>
 </head>
 <body>
@@ -121,6 +135,7 @@ html = r'''<!doctype html>
       </div>
       <button class="ghost" id="btnContinue" hidden>▶ Continue run</button>
       <button class="ghost" id="btnBinderHome">📚 Binder</button>
+      <button class="ghost" id="btnBattleHome">⚔️ Battles</button>
       <button class="ghost music-toggle">🔇 Music: Off</button>
       <button class="ghost track-toggle">🎼 Track: Electronic</button>
       <p class="note">Prices: TCGplayer market (USD), updated <span id="priceDate"></span>.</p>
@@ -147,6 +162,7 @@ html = r'''<!doctype html>
         <button class="ghost music-toggle">🔇 MUSIC: OFF</button>
         <button class="ghost track-toggle">🎼 ELECTRONIC</button>
         <button class="ghost" id="btnBinder">📚 BINDER</button>
+        <button class="ghost" id="btnBattle">⚔️ BATTLES</button>
         <button class="ghost" id="btnSwitchSet">SWITCH SET</button>
         <button class="ghost" id="btnHome">HOME</button>
       </div>
@@ -199,6 +215,23 @@ html = r'''<!doctype html>
     <div style="position:relative;padding:12px"><img class="zoom-card" id="zoomImage" alt="Enlarged card"><button class="ghost" id="btnZoomClose" style="position:absolute;right:14px;top:14px;padding:8px 13px">✕</button></div>
   </div>
 
+  <div class="overlay" id="battle">
+    <div class="sheet battle-sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">⚔️ Binder Battles</h2><button class="ghost" id="btnBattleClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub" style="font-size:13px">Choose exactly three Binder cards. Enemies attack first; every card automatically uses its strongest attack. Knocked-out cards always stay in your Binder.</p>
+      <div id="battleStatus" class="summary" style="max-width:none"></div>
+      <h3>Your deck <small id="battleDeckCount"></small></h3>
+      <div class="battle-grid" id="battleCards"></div>
+      <h3>Single battle</h3>
+      <p class="sub" style="font-size:12px">One random trainer. Win once and collect cash.</p>
+      <div class="battle-modes" id="singleBattles"></div>
+      <h3>Tournament</h3>
+      <p class="sub" style="font-size:12px">Fight five trainers. Win at least three matches for a much larger prize.</p>
+      <div class="battle-modes" id="tournamentBattles"></div>
+      <div id="battleResult"></div>
+    </div>
+  </div>
+
   <script>
     // TCGplayer market prices: p = normal, pr = reverse holo, ph = holofoil. Source: TCGdex.
     const SET_DATA = __DATA__;
@@ -229,6 +262,7 @@ html = r'''<!doctype html>
     const SAVE_KEY = 'poke-tear-run-v2';
     const QUOTA_RECORD_KEY = 'poke-tear-quota-record-v1';
     const BINDER_KEY = 'poke-tear-binder-v1';
+    const BATTLE_DECK_KEY = 'poke-tear-battle-deck-v1';
     const BINDER_GROW_MS = 60 * 1000;
     const BINDER_LIMIT = 8;
 
@@ -290,6 +324,15 @@ html = r'''<!doctype html>
     const loadBinder = () => { try { return JSON.parse(localStorage.getItem(BINDER_KEY)) || []; } catch (e) { return []; } };
     const saveBinder = () => { try { localStorage.setItem(BINDER_KEY, JSON.stringify(BINDER)); } catch (e) {} };
     let BINDER = loadBinder();
+    const loadBattleDeck = () => { try { return JSON.parse(localStorage.getItem(BATTLE_DECK_KEY)) || []; } catch (e) { return []; } };
+    const saveBattleDeck = () => { try { localStorage.setItem(BATTLE_DECK_KEY, JSON.stringify(BATTLE_DECK)); } catch (e) {} };
+    let BATTLE_DECK = loadBattleDeck();
+    const BATTLE_LEVELS = {
+      easy: { label: 'Easy', ico: '🌱', hp: [80, 150], dmg: [25, 60], single: 18, tournament: 120, rank: [0, 1] },
+      medium: { label: 'Medium', ico: '⚡', hp: [135, 235], dmg: [55, 105], single: 45, tournament: 300, rank: [1, 2] },
+      hard: { label: 'Hard', ico: '🔥', hp: [220, 340], dmg: [95, 160], single: 110, tournament: 800, rank: [2, 4] },
+      impossible: { label: 'Impossible', ico: '☠️', hp: [370, 540], dmg: [175, 275], single: 400, tournament: 3000, rank: [3, 4] },
+    };
 
     // Original procedural instrumental: 108 BPM drums, bass, and atmospheric synth pads.
     const MUSIC_BPM = 108;
@@ -477,7 +520,8 @@ html = r'''<!doctype html>
       const canSell = paidMode();
       $('binderCount').textContent = `${BINDER.length}/${BINDER_LIMIT}`;
       $('binderList').innerHTML = BINDER.length ? BINDER.map(item => {
-        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}" data-binder-price="${item.uid}">${money(binderValue(item))}</span>${item.grade ? `<span class="tag">PSA ${item.grade}</span>` : ''}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy">${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}">${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `SELL • ${money(binderValue(item))}` : 'START A MONEY RUN TO SELL'}</button></div>`;
+        const stats = battleStats(item);
+        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}" data-binder-price="${item.uid}">${money(binderValue(item))}</span>${item.grade ? `<span class="tag">PSA ${item.grade}</span>` : ''}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy"><div class="battle-stats">❤️ ${stats.hp} HP • 💥 ${stats.dmg} MAX DMG • 🏋️ ${stats.training}/10</div>${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}">${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `SELL • ${money(binderValue(item))}` : 'START A MONEY RUN TO SELL'}</button></div>`;
       }).join('') : '<p class="sub" style="grid-column:1/-1">Your binder is empty. Open a pack and press KEEP IN BINDER on any card.</p>';
       $('binderList').querySelectorAll('[data-sell]').forEach(b => b.onclick = () => sellBinder(b.dataset.sell));
       $('binderList').querySelectorAll('[data-binder-grade]').forEach(b => b.onclick = () => gradeBinderCard(b.dataset.binderGrade));
@@ -503,6 +547,148 @@ html = r'''<!doctype html>
       binderTimer = setInterval(() => { if ($('binder').classList.contains('on')) refreshBinderPrices(); }, 1000);
     }
     function closeBinder() { clearInterval(binderTimer); $('binder').classList.remove('on'); }
+
+    const roundBattle = (n, step = 5) => Math.max(step, Math.round(n / step) * step);
+    function battleStats(item) {
+      const rank = RANK(item.c.r), grade = item.grade || 0, training = item.training || 0;
+      const value = Math.max(.01, binderValue(item));
+      return {
+        name: item.c.n,
+        image: cardUrl(item.c),
+        hp: roundBattle(70 + rank * 30 + Math.min(120, Math.log2(value + 1) * 18) + grade * 3 + training * 12, 10),
+        dmg: roundBattle(20 + rank * 22 + Math.min(100, Math.sqrt(value) * 10) + grade * 2 + training * 7),
+        training,
+      };
+    }
+    function cleanBattleDeck() {
+      const valid = new Set(BINDER.map(item => item.uid));
+      BATTLE_DECK = BATTLE_DECK.filter(uid => valid.has(uid)).slice(0, 3);
+      saveBattleDeck();
+    }
+    function toggleBattleCard(uid) {
+      cleanBattleDeck();
+      const index = BATTLE_DECK.indexOf(uid);
+      if (index >= 0) BATTLE_DECK.splice(index, 1);
+      else if (BATTLE_DECK.length < 3) BATTLE_DECK.push(uid);
+      saveBattleDeck(); renderBattle();
+    }
+    function trainingCost(item) {
+      const level = item.training || 0;
+      return Math.round(25 * Math.pow(level + 1, 1.45));
+    }
+    function trainBattleCard(uid) {
+      const item = BINDER.find(card => card.uid === uid);
+      if (!item || !S || S.ended || (item.training || 0) >= 10) return;
+      const free = S.mode === 'sandbox', cost = free ? 0 : trainingCost(item);
+      if (!free && (!paidMode() || S.bank < cost)) return;
+      if (!free) S.bank = +(S.bank - cost).toFixed(2);
+      item.training = (item.training || 0) + 1;
+      saveBinder(); save();
+      if (S && !S.ended) hud();
+      renderBattle();
+    }
+    const battleReady = () => S && !S.ended && BATTLE_DECK.length === 3;
+    const randomBetween = ([min, max]) => Math.round(min + Math.random() * (max - min));
+    function enemyTeam(difficulty) {
+      const level = BATTLE_LEVELS[difficulty];
+      const all = Object.values(SET_DATA).flat();
+      let pool = all.filter(card => { const rank = RANK(card.r); return rank >= level.rank[0] && rank <= level.rank[1]; });
+      if (!pool.length) pool = all;
+      const used = new Set();
+      return Array.from({ length: 3 }, (_, i) => {
+        let card, guard = 0;
+        do { card = rand(pool); } while (used.has(card.id) && guard++ < 30);
+        used.add(card.id);
+        const ramp = 1 + i * .05;
+        return { name: card.n, image: cardUrl(card), hp: roundBattle(randomBetween(level.hp) * ramp, 10), dmg: roundBattle(randomBetween(level.dmg) * ramp) };
+      });
+    }
+    function simulateBattle(difficulty) {
+      const player = BATTLE_DECK.map(uid => battleStats(BINDER.find(item => item.uid === uid))).map(card => ({ ...card, left: card.hp }));
+      const enemy = enemyTeam(difficulty).map(card => ({ ...card, left: card.hp }));
+      let pi = 0, ei = 0, enemyTurn = true, turns = 0;
+      const log = [`<b>${enemy[0].name}</b> attacks first.`];
+      while (pi < player.length && ei < enemy.length && turns++ < 100) {
+        const p = player[pi], e = enemy[ei];
+        if (enemyTurn) {
+          p.left = Math.max(0, p.left - e.dmg);
+          log.push(`${e.name} hits ${p.name} for <b>${e.dmg}</b> damage. ${p.name}: ${p.left}/${p.hp} HP`);
+          if (p.left <= 0) {
+            log.push(`💥 ${p.name} is knocked out${pi + 1 < player.length ? ` — ${player[pi + 1].name} enters!` : ''}`);
+            pi++;
+          }
+        } else {
+          e.left = Math.max(0, e.left - p.dmg);
+          log.push(`${p.name} hits ${e.name} for <b>${p.dmg}</b> damage. ${e.name}: ${e.left}/${e.hp} HP`);
+          if (e.left <= 0) {
+            log.push(`⭐ ${e.name} is knocked out${ei + 1 < enemy.length ? ` — ${enemy[ei + 1].name} enters!` : ''}`);
+            ei++;
+          }
+        }
+        enemyTurn = !enemyTurn;
+      }
+      return { win: ei >= enemy.length, player, enemy, log };
+    }
+    function awardBattleCash(amount) {
+      if (!paidMode() || !amount) return 0;
+      S.bank = +(S.bank + amount).toFixed(2);
+      S.earned = +(S.earned + amount).toFixed(2);
+      S.peak = Math.max(S.peak, S.bank);
+      const cleared = checkQuotaProgress();
+      save(); hud();
+      if (cleared) $('title').textContent = '✅ QUOTA CLEARED!';
+      return amount;
+    }
+    function battleTeamHtml(title, cards) {
+      return `<div style="margin-top:8px"><b>${title}</b><div class="battle-stats">${cards.map(card => `${card.name}: ${card.hp} HP / ${card.dmg} DMG`).join('<br>')}</div></div>`;
+    }
+    function runSingleBattle(difficulty) {
+      if (!battleReady()) return;
+      const result = simulateBattle(difficulty), level = BATTLE_LEVELS[difficulty];
+      const reward = result.win ? awardBattleCash(level.single) : 0;
+      $('battleResult').innerHTML = `<div class="battle-result ${result.win ? 'win' : 'loss'}"><h2>${result.win ? '🏆 YOU WON!' : '💀 YOU LOST'}</h2><p>${result.win ? `${paidMode() ? `You earned <b>${money(reward)}</b>.` : 'Practice victory — Sandbox does not pay cash.'}` : 'Your cards are safe. Train them or change your deck and try again.'}</p>${battleTeamHtml('Your team', result.player)}${battleTeamHtml(`${level.label} trainer`, result.enemy)}<div class="battle-log">${result.log.join('<br>')}</div></div>`;
+      renderBattleCardsOnly();
+    }
+    function runTournament(difficulty) {
+      if (!battleReady()) return;
+      const level = BATTLE_LEVELS[difficulty], matches = [];
+      for (let i = 0; i < 5; i++) matches.push(simulateBattle(difficulty));
+      const wins = matches.filter(match => match.win).length, won = wins >= 3;
+      const reward = won ? awardBattleCash(level.tournament) : 0;
+      const summaries = matches.map((match, i) => `Match ${i + 1}: ${match.win ? '✅ WIN' : '❌ LOSS'} — ${match.enemy.map(card => card.name).join(', ')}`).join('<br>');
+      const deciding = matches[matches.length - 1];
+      $('battleResult').innerHTML = `<div class="battle-result ${won ? 'win' : 'loss'}"><h2>${won ? '🏆 TOURNAMENT CHAMPION!' : '💀 TOURNAMENT LOST'}</h2><p>You won <b>${wins} of 5</b> matches. ${won ? (paidMode() ? `Prize: <b>${money(reward)}</b>.` : 'Sandbox tournament complete — no cash prize.') : 'You needed at least three wins. Your Binder cards are safe.'}</p><div class="battle-log">${summaries}<hr><b>Final match play-by-play</b><br>${deciding.log.join('<br>')}</div></div>`;
+      renderBattleCardsOnly();
+    }
+    function renderBattleCardsOnly() {
+      cleanBattleDeck();
+      $('battleDeckCount').textContent = `(${BATTLE_DECK.length}/3 selected)`;
+      $('battleCards').innerHTML = BINDER.length ? BINDER.map(item => {
+        const stats = battleStats(item), selected = BATTLE_DECK.includes(item.uid), maxed = stats.training >= 10;
+        const free = S && S.mode === 'sandbox', cost = free ? 0 : trainingCost(item);
+        const canTrain = S && !S.ended && !maxed && (free || (paidMode() && S.bank >= cost));
+        return `<div class="battle-choice ${selected ? 'selected' : ''}"><img src="${stats.image}" alt="${item.c.n}" loading="lazy"><b>${item.c.n}</b><div class="battle-stats">❤️ ${stats.hp} HP<br>💥 ${stats.dmg} MAX DMG<br>🏋️ Training ${stats.training}/10</div><button data-battle-pick="${item.uid}">${selected ? '✓ IN DECK' : BATTLE_DECK.length >= 3 ? 'DECK FULL' : 'ADD TO DECK'}</button><button class="ghost" data-battle-train="${item.uid}" ${canTrain ? '' : 'disabled'}>${maxed ? 'MAX TRAINED' : free ? 'TRAIN • FREE' : `TRAIN • ${money(cost)}`}</button></div>`;
+      }).join('') : '<p class="sub" style="grid-column:1/-1">Your Binder is empty. Keep cards from opened packs before battling.</p>';
+      $('battleCards').querySelectorAll('[data-battle-pick]').forEach(button => button.onclick = () => toggleBattleCard(button.dataset.battlePick));
+      $('battleCards').querySelectorAll('[data-battle-train]').forEach(button => button.onclick = () => trainBattleCard(button.dataset.battleTrain));
+      document.querySelectorAll('[data-single], [data-tournament]').forEach(button => button.disabled = !battleReady());
+    }
+    function renderBattle() {
+      const active = S && !S.ended;
+      $('battleStatus').innerHTML = !active ? 'Start or continue a run before battling.' : S.mode === 'sandbox' ? '<b>Sandbox practice:</b> training is free, but battles do not award cash.' : `<b>Bankroll: ${money(S.bank)}</b> • Training permanently improves Binder cards.`;
+      $('singleBattles').innerHTML = Object.entries(BATTLE_LEVELS).map(([key, level]) => `<button data-single="${key}">${level.ico} ${level.label}<br><small>Win ${money(level.single)}</small></button>`).join('');
+      $('tournamentBattles').innerHTML = Object.entries(BATTLE_LEVELS).map(([key, level]) => `<button data-tournament="${key}">${level.ico} ${level.label}<br><small>Prize ${money(level.tournament)}</small></button>`).join('');
+      $('singleBattles').querySelectorAll('[data-single]').forEach(button => button.onclick = () => runSingleBattle(button.dataset.single));
+      $('tournamentBattles').querySelectorAll('[data-tournament]').forEach(button => button.onclick = () => runTournament(button.dataset.tournament));
+      renderBattleCardsOnly();
+    }
+    function showBattle() {
+      closeBinder();
+      $('battleResult').innerHTML = '';
+      renderBattle();
+      $('battle').classList.add('on');
+    }
+    function closeBattle() { $('battle').classList.remove('on'); }
 
     function missionStep(k, amount = 1) {
       if (!paidMode()) return [];
@@ -866,8 +1052,12 @@ html = r'''<!doctype html>
     $('btnHome').onclick = home;
     $('btnBinder').onclick = showBinder;
     $('btnBinderHome').onclick = showBinder;
+    $('btnBattle').onclick = showBattle;
+    $('btnBattleHome').onclick = showBattle;
     $('btnBinderClose').onclick = closeBinder;
     $('binder').onclick = e => { if (e.target === $('binder')) closeBinder(); };
+    $('btnBattleClose').onclick = closeBattle;
+    $('battle').onclick = e => { if (e.target === $('battle')) closeBattle(); };
     $('btnZoomClose').onclick = closeCardZoom;
     $('cardZoom').onclick = e => { if (e.target === $('cardZoom')) closeCardZoom(); };
     document.querySelectorAll('.music-toggle').forEach(b => b.onclick = toggleMusic);
