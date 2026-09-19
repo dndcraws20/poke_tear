@@ -40,8 +40,8 @@ Mirror: https://preview.sasta.ai/pack-opener/
 | `destined-rivals-pack.jpg` | Destined Rivals booster pack art. |
 | `phantasmal-flames-pack.png` | Phantasmal Flames booster pack art. |
 | `pokemon-151-pack.png` | Scarlet & Violet—151 booster pack art. |
-| `sun-moon-pack.svg` | Original Sun & Moon-themed booster pack artwork used by the game. |
-| `first-edition-pack.svg` | Original gold-and-black First Edition pack artwork used by the game. |
+| `sun-moon-pack.png` | Authentic-style Lunala Sun & Moon booster pack artwork used by the game. |
+| `first-edition-pack.jpg` | Classic Charizard Base Set First Edition booster pack artwork used by the game. |
 | `pack.jpg` | Pitch Black booster pack art. |
 
 `build.py` writes `index.html` next to itself.
@@ -53,7 +53,7 @@ Re-fetch each card from `https://api.tcgdex.net/v2/en/cards/SET-NNN` (fields `ra
 ## Deploy
 
 ```
-scp index.html pack.jpg chaos-rising-pack.png destined-rivals-pack.jpg phantasmal-flames-pack.png pokemon-151-pack.png sun-moon-pack.svg first-edition-pack.svg root@<vps>:/var/www/pack-opener/
+scp index.html pack.jpg chaos-rising-pack.png destined-rivals-pack.jpg phantasmal-flames-pack.png pokemon-151-pack.png sun-moon-pack.png first-edition-pack.jpg root@<vps>:/var/www/pack-opener/
 ```
 
 Card art is hotlinked from `assets.tcgdex.net`; the nginx location block for `/pack-opener/` carries its own CSP allowing that host.
