@@ -458,6 +458,12 @@
     }
     function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
     function load() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
+    function binderSellRun() {
+      if (S && !S.ended) return paidMode() ? S : null;
+      const saved = load();
+      return saved && !saved.ended && ['normal', 'hard', 'chill'].includes(saved.mode) ? saved : null;
+    }
+    function saveSpecificRun(run) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(run)); } catch (e) {} }
     function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
     function quotaRecord() { try { return +(localStorage.getItem(QUOTA_RECORD_KEY) || 0); } catch (e) { return 0; } }
     function saveQuotaRecord(n) { try { localStorage.setItem(QUOTA_RECORD_KEY, String(Math.max(n, quotaRecord()))); } catch (e) {} }
@@ -479,17 +485,27 @@
       render(S.last.pull, S.last.cost, S.last.total);
     }
     function sellBinder(uid) {
-      if (!paidMode()) return;
+      const run = binderSellRun();
+      if (!run) return;
       const index = BINDER.findIndex(item => item.uid === uid);
       if (index < 0) return;
       const value = binderValue(BINDER[index]);
       BINDER.splice(index, 1);
-      S.bank = +(S.bank + value).toFixed(2);
-      S.earned = +(S.earned + value).toFixed(2);
+      BATTLE_DECK = BATTLE_DECK.filter(cardUid => cardUid !== uid);
+      run.bank = +(run.bank + value).toFixed(2);
+      run.earned = +(run.earned + value).toFixed(2);
+      run.peak = Math.max(run.peak || 0, run.bank);
       saveBinder();
-      const clearedQuota = checkQuotaProgress();
-      save(); hud(); renderBinder();
-      if (clearedQuota) $('title').textContent = '✅ QUOTA CLEARED!';
+      saveBattleDeck();
+      if (run === S) {
+        const clearedQuota = checkQuotaProgress();
+        save(); hud();
+        if (clearedQuota) $('title').textContent = '✅ QUOTA CLEARED!';
+      } else {
+        saveSpecificRun(run);
+        $('btnContinue').hidden = false;
+      }
+      renderBinder();
     }
     function gradeBinderCard(uid) {
       const item = BINDER.find(item => item.uid === uid);
@@ -518,7 +534,7 @@
     }
     function closeCardZoom() { $('cardZoom').classList.remove('on'); }
     function renderBinder() {
-      const canSell = paidMode();
+      const canSell = !!binderSellRun();
       cleanBattleDeck();
       $('binderCount').textContent = `${BINDER.length}/${BINDER_LIMIT}`;
       $('binderDeckCount').textContent = `${BATTLE_DECK.length}/3`;
@@ -526,7 +542,7 @@
         const stats = battleStats(item);
         const selected = BATTLE_DECK.includes(item.uid);
         const pickText = selected ? '✓ IN BATTLE DECK' : BATTLE_DECK.length >= 3 ? 'DECK FULL • REMOVE ONE FIRST' : '⚔️ ADD TO BATTLE DECK';
-        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}" data-binder-price="${item.uid}">${money(binderValue(item))}</span>${item.grade ? `<span class="tag">PSA ${item.grade}</span>` : selected ? '<span class="tag">BATTLE DECK</span>' : ''}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy"><div class="name">${item.c.n}</div><div class="rarity">${item.c.r}</div><div class="battle-stats">❤️ ${stats.hp} HP • 💥 ${stats.dmg} MAX DMG • 🏋️ ${stats.training}/10</div><button class="keep-btn" data-binder-deck="${item.uid}">${pickText}</button>${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}">${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `SELL • ${money(binderValue(item))}` : 'START A MONEY RUN TO SELL'}</button></div>`;
+        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}" data-binder-price="${item.uid}">${money(binderValue(item))}</span>${item.grade ? `<span class="tag">PSA ${item.grade}</span>` : selected ? '<span class="tag">BATTLE DECK</span>' : ''}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy"><div class="name">${item.c.n}</div><div class="rarity">${item.c.r}</div><div class="battle-stats">❤️ ${stats.hp} HP • 💥 ${stats.dmg} MAX DMG • 🏋️ ${stats.training}/10</div><button class="keep-btn" data-binder-deck="${item.uid}">${pickText}</button>${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}">${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `${selected ? 'SELL & REMOVE FROM DECK' : 'SELL'} • ${money(binderValue(item))}` : 'START OR CONTINUE A MONEY RUN TO SELL'}</button></div>`;
       }).join('') : '<p class="sub" style="grid-column:1/-1">Your binder is empty. Open a pack and press KEEP IN BINDER on any card.</p>';
       $('binderList').querySelectorAll('[data-sell]').forEach(b => b.onclick = () => sellBinder(b.dataset.sell));
       $('binderList').querySelectorAll('[data-binder-grade]').forEach(b => b.onclick = () => gradeBinderCard(b.dataset.binderGrade));
@@ -543,7 +559,7 @@
       });
       document.querySelectorAll('#binderList [data-sell]').forEach(button => {
         const item = BINDER.find(item => item.uid === button.dataset.sell);
-        if (item && paidMode()) button.textContent = `SELL • ${money(binderValue(item))}`;
+        if (item && binderSellRun()) button.textContent = `${BATTLE_DECK.includes(item.uid) ? 'SELL & REMOVE FROM DECK' : 'SELL'} • ${money(binderValue(item))}`;
       });
     }
     function showBinder() {
