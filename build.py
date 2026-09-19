@@ -348,7 +348,7 @@ html = r'''<!doctype html>
     let BATTLE_DECK = loadBattleDeck();
     const loadBattleCooldowns = () => { try { return { single: 0, tournament: 0, ...(JSON.parse(localStorage.getItem(BATTLE_COOLDOWN_KEY)) || {}) }; } catch (e) { return { single: 0, tournament: 0 }; } };
     const saveBattleCooldowns = () => { try { localStorage.setItem(BATTLE_COOLDOWN_KEY, JSON.stringify(BATTLE_COOLDOWNS)); } catch (e) {} };
-    let BATTLE_COOLDOWNS = loadBattleCooldowns(), battleCooldownTimer = null, ACTIVE_BATTLE = null;
+    let BATTLE_COOLDOWNS = loadBattleCooldowns(), battleCooldownTimer = null, ACTIVE_BATTLE = null, battleQuotaPausedAt = 0;
     const BATTLE_LEVELS = {
       easy: { label: 'Easy', ico: '🌱', hp: [110, 190], dmg: [40, 75], single: 250, tournament: 1000, rank: [0, 1] },
       medium: { label: 'Normal', ico: '⚡', hp: [180, 280], dmg: [75, 125], single: 750, tournament: 5000, rank: [1, 2] },
@@ -686,8 +686,8 @@ html = r'''<!doctype html>
     }
     function beginInteractiveBattle(type, difficulty) {
       if (!battleReady() || battleCooldownLeft(type)) return;
-      startBattleCooldown(type);
       ACTIVE_BATTLE = { type, difficulty, match: 1, wins: 0, losses: 0, finished: false, waitingNext: false };
+      pauseQuotaForBattle();
       startInteractiveMatch();
       renderBattleCardsOnly();
     }
@@ -726,10 +726,12 @@ html = r'''<!doctype html>
     function finishInteractiveBattle(won) {
       const level = BATTLE_LEVELS[ACTIVE_BATTLE.difficulty];
       const rewardAmount = ACTIVE_BATTLE.type === 'single' ? level.single : level.tournament;
-      const reward = won ? awardBattleCash(rewardAmount) : 0;
       ACTIVE_BATTLE.finished = true;
       ACTIVE_BATTLE.won = won;
+      resumeQuotaAfterBattle();
+      const reward = won ? awardBattleCash(rewardAmount) : 0;
       ACTIVE_BATTLE.reward = reward;
+      startBattleCooldown(ACTIVE_BATTLE.type);
       renderInteractiveBattle();
       renderBattleCardsOnly();
     }
@@ -786,7 +788,7 @@ html = r'''<!doctype html>
       clearInterval(battleCooldownTimer);
       battleCooldownTimer = setInterval(updateBattleModeButtons, 250);
     }
-    function closeBattle() { clearInterval(battleCooldownTimer); ACTIVE_BATTLE = null; $('battle').classList.remove('on'); }
+    function closeBattle() { clearInterval(battleCooldownTimer); resumeQuotaAfterBattle(); ACTIVE_BATTLE = null; $('battle').classList.remove('on'); }
 
     function missionStep(k, amount = 1) {
       if (!paidMode()) return [];
@@ -813,14 +815,29 @@ html = r'''<!doctype html>
     function ensureQuota() {
       if (quotaMode() && !S.quota) S.quota = { number: 1, cleared: 0, target: quotaStart(), endsAt: Date.now() + quotaSeconds() * 1000 };
     }
+    function pauseQuotaForBattle() {
+      if (quotaMode() && S.quota && !battleQuotaPausedAt) {
+        battleQuotaPausedAt = Date.now();
+        updateQuotaHud();
+      }
+    }
+    function resumeQuotaAfterBattle() {
+      if (!battleQuotaPausedAt) return;
+      if (quotaMode() && S.quota) {
+        S.quota.endsAt += Date.now() - battleQuotaPausedAt;
+        save();
+      }
+      battleQuotaPausedAt = 0;
+      updateQuotaHud();
+    }
     function updateQuotaHud() {
       const active = quotaMode() && S.quota;
       $('quotaBox').hidden = !active;
       if (!active) return;
-      const left = Math.max(0, S.quota.endsAt - Date.now());
+      const left = Math.max(0, S.quota.endsAt - (battleQuotaPausedAt || Date.now()));
       const seconds = Math.ceil(left / 1000);
       $('quotaLabel').textContent = `QUOTA ${S.quota.number} • ${money(S.quota.target)}`;
-      $('quotaTime').textContent = `0:${String(seconds).padStart(2, '0')}`;
+      $('quotaTime').textContent = `${battleQuotaPausedAt ? '⏸ ' : ''}0:${String(seconds).padStart(2, '0')}`;
       $('quotaTime').classList.toggle('danger', seconds <= 10);
       $('quotaFill').style.width = Math.min(100, S.bank / S.quota.target * 100) + '%';
       $('quotaProgress').textContent = `${money(S.bank)} / ${money(S.quota.target)} • ${S.quota.cleared} cleared • highest quota ${Math.max(S.quota.number, quotaRecord())}`;
@@ -844,6 +861,7 @@ html = r'''<!doctype html>
       ensureQuota(); saveQuotaRecord(S.quota.number); updateQuotaHud();
       quotaTimer = setInterval(() => {
         if (!quotaMode() || !S.quota) return;
+        if (battleQuotaPausedAt) { updateQuotaHud(); return; }
         if (Date.now() >= S.quota.endsAt) {
           if (S.bank >= S.quota.target) {
             advanceQuota();
@@ -1124,6 +1142,16 @@ html = r'''<!doctype html>
       clearInterval(kissTimer); kissTimer = setInterval(() => { updateKissButton(); updateShakeButton(); }, 250);
       if (S.last) render(S.last.pull, S.last.cost, S.last.total);
     }
+    function startNewGame(mode) {
+      clearSave();
+      BINDER = [];
+      BATTLE_DECK = [];
+      ACTIVE_BATTLE = null;
+      battleQuotaPausedAt = 0;
+      saveBinder();
+      saveBattleDeck();
+      start(mode);
+    }
     function home() { show('home'); $('btnContinue').hidden = !load(); }
 
     const setButtons = target => {
@@ -1135,10 +1163,10 @@ html = r'''<!doctype html>
     activateSet(selectedSet);
     $('startBank').textContent = money(START_BANK);
     $('priceDate').textContent = PRICE_DATE;
-    $('btnNormal').onclick = () => { clearSave(); start('normal'); };
-    $('btnChill').onclick = () => { clearSave(); start('chill'); };
-    $('btnHard').onclick = () => { clearSave(); start('hard'); };
-    $('btnSandbox').onclick = () => start('sandbox');
+    $('btnNormal').onclick = () => startNewGame('normal');
+    $('btnChill').onclick = () => startNewGame('chill');
+    $('btnHard').onclick = () => startNewGame('hard');
+    $('btnSandbox').onclick = () => startNewGame('sandbox');
     $('btnContinue').onclick = () => { const s = load(); if (s) start(s.mode || 'normal', s); };
     $('btnOpen').onclick = openPack;
     $('btnKiss').onclick = kissPack;
@@ -1167,7 +1195,7 @@ html = r'''<!doctype html>
     $('btnMissions').onclick = showMissions;
     $('btnMissionsClose').onclick = () => $('missions').classList.remove('on');
     $('missions').onclick = e => { if (e.target === $('missions')) $('missions').classList.remove('on'); };
-    $('btnRestart').onclick = () => start(S && ['hard', 'chill'].includes(S.mode) ? S.mode : 'normal');
+    $('btnRestart').onclick = () => startNewGame(S && ['hard', 'chill'].includes(S.mode) ? S.mode : 'normal');
     $('btnOverHome').onclick = home;
     home();
   </script>
