@@ -112,6 +112,13 @@ html = r'''<!doctype html>
     .battle-result.loss { border-color: #ef4444; }
     .battle-log { max-height: 260px; overflow: auto; margin-top: 10px; padding: 9px; background: #08050d; border-radius: 10px; font-size: 12px; line-height: 1.5; }
     .battle-log b { color: #ffe066; }
+    .battle-arena { display: grid; grid-template-columns: 1fr 42px 1fr; gap: 8px; align-items: center; margin: 12px 0; }
+    .battle-lineup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .battle-fighter { min-width: 0; text-align: center; padding: 5px; background: #1c1529; border: 1px solid #3d2a57; border-radius: 10px; }
+    .battle-fighter img { width: 100%; aspect-ratio: 63/88; object-fit: contain; background: #222; border-radius: 6px; }
+    .battle-fighter b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; margin-top: 3px; }
+    .battle-fighter small { display: block; color: #8dffb0; font-size: 9px; }
+    .battle-vs { text-align: center; color: #ffe066; font-size: 20px; font-weight: 1000; }
     @keyframes pop { from { opacity: 0; transform: scale(.7) translateY(25px); } to { opacity: 1; transform: none; } }
     @keyframes glow { from { box-shadow: 0 0 18px #ff4fd088; } to { box-shadow: 0 0 44px #ff4fd0ee, 0 0 80px #ff9800aa; } }
     @keyframes flash { 0% { background: #22c55e66; } 100% { background: #120c1c; } }
@@ -263,6 +270,9 @@ html = r'''<!doctype html>
     const QUOTA_RECORD_KEY = 'poke-tear-quota-record-v1';
     const BINDER_KEY = 'poke-tear-binder-v1';
     const BATTLE_DECK_KEY = 'poke-tear-battle-deck-v1';
+    const BATTLE_COOLDOWN_KEY = 'poke-tear-battle-cooldowns-v1';
+    const SINGLE_BATTLE_COOLDOWN_MS = 10 * 1000;
+    const TOURNAMENT_COOLDOWN_MS = 30 * 1000;
     const BINDER_GROW_MS = 60 * 1000;
     const BINDER_LIMIT = 8;
 
@@ -327,11 +337,14 @@ html = r'''<!doctype html>
     const loadBattleDeck = () => { try { return JSON.parse(localStorage.getItem(BATTLE_DECK_KEY)) || []; } catch (e) { return []; } };
     const saveBattleDeck = () => { try { localStorage.setItem(BATTLE_DECK_KEY, JSON.stringify(BATTLE_DECK)); } catch (e) {} };
     let BATTLE_DECK = loadBattleDeck();
+    const loadBattleCooldowns = () => { try { return { single: 0, tournament: 0, ...(JSON.parse(localStorage.getItem(BATTLE_COOLDOWN_KEY)) || {}) }; } catch (e) { return { single: 0, tournament: 0 }; } };
+    const saveBattleCooldowns = () => { try { localStorage.setItem(BATTLE_COOLDOWN_KEY, JSON.stringify(BATTLE_COOLDOWNS)); } catch (e) {} };
+    let BATTLE_COOLDOWNS = loadBattleCooldowns(), battleCooldownTimer = null;
     const BATTLE_LEVELS = {
-      easy: { label: 'Easy', ico: '🌱', hp: [80, 150], dmg: [25, 60], single: 18, tournament: 120, rank: [0, 1] },
-      medium: { label: 'Medium', ico: '⚡', hp: [135, 235], dmg: [55, 105], single: 45, tournament: 300, rank: [1, 2] },
-      hard: { label: 'Hard', ico: '🔥', hp: [220, 340], dmg: [95, 160], single: 110, tournament: 800, rank: [2, 4] },
-      impossible: { label: 'Impossible', ico: '☠️', hp: [370, 540], dmg: [175, 275], single: 400, tournament: 3000, rank: [3, 4] },
+      easy: { label: 'Easy', ico: '🌱', hp: [110, 190], dmg: [40, 75], single: 250, tournament: 1000, rank: [0, 1] },
+      medium: { label: 'Normal', ico: '⚡', hp: [180, 280], dmg: [75, 125], single: 750, tournament: 5000, rank: [1, 2] },
+      hard: { label: 'Hard', ico: '🔥', hp: [280, 410], dmg: [125, 190], single: 1500, tournament: 10000, rank: [2, 4] },
+      impossible: { label: 'Impossible', ico: '☠️', hp: [450, 650], dmg: [220, 330], single: 3000, tournament: 20000, rank: [3, 4] },
     };
 
     // Original procedural instrumental: 108 BPM drums, bass, and atmospheric synth pads.
@@ -639,25 +652,47 @@ html = r'''<!doctype html>
       if (cleared) $('title').textContent = '✅ QUOTA CLEARED!';
       return amount;
     }
-    function battleTeamHtml(title, cards) {
-      return `<div style="margin-top:8px"><b>${title}</b><div class="battle-stats">${cards.map(card => `${card.name}: ${card.hp} HP / ${card.dmg} DMG`).join('<br>')}</div></div>`;
+    const battleCooldownLeft = type => Math.max(0, (BATTLE_COOLDOWNS[type] || 0) - Date.now());
+    function startBattleCooldown(type) {
+      BATTLE_COOLDOWNS[type] = Date.now() + (type === 'single' ? SINGLE_BATTLE_COOLDOWN_MS : TOURNAMENT_COOLDOWN_MS);
+      saveBattleCooldowns();
+      updateBattleModeButtons();
+    }
+    function battleArenaHtml(result, enemyTitle) {
+      const lineup = cards => `<div class="battle-lineup">${cards.map(card => `<div class="battle-fighter"><img src="${card.image}" alt="${card.name}" loading="lazy"><b>${card.name}</b><small>${card.hp} HP</small><small>${card.dmg} DMG</small></div>`).join('')}</div>`;
+      return `<div class="battle-arena"><div><b>Your three cards</b>${lineup(result.player)}</div><div class="battle-vs">VS</div><div><b>${enemyTitle}</b>${lineup(result.enemy)}</div></div>`;
+    }
+    function updateBattleModeButtons() {
+      const ready = battleReady();
+      document.querySelectorAll('[data-single]').forEach(button => {
+        const level = BATTLE_LEVELS[button.dataset.single], seconds = Math.ceil(battleCooldownLeft('single') / 1000);
+        button.disabled = !ready || seconds > 0;
+        button.innerHTML = `${level.ico} ${level.label}<br><small>${seconds ? `READY IN ${seconds}s` : `Win ${money(level.single)}`}</small>`;
+      });
+      document.querySelectorAll('[data-tournament]').forEach(button => {
+        const level = BATTLE_LEVELS[button.dataset.tournament], seconds = Math.ceil(battleCooldownLeft('tournament') / 1000);
+        button.disabled = !ready || seconds > 0;
+        button.innerHTML = `${level.ico} ${level.label}<br><small>${seconds ? `READY IN ${seconds}s` : `Prize ${money(level.tournament)}`}</small>`;
+      });
     }
     function runSingleBattle(difficulty) {
-      if (!battleReady()) return;
+      if (!battleReady() || battleCooldownLeft('single')) return;
+      startBattleCooldown('single');
       const result = simulateBattle(difficulty), level = BATTLE_LEVELS[difficulty];
       const reward = result.win ? awardBattleCash(level.single) : 0;
-      $('battleResult').innerHTML = `<div class="battle-result ${result.win ? 'win' : 'loss'}"><h2>${result.win ? '🏆 YOU WON!' : '💀 YOU LOST'}</h2><p>${result.win ? `${paidMode() ? `You earned <b>${money(reward)}</b>.` : 'Practice victory — Sandbox does not pay cash.'}` : 'Your cards are safe. Train them or change your deck and try again.'}</p>${battleTeamHtml('Your team', result.player)}${battleTeamHtml(`${level.label} trainer`, result.enemy)}<div class="battle-log">${result.log.join('<br>')}</div></div>`;
+      $('battleResult').innerHTML = `<div class="battle-result ${result.win ? 'win' : 'loss'}"><h2>${result.win ? '🏆 YOU WON!' : '💀 YOU LOST'}</h2><p>${result.win ? `${paidMode() ? `You earned <b>${money(reward)}</b>.` : 'Practice victory — Sandbox does not pay cash.'}` : 'Your cards are safe. Train them or change your deck and try again.'}</p>${battleArenaHtml(result, `${level.label} trainer`)}<div class="battle-log">${result.log.join('<br>')}</div></div>`;
       renderBattleCardsOnly();
     }
     function runTournament(difficulty) {
-      if (!battleReady()) return;
+      if (!battleReady() || battleCooldownLeft('tournament')) return;
+      startBattleCooldown('tournament');
       const level = BATTLE_LEVELS[difficulty], matches = [];
       for (let i = 0; i < 5; i++) matches.push(simulateBattle(difficulty));
       const wins = matches.filter(match => match.win).length, won = wins >= 3;
       const reward = won ? awardBattleCash(level.tournament) : 0;
       const summaries = matches.map((match, i) => `Match ${i + 1}: ${match.win ? '✅ WIN' : '❌ LOSS'} — ${match.enemy.map(card => card.name).join(', ')}`).join('<br>');
       const deciding = matches[matches.length - 1];
-      $('battleResult').innerHTML = `<div class="battle-result ${won ? 'win' : 'loss'}"><h2>${won ? '🏆 TOURNAMENT CHAMPION!' : '💀 TOURNAMENT LOST'}</h2><p>You won <b>${wins} of 5</b> matches. ${won ? (paidMode() ? `Prize: <b>${money(reward)}</b>.` : 'Sandbox tournament complete — no cash prize.') : 'You needed at least three wins. Your Binder cards are safe.'}</p><div class="battle-log">${summaries}<hr><b>Final match play-by-play</b><br>${deciding.log.join('<br>')}</div></div>`;
+      $('battleResult').innerHTML = `<div class="battle-result ${won ? 'win' : 'loss'}"><h2>${won ? '🏆 TOURNAMENT CHAMPION!' : '💀 TOURNAMENT LOST'}</h2><p>You won <b>${wins} of 5</b> matches. ${won ? (paidMode() ? `Prize: <b>${money(reward)}</b>.` : 'Sandbox tournament complete — no cash prize.') : 'You needed at least three wins. Your Binder cards are safe.'}</p>${battleArenaHtml(deciding, `Final ${level.label} trainer`)}<div class="battle-log">${summaries}<hr><b>Final match play-by-play</b><br>${deciding.log.join('<br>')}</div></div>`;
       renderBattleCardsOnly();
     }
     function renderBattleCardsOnly() {
@@ -671,7 +706,7 @@ html = r'''<!doctype html>
       }).join('') : '<p class="sub" style="grid-column:1/-1">Your Binder is empty. Keep cards from opened packs before battling.</p>';
       $('battleCards').querySelectorAll('[data-battle-pick]').forEach(button => button.onclick = () => toggleBattleCard(button.dataset.battlePick));
       $('battleCards').querySelectorAll('[data-battle-train]').forEach(button => button.onclick = () => trainBattleCard(button.dataset.battleTrain));
-      document.querySelectorAll('[data-single], [data-tournament]').forEach(button => button.disabled = !battleReady());
+      updateBattleModeButtons();
     }
     function renderBattle() {
       const active = S && !S.ended;
@@ -681,14 +716,17 @@ html = r'''<!doctype html>
       $('singleBattles').querySelectorAll('[data-single]').forEach(button => button.onclick = () => runSingleBattle(button.dataset.single));
       $('tournamentBattles').querySelectorAll('[data-tournament]').forEach(button => button.onclick = () => runTournament(button.dataset.tournament));
       renderBattleCardsOnly();
+      updateBattleModeButtons();
     }
     function showBattle() {
       closeBinder();
       $('battleResult').innerHTML = '';
       renderBattle();
       $('battle').classList.add('on');
+      clearInterval(battleCooldownTimer);
+      battleCooldownTimer = setInterval(updateBattleModeButtons, 250);
     }
-    function closeBattle() { $('battle').classList.remove('on'); }
+    function closeBattle() { clearInterval(battleCooldownTimer); $('battle').classList.remove('on'); }
 
     function missionStep(k, amount = 1) {
       if (!paidMode()) return [];
