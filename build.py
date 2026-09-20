@@ -102,6 +102,12 @@ html = r'''<!doctype html>
     .binder-cards { display: grid; grid-template-columns: 1fr; gap: 20px; margin: 16px auto; }
     .binder-card { width: 100%; max-width: 360px; margin: auto; padding: 12px; }
     .binder-card img { cursor: zoom-in; }
+    .trade-grid { display: grid; grid-template-columns: 1fr 48px 1fr; gap: 10px; align-items: center; margin: 16px 0; }
+    .trade-card { background: #1c1529; border: 2px solid #654d83; border-radius: 14px; padding: 10px; text-align: center; }
+    .trade-card img { width: 100%; max-height: 330px; aspect-ratio: 63/88; object-fit: contain; border-radius: 9px; background: #222; }
+    .trade-card b { display: block; margin-top: 7px; }
+    .trade-card small { display: block; opacity: .72; margin-top: 3px; }
+    .trade-vs { text-align: center; font-size: 24px; font-weight: 1000; color: #ffe066; }
     .zoom-card { max-width: min(440px, 94vw); max-height: 88vh; border-radius: 16px; box-shadow: 0 20px 60px #000; }
     .battle-sheet { width: min(920px, 100%); }
     .battle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 12px 0; }
@@ -258,6 +264,15 @@ html = r'''<!doctype html>
     <div style="position:relative;padding:12px"><img class="zoom-card" id="zoomImage" alt="Enlarged card"><button class="ghost" id="btnZoomClose" style="position:absolute;right:14px;top:14px;padding:8px 13px">✕</button></div>
   </div>
 
+  <div class="overlay" id="cardTrade">
+    <div class="sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🔄 Card Trade</h2><button class="ghost" id="btnTradeClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub" style="font-size:13px">The offered card’s normal value is within 50% below or above yours. Prices are hidden. There is a secret 10% chance that the offered card is fake.</p>
+      <div class="trade-grid" id="tradeComparison"></div>
+      <div style="text-align:center"><button class="primary" id="btnAcceptTrade">ACCEPT TRADE</button><button class="ghost" id="btnDeclineTrade">DECLINE</button></div>
+    </div>
+  </div>
+
   <div class="overlay" id="battle">
     <div class="sheet battle-sheet">
       <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">⚔️ Binder Battles</h2><button class="ghost" id="btnBattleClose" style="margin:0;padding:8px 14px">✕</button></div>
@@ -396,6 +411,7 @@ html = r'''<!doctype html>
     ];
 
     let S = null; // run state
+    let ACTIVE_TRADE = null;
     let quotaTimer = null;
     let binderTimer = null;
     let relicTimer = null;
@@ -610,6 +626,38 @@ html = r'''<!doctype html>
       }
       renderBinder();
     }
+    function tradeCardValue(c, setId) {
+      const rank = RANK(c.r);
+      const raw = rank >= 2 ? (c.ph || c.p || c.pr || 0) : (c.p || c.pr || c.ph || 0);
+      return +(raw * ((SET_META[setId] && SET_META[setId].valueMult) || 1)).toFixed(2);
+    }
+    function tradeSetName(setId) { return SET_META[setId] ? `${SET_META[setId].series} — ${SET_META[setId].name}` : setId; }
+    function findTradeOffer(item) {
+      const ownValue = Math.max(.01, tradeCardValue(item.c, item.set || item.c.id.split('-')[0]));
+      const all = Object.entries(SET_DATA).flatMap(([setId, cards]) => cards.map(c => ({ c, set: setId, value: tradeCardValue(c, setId) }))).filter(x => x.c.id !== item.c.id);
+      let choices = all.filter(x => x.value >= ownValue * .5 && x.value <= ownValue * 1.5);
+      if (!choices.length) choices = all.sort((a, b) => Math.abs(a.value - ownValue) - Math.abs(b.value - ownValue)).slice(0, 20);
+      const offer = rand(choices);
+      return { ...offer, fake: Math.random() < .10 };
+    }
+    function openTrade(uid) {
+      const item = BINDER.find(card => card.uid === uid);
+      if (!item) return;
+      ACTIVE_TRADE = { uid, offer: findTradeOffer(item) };
+      const offer = ACTIVE_TRADE.offer;
+      $('tradeComparison').innerHTML = `<div class="trade-card"><img src="${cardUrl(item.c)}" alt="${item.c.n}"><b>${item.c.n}</b><small>${tradeSetName(item.set || item.c.id.split('-')[0])}</small></div><div class="trade-vs">⇄</div><div class="trade-card"><img src="${cardUrl(offer.c)}" alt="${offer.c.n}"><b>${offer.c.n}</b><small>${tradeSetName(offer.set)}</small></div>`;
+      $('cardTrade').classList.add('on');
+    }
+    function closeTrade() { ACTIVE_TRADE = null; $('cardTrade').classList.remove('on'); }
+    function acceptTrade() {
+      if (!ACTIVE_TRADE) return;
+      const index = BINDER.findIndex(item => item.uid === ACTIVE_TRADE.uid);
+      if (index < 0) return closeTrade();
+      const old = BINDER[index], offer = ACTIVE_TRADE.offer;
+      BATTLE_DECK = BATTLE_DECK.filter(uid => uid !== old.uid);
+      BINDER[index] = { uid: old.uid, c: offer.c, value: offer.fake ? 0 : offer.value, keptAt: Date.now(), grade: null, shaken: false, fake: offer.fake, store: 'trade', set: offer.set, training: 0 };
+      saveBinder(); saveBattleDeck(); closeTrade(); renderBinder();
+    }
     function gradeBinderCard(uid) {
       const item = BINDER.find(item => item.uid === uid);
       if (!item || item.grade) return;
@@ -645,11 +693,12 @@ html = r'''<!doctype html>
         const stats = battleStats(item);
         const selected = BATTLE_DECK.includes(item.uid);
         const pickText = selected ? '✓ IN BATTLE DECK' : BATTLE_DECK.length >= 3 ? 'DECK FULL • REMOVE ONE FIRST' : '⚔️ ADD TO BATTLE DECK';
-        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}" data-binder-price="${item.uid}">${money(binderValue(item))}</span>${item.fake ? '<span class="tag">FAKE • $0</span>' : item.grade ? `<span class="tag">PSA ${item.grade}</span>` : selected ? '<span class="tag">BATTLE DECK</span>' : ''}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy"><div class="name">${item.c.n}</div><div class="rarity">${item.c.r}</div><div class="battle-stats">❤️ ${stats.hp} HP • 💥 ${stats.dmg} MAX DMG • 🏋️ ${stats.training}/10</div><button class="keep-btn" data-binder-deck="${item.uid}">${pickText}</button>${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}">${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `${selected ? 'SELL & REMOVE FROM DECK' : 'SELL'} • ${money(binderValue(item))}` : 'START OR CONTINUE A MONEY RUN TO SELL'}</button></div>`;
+        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}" data-binder-price="${item.uid}">${money(binderValue(item))}</span>${item.fake ? '<span class="tag">FAKE • $0</span>' : item.grade ? `<span class="tag">PSA ${item.grade}</span>` : selected ? '<span class="tag">BATTLE DECK</span>' : ''}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy"><div class="name">${item.c.n}</div><div class="rarity">${item.c.r}</div><div class="battle-stats">❤️ ${stats.hp} HP • 💥 ${stats.dmg} MAX DMG • 🏋️ ${stats.training}/10</div><button class="keep-btn" data-binder-deck="${item.uid}">${pickText}</button><button class="ghost" style="width:100%;padding:8px 6px;font-size:12px" data-trade="${item.uid}">🔄 TRADE CARD</button>${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}">${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `${selected ? 'SELL & REMOVE FROM DECK' : 'SELL'} • ${money(binderValue(item))}` : 'START OR CONTINUE A MONEY RUN TO SELL'}</button></div>`;
       }).join('') : '<p class="sub" style="grid-column:1/-1">Your binder is empty. Open a pack and press KEEP IN BINDER on any card.</p>';
       $('binderList').querySelectorAll('[data-sell]').forEach(b => b.onclick = () => sellBinder(b.dataset.sell));
       $('binderList').querySelectorAll('[data-binder-grade]').forEach(b => b.onclick = () => gradeBinderCard(b.dataset.binderGrade));
       $('binderList').querySelectorAll('[data-binder-deck]').forEach(b => b.onclick = () => toggleBattleCard(b.dataset.binderDeck));
+      $('binderList').querySelectorAll('[data-trade]').forEach(b => b.onclick = () => openTrade(b.dataset.trade));
       $('binderList').querySelectorAll('[data-view]').forEach(img => img.onclick = () => zoomBinderCard(img.dataset.view));
     }
     function refreshBinderPrices() {
@@ -1397,6 +1446,10 @@ html = r'''<!doctype html>
     $('battle').onclick = e => { if (e.target === $('battle')) closeBattle(); };
     $('btnZoomClose').onclick = closeCardZoom;
     $('cardZoom').onclick = e => { if (e.target === $('cardZoom')) closeCardZoom(); };
+    $('btnTradeClose').onclick = closeTrade;
+    $('btnDeclineTrade').onclick = closeTrade;
+    $('btnAcceptTrade').onclick = acceptTrade;
+    $('cardTrade').onclick = e => { if (e.target === $('cardTrade')) closeTrade(); };
     document.querySelectorAll('.music-toggle').forEach(b => b.onclick = toggleMusic);
     document.querySelectorAll('.track-toggle').forEach(b => b.onclick = toggleTrack);
     $('btnShop').onclick = shop;
