@@ -208,6 +208,7 @@
       <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🧿 Relic Shop</h2><button class="ghost" id="btnRelicsClose" style="margin:0;padding:8px 14px">✕</button></div>
       <p class="sub" style="font-size:13px">Bankroll: <b id="relicBank"></b> • Equipped: <b id="relicCount">0/3</b> • New offers in <b id="relicRefresh">0:30</b></p>
       <div id="equippedRelics"></div>
+      <div class="summary" style="max-width:none"><b>✨ Relic Fusion</b><br><small>Select two equipped relics to destroy them and create one stronger fusion relic.</small><div id="fusionStatus" style="margin-top:6px">Select 2 relics</div><button id="btnFuseRelics" disabled>FUSE SELECTED RELICS</button></div>
       <h3>Current offers</h3>
       <div id="relicList"></div>
       <p class="note">You can equip only three relics. Destroying a relic permanently removes it and gives no refund.</p>
@@ -380,6 +381,7 @@
       rare: { name: 'RARE', color: '#60a5fa', weight: 20 },
       legendary: { name: 'LEGENDARY', color: '#facc15', weight: 10 },
       cursed: { name: 'CURSED', color: '#c084fc', weight: 20 },
+      fused: { name: 'FUSED', color: '#67e8f9', weight: 0 },
     };
     const RELICS = [
       { k: 'coupon', ico: '🎟️', name: 'Coupon Book', rarity: 'common', cost: 80, desc: 'Makes every single pack 5% cheaper.' },
@@ -396,7 +398,19 @@
       { k: 'smugglermap', ico: '🗺️', name: 'Smuggler’s Map', rarity: 'cursed', cost: 65, desc: 'Makes packs 20% cheaper, but fake-pack risk rises by 20 percentage points.' },
       { k: 'darkmirror', ico: '🪞', name: 'Dark Mirror', rarity: 'cursed', cost: 80, desc: 'Hit cards are worth 75% more, but every non-hit card is worth 40% less.' },
       { k: 'warchain', ico: '⛓️', name: 'War Chain', rarity: 'cursed', cost: 80, desc: 'Battle rewards are 75% larger, but enemy Pokémon gain 25% HP and damage.' },
+      { k: 'starcore', ico: '🌠', name: 'Collector’s Star', rarity: 'fused', fusionOnly: true, desc: 'Raises chase-card luck by 35% and all real-card values by 20%.' },
+      { k: 'merchantseal', ico: '🪬', name: 'Merchant’s Seal', rarity: 'fused', fusionOnly: true, desc: 'Makes packs 12% cheaper and adds 8% to every box discount.' },
+      { k: 'guardianeye', ico: '👁️', name: 'Guardian Eye', rarity: 'fused', fusionOnly: true, desc: 'Reduces fake-pack risk by 10 percentage points and adds one PSA reroll.' },
+      { k: 'arenacrown', ico: '🏆', name: 'Arena Crown', rarity: 'fused', fusionOnly: true, desc: 'Raises battle rewards by 35% and your battle Pokémon’s HP and damage by 15%.' },
     ];
+    const RANDOM_EVENTS = [
+      { k: 'sale', ico: '🏷️', name: 'Flash Sale', desc: 'The next single pack costs 25% less.' },
+      { k: 'boom', ico: '📈', name: 'Market Boom', desc: 'Cards in the next pack are worth 50% more.' },
+      { k: 'crash', ico: '📉', name: 'Market Crash', desc: 'Cards in the next pack are worth 40% less.' },
+      { k: 'restock', ico: '🍀', name: 'Lucky Restock', desc: 'The next pack gets 2× chase-card luck.' },
+      { k: 'counterfeit', ico: '🚨', name: 'Counterfeit Wave', desc: 'The next pack has 20 percentage points more fake risk.' },
+    ];
+    const RANDOM_EVENT_CHANCE = .25;
     const MISSIONS = [
       { k: 'packs', ico: '🎴', name: 'Pack Rookie', desc: 'Open 3 packs in this run.', goal: 3, reward: 10 },
       { k: 'grades', ico: '🏅', name: 'PSA Apprentice', desc: 'Grade 2 cards in this run.', goal: 2, reward: 12 },
@@ -405,6 +419,7 @@
 
     let S = null; // run state
     let ACTIVE_TRADE = null;
+    let FUSION_SELECTION = [];
     let quotaTimer = null;
     let binderTimer = null;
     let relicTimer = null;
@@ -555,7 +570,7 @@
     }
 
     function newState(mode) {
-      return { mode, set: selectedSet, store: selectedStore, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0 }, relics: [], relicOffers: [], relicRefreshAt: 0, boxes: {}, boxStores: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
+      return { mode, set: selectedSet, store: selectedStore, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0 }, relics: [], relicOffers: [], relicRefreshAt: 0, event: null, boxes: {}, boxStores: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
         quota: mode === 'normal' || mode === 'hard' ? { number: 1, cleared: 0, target: mode === 'hard' ? HARD_QUOTA_START : QUOTA_START, endsAt: Date.now() + (mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) * 1000 } : null };
     }
     function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
@@ -746,8 +761,9 @@
     function battleStats(item) {
       const rank = RANK(item.c.r), grade = item.grade || 0, training = item.training || 0;
       const value = Math.max(.01, binderValue(item));
-      const hp = 70 + rank * 30 + Math.min(120, Math.log2(value + 1) * 18) + grade * 3 + training * 12;
-      const dmg = 20 + rank * 22 + Math.min(100, Math.sqrt(value) * 10) + grade * 2 + training * 7;
+      const fusionBoost = hasRelic('arenacrown') ? 1.15 : 1;
+      const hp = (70 + rank * 30 + Math.min(120, Math.log2(value + 1) * 18) + grade * 3 + training * 12) * fusionBoost;
+      const dmg = (20 + rank * 22 + Math.min(100, Math.sqrt(value) * 10) + grade * 2 + training * 7) * fusionBoost;
       return {
         name: item.c.n,
         image: cardUrl(item.c),
@@ -775,7 +791,7 @@
       return Math.round(25 * Math.pow(level + 1, 1.45) * upgradeMultiplier('traincoach'));
     }
     const bribeCost = () => Math.round(BRIBE_BASE_COST * upgradeMultiplier('bribedeal'));
-    const battleReward = (level, type) => Math.round(level[type] * upgradeMultiplier('battleprize') * (hasRelic('idol') ? 1.5 : 1) * (hasRelic('warchain') ? 1.75 : 1));
+    const battleReward = (level, type) => Math.round(level[type] * upgradeMultiplier('battleprize') * (hasRelic('idol') ? 1.5 : 1) * (hasRelic('warchain') ? 1.75 : 1) * (hasRelic('arenacrown') ? 1.35 : 1));
     function trainBattleCard(uid) {
       const item = BINDER.find(card => card.uid === uid);
       if (!item || !S || S.ended || (item.training || 0) >= 10) return;
@@ -1070,19 +1086,19 @@
       }, 250);
     }
 
-    const packCost = (storeId = selectedStore) => paidMode() ? +(meta().price * store(storeId).priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('smugglermap') ? .8 : 1) * (hasRelic('idol') ? 1.15 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2) : 0;
-    const boxDiscount = () => Math.min(.5, UPGRADES[10].mult[S.up.boxdeal] + (hasRelic('boxcutter') ? .05 : 0));
-    const boxCost = () => +(packCost() * BOX_PACKS * (1 - boxDiscount())).toFixed(2);
+    const packCost = (storeId = selectedStore, useEvent = true) => paidMode() ? +(meta().price * store(storeId).priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('merchantseal') ? .88 : 1) * (hasRelic('smugglermap') ? .8 : 1) * (hasRelic('idol') ? 1.15 : 1) * (useEvent && S.event && S.event.k === 'sale' ? .75 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2) : 0;
+    const boxDiscount = () => Math.min(.5, UPGRADES[10].mult[S.up.boxdeal] + (hasRelic('boxcutter') ? .05 : 0) + (hasRelic('merchantseal') ? .08 : 0));
+    const boxCost = () => +(packCost(selectedStore, false) * BOX_PACKS * (1 - boxDiscount())).toFixed(2);
     const currentBoxPacks = () => (S.boxes && S.boxes[selectedSet]) || 0;
     const totalBoxPacks = () => Object.values(S.boxes || {}).reduce((sum, n) => sum + n, 0);
-    const minPackCost = () => Math.min(...Object.values(SET_META).map(s => +(s.price * STORES.black.priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('smugglermap') ? .8 : 1) * (hasRelic('idol') ? 1.15 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2)));
+    const minPackCost = () => Math.min(...Object.values(SET_META).map(s => +(s.price * STORES.black.priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('merchantseal') ? .88 : 1) * (hasRelic('smugglermap') ? .8 : 1) * (hasRelic('idol') ? 1.15 : 1) * (S.event && S.event.k === 'sale' ? .75 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2)));
     const bulkMult = () => UPGRADES[1].mult[S.up.bulk];
     const luckMult = () => UPGRADES[0].mult[S.up.luck];
     const shakeLuckMult = () => UPGRADES[13].mult[S.up.shakepower];
     const shakeCooldownSeconds = () => UPGRADES[14].mult[S.up.shakecool];
 
     function rollHitRarity(storeId = selectedStore) {
-      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * (hasRelic('luckycoin') ? 1.5 : 1) * (hasRelic('cursedclover') ? 2 : 1) * store(storeId).luckMult * (S.kissBoost ? KISS_LUCK_MULT : 1) * (S.shakeBoost ? shakeLuckMult() : 1) * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
+      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * (hasRelic('luckycoin') ? 1.5 : 1) * (hasRelic('starcore') ? 1.35 : 1) * (hasRelic('cursedclover') ? 2 : 1) * (S.event && S.event.k === 'restock' ? 2 : 1) * store(storeId).luckMult * (S.kissBoost ? KISS_LUCK_MULT : 1) * (S.shakeBoost ? shakeLuckMult() : 1) * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
       const total = entries.reduce((a, e) => a + e[1], 0);
       let x = Math.random() * total;
       for (const [r, w] of entries) { x -= w; if (x <= 0) return r; }
@@ -1097,9 +1113,12 @@
       if (v >= 20) v *= UPGRADES[9].mult[S.up.jackpot];
       v *= hasRelic('sleeve') ? 1.2 : 1;
       v *= hasRelic('crown') ? 1.35 : 1;
+      v *= hasRelic('starcore') ? 1.2 : 1;
       v *= hasRelic('cursedclover') ? .8 : 1;
       if (hasRelic('darkmirror')) v *= slot === 'hit' ? 1.75 : .6;
       if (slot === 'rev' || slot === 'hit') v *= hasRelic('prism') ? 1.25 : 1;
+      if (S.event && S.event.k === 'boom') v *= 1.5;
+      if (S.event && S.event.k === 'crash') v *= .6;
       return +v.toFixed(2);
     }
 
@@ -1115,7 +1134,7 @@
     function rollGrade(storeId = selectedStore) {
       const recheckLevel = S && S.up ? S.up.recheck || 0 : 0;
       let best = rollGradeOnce();
-      const rolls = UPGRADES[11].mult[recheckLevel] + store(storeId).psaRerolls + (hasRelic('loupe') ? 2 : 0);
+      const rolls = UPGRADES[11].mult[recheckLevel] + store(storeId).psaRerolls + (hasRelic('loupe') ? 2 : 0) + (hasRelic('guardianeye') ? 1 : 0);
       for (let i = 1; i < rolls; i++) {
         const result = rollGradeOnce();
         if (result.grade > best.grade) best = result;
@@ -1170,8 +1189,9 @@
       const cost = fromBox ? 0 : packCost(storeId);
       if (paidMode() && S.bank < cost) return;
       if (fromBox) S.boxes[selectedSet]--;
-      const fakeChance = Math.min(1, store(storeId).fakeChance + (hasRelic('crown') ? .15 : 0) + (hasRelic('smugglermap') ? .20 : 0));
+      const fakeChance = Math.max(0, Math.min(1, store(storeId).fakeChance + (hasRelic('crown') ? .15 : 0) + (hasRelic('smugglermap') ? .20 : 0) + (S.event && S.event.k === 'counterfeit' ? .20 : 0) - (hasRelic('guardianeye') ? .10 : 0)));
       const fake = Math.random() < fakeChance;
+      const usedEvent = S.event;
       const pull = pullPack(storeId, fake);
       if (S.shakeBoost) pull.forEach(p => p.shaken = true);
       S.kissBoost = false;
@@ -1182,8 +1202,10 @@
       S.peak = Math.max(S.peak, S.bank);
       const hit = pull.reduce((a, p) => p.v > a.v ? p : a, pull[0]);
       if (!S.best || hit.v > S.best.v) S.best = { id: hit.c.id, n: hit.c.n, r: hit.c.r, v: hit.v, img: hit.c.img };
-      S.last = { pull, cost, total, store: storeId, fake };
+      S.last = { pull, cost, total, store: storeId, fake, eventUsed: usedEvent };
       S.last.fromBox = fromBox;
+      S.event = null;
+      if (Math.random() < RANDOM_EVENT_CHANCE) S.event = rand(RANDOM_EVENTS);
       const missionRewards = [
         ...missionStep('packs'),
         ...(pull.some(p => p.v >= 20) ? missionStep('big') : []),
@@ -1192,6 +1214,8 @@
       const clearedQuota = checkQuotaProgress();
       save();
       render(pull, cost, total);
+      if (usedEvent) $('summary').innerHTML += `<div style="margin-top:8px;color:#67e8f9;font-weight:900">${usedEvent.ico} ${usedEvent.name} affected this pack.</div>`;
+      if (S.event) $('summary').innerHTML += `<div style="margin-top:8px;color:#ffe066;font-weight:900">NEW EVENT: ${S.event.ico} ${S.event.name}<br><small>${S.event.desc}</small></div>`;
       if (clearedQuota) $('title').textContent = '✅ QUOTA CLEARED!';
     }
 
@@ -1266,6 +1290,7 @@
       $('bank').textContent = paid ? money(S.bank) : 'SANDBOX';
       $('bank').classList.toggle('low', paid && S.bank < packCost() * 2);
       $('hudSub').textContent = `${S.mode === 'hard' ? '🔥 HARD • ' : ''}${meta().name} • ${store().icon} ${store().name} • ` + (paid ? `${S.packs} opened • ${currentBoxPacks()} box packs • spent ${money(S.spent)} • pulled ${money(S.earned)}` : `${S.packs} packs • pulled ${money(S.earned)}`);
+      if (S.event) $('hudSub').textContent += ` • EVENT: ${S.event.ico} ${S.event.name} — ${S.event.desc}`;
       const ups = UPGRADES.filter(u => S.up[u.k]).map(u => u.ico + (u.tiers.length > 1 ? S.up[u.k] : '')).join(' ');
       const relicIcons = RELICS.filter(r => hasRelic(r.k)).map(r => r.ico).join('');
       $('hudUp').textContent = [ups, relicIcons].filter(Boolean).join(' ') || 'no upgrades or relics';
@@ -1340,8 +1365,8 @@
       const offers = [];
       while (offers.length < 5) {
         const rarity = rollRelicRarity();
-        let choices = RELICS.filter(r => r.rarity === rarity && !offers.includes(r.k));
-        if (!choices.length) choices = RELICS.filter(r => !offers.includes(r.k));
+        let choices = RELICS.filter(r => !r.fusionOnly && r.rarity === rarity && !offers.includes(r.k));
+        if (!choices.length) choices = RELICS.filter(r => !r.fusionOnly && !offers.includes(r.k));
         offers.push(rand(choices).k);
       }
       S.relicOffers = offers;
@@ -1353,7 +1378,8 @@
     }
     function relicCard(r, owned, equipped) {
       const rarity = RELIC_RARITIES[r.rarity], free = S.mode === 'sandbox', full = equipped >= 3;
-      return `<div class="up ${owned ? 'max' : ''}" style="border-color:${rarity.color}"><div class="ico">${r.ico}</div><div class="body"><b>${r.name} <span style="color:${rarity.color};font-size:11px">${rarity.name}</span></b><small>${r.desc}</small><div class="tier">${owned ? 'EQUIPPED' : free ? 'FREE IN SANDBOX' : money(r.cost)}</div></div>${owned ? `<button class="ghost" data-destroy-relic="${r.k}">DESTROY</button>` : `<button data-buy-relic="${r.k}" ${full || (!free && S.bank < r.cost) ? 'disabled' : ''}>${full ? '3/3 FULL' : free ? 'FREE' : money(r.cost)}</button>`}</div>`;
+      const selected = FUSION_SELECTION.includes(r.k);
+      return `<div class="up ${owned ? 'max' : ''}" style="border-color:${selected ? '#67e8f9' : rarity.color}"><div class="ico">${r.ico}</div><div class="body"><b>${r.name} <span style="color:${rarity.color};font-size:11px">${rarity.name}</span></b><small>${r.desc}</small><div class="tier">${owned ? 'EQUIPPED' : free ? 'FREE IN SANDBOX' : money(r.cost)}</div></div>${owned ? `<button data-fuse-select="${r.k}">${selected ? '✓ FUSION' : 'SELECT'}</button><button class="ghost" data-destroy-relic="${r.k}">DESTROY</button>` : `<button data-buy-relic="${r.k}" ${full || (!free && S.bank < r.cost) ? 'disabled' : ''}>${full ? '3/3 FULL' : free ? 'FREE' : money(r.cost)}</button>`}</div>`;
     }
     function relicShop() {
       ensureRelicOffers();
@@ -1364,6 +1390,9 @@
       $('relicList').innerHTML = S.relicOffers.map(k => relicCard(RELICS.find(r => r.k === k), hasRelic(k), equipped)).join('');
       $('relicList').querySelectorAll('[data-buy-relic]').forEach(b => b.onclick = () => buyRelic(b.dataset.buyRelic));
       document.querySelectorAll('#relicShop [data-destroy-relic]').forEach(b => b.onclick = () => destroyRelic(b.dataset.destroyRelic));
+      document.querySelectorAll('#relicShop [data-fuse-select]').forEach(b => b.onclick = () => selectRelicForFusion(b.dataset.fuseSelect));
+      $('fusionStatus').textContent = FUSION_SELECTION.length ? `${FUSION_SELECTION.length}/2 selected: ${FUSION_SELECTION.map(k => RELICS.find(r => r.k === k).name).join(' + ')}` : 'Select 2 relics';
+      $('btnFuseRelics').disabled = FUSION_SELECTION.length !== 2;
       $('relicShop').classList.add('on');
       updateRelicCountdown();
     }
@@ -1384,7 +1413,23 @@
     function destroyRelic(k) {
       if (!hasRelic(k)) return;
       S.relics = S.relics.filter(id => id !== k);
+      FUSION_SELECTION = FUSION_SELECTION.filter(id => id !== k);
       save(); hud(); relicShop();
+    }
+    function selectRelicForFusion(k) {
+      if (!hasRelic(k)) return;
+      FUSION_SELECTION = FUSION_SELECTION.includes(k) ? FUSION_SELECTION.filter(id => id !== k) : FUSION_SELECTION.length < 2 ? [...FUSION_SELECTION, k] : FUSION_SELECTION;
+      relicShop();
+    }
+    function fuseRelics() {
+      if (FUSION_SELECTION.length !== 2 || !FUSION_SELECTION.every(hasRelic)) return;
+      const pool = RELICS.filter(r => r.fusionOnly && !hasRelic(r.k));
+      const result = rand(pool.length ? pool : RELICS.filter(r => r.fusionOnly));
+      S.relics = S.relics.filter(k => !FUSION_SELECTION.includes(k));
+      S.relics.push(result.k);
+      FUSION_SELECTION = [];
+      save(); hud(); relicShop();
+      $('fusionStatus').innerHTML = `✨ Created <b>${result.ico} ${result.name}</b>!`;
     }
 
     function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); window.scrollTo(0, 0); }
@@ -1396,6 +1441,7 @@
       S.relics = Array.isArray(S.relics) ? S.relics.map(k => k === 'detector' ? 'crown' : k === 'medal' ? 'idol' : k).filter((k, i, all) => RELICS.some(r => r.k === k) && all.indexOf(k) === i).slice(0, 3) : [];
       S.relicOffers = Array.isArray(S.relicOffers) ? S.relicOffers.filter(k => RELICS.some(r => r.k === k)).slice(0, 5) : [];
       S.relicRefreshAt = S.relicRefreshAt || 0;
+      S.event = S.event && RANDOM_EVENTS.some(e => e.k === S.event.k) ? S.event : null;
       S.boxes = { ...(S.boxes || {}) };
       S.boxStores = { ...(S.boxStores || {}) };
       S.kissBoost = !!S.kissBoost;
@@ -1480,6 +1526,7 @@
     $('btnShopClose').onclick = () => $('shop').classList.remove('on');
     $('shop').onclick = e => { if (e.target === $('shop')) $('shop').classList.remove('on'); };
     $('btnRelics').onclick = relicShop;
+    $('btnFuseRelics').onclick = fuseRelics;
     $('btnRelicsClose').onclick = () => $('relicShop').classList.remove('on');
     $('relicShop').onclick = e => { if (e.target === $('relicShop')) $('relicShop').classList.remove('on'); };
     $('btnMissions').onclick = showMissions;
