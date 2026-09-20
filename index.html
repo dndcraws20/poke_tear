@@ -21,6 +21,11 @@
     .set-choice.on { border-color: #ffe066; box-shadow: 0 0 18px #ffb30055; }
     .set-choice img { width: 100%; height: 45px; object-fit: contain; display: block; margin-bottom: 5px; }
     .set-choice small { display: block; opacity: .72; }
+    .store-picker { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 12px 0; }
+    .store-choice { width: 190px; min-height: 86px; padding: 10px; background: #151020; color: #fff; border: 2px solid #3d2a57; text-align: left; }
+    .store-choice.on { border-color: #65e6ff; box-shadow: 0 0 18px #22d3ee55; }
+    .store-choice b, .store-choice small { display: block; }
+    .store-choice small { margin-top: 4px; opacity: .72; line-height: 1.25; font-weight: 500; }
     button, .btn { display: inline-block; border-radius: 14px; text-decoration: none; font-weight: 900; cursor: pointer; border: 0; font-family: inherit; font-size: 16px; padding: 14px 22px; margin: 6px 4px; color: #180b00; background: #ffe066; -webkit-tap-highlight-color: transparent; }
     button:disabled { opacity: .35; cursor: not-allowed; }
     .primary { padding: 18px 36px; background: linear-gradient(#ffe66b, #ff9800); font-size: 20px; box-shadow: 0 7px #985500; }
@@ -129,6 +134,8 @@
       <p class="sub" id="setTitle"></p>
       <img class="pack" id="packArt" src="pack.jpg" alt="Selected Pokémon set">
       <div class="set-picker" id="setPicker"></div>
+      <h2>Choose a store</h2>
+      <div class="store-picker" id="storePicker"></div>
       <div class="modes">
         <button class="mode" id="btnNormal"><b>💸 Normal</b><small>Start with <span id="startBank"></span>. Packs cost real money, cards sell at live market value. Buy upgrades, don't go broke.</small></button>
         <button class="mode" id="btnChill"><b>😌 Chill</b><small>No quota or timer. Packs and upgrades still cost money, and the run ends if you go broke.</small></button>
@@ -165,6 +172,7 @@
         <button class="ghost track-toggle">🎼 ELECTRONIC</button>
         <button class="ghost" id="btnBinder">📚 BINDER</button>
         <button class="ghost" id="btnBattle">⚔️ BATTLES</button>
+        <button class="ghost" id="btnSwitchStore">🏪 SWITCH STORE</button>
         <button class="ghost" id="btnSwitchSet">SWITCH SET</button>
         <button class="ghost" id="btnHome">HOME</button>
       </div>
@@ -194,6 +202,14 @@
       <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🎴 Switch set</h2><button class="ghost" id="btnSetClose" style="margin:0;padding:8px 14px">✕</button></div>
       <p class="sub" style="font-size:13px">Your bankroll, upgrades, stats, and save stay the same.</p>
       <div class="set-picker" id="gameSetPicker"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="storeSwitch">
+    <div class="sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🏪 Choose a pack store</h2><button class="ghost" id="btnStoreClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub" style="font-size:13px">Cheaper stores carry a risk of fake packs. Cards from fake packs are worth $0.</p>
+      <div class="store-picker" id="gameStorePicker"></div>
     </div>
   </div>
 
@@ -248,6 +264,12 @@
       'sm7.5': { name: 'Dragon Majesty', series: 'Sun & Moon', code: 'SM7.5', official: 70, art: 'dragon-majesty-pack.jpg', price: 100, valueMult: 2.4 },
       base1: { name: 'Base Set First Edition', series: '1999 Original', code: 'BASE1', official: 102, art: 'first-edition-pack.jpg', price: 10000, valueMult: 3 },
     };
+    const STORES = {
+      pokemon: { name: 'Pokémon Store', icon: '✨', priceMult: 1.10, fakeChance: 0, luckMult: 2, psaRerolls: 1, desc: '10% more expensive • 2× luck • better PSA grades • always real' },
+      walmart: { name: 'Walmart', icon: '🏪', priceMult: 1, fakeChance: 0, luckMult: 1, psaRerolls: 0, desc: 'Normal price • normal luck • always real' },
+      temu: { name: 'Temu', icon: '📦', priceMult: .90, fakeChance: .10, luckMult: 1, psaRerolls: 0, desc: '10% cheaper • 10% chance of a fake pack' },
+      black: { name: 'Black Market', icon: '🕶️', priceMult: .70, fakeChance: .30, luckMult: 1, psaRerolls: 0, desc: '30% cheaper • 30% chance of a fake pack' },
+    };
     const PRICE_DATE = '2026-09-16';
 
     const START_BANK = 60;
@@ -292,6 +314,7 @@
     // rank: 0 common · 1 uncommon · 2 rare/double rare · 3 ultra/illustration · 4 special illustration/hyper
     const RANK = r => { r = r.toLowerCase(); if (r === 'common') return 0; if (r === 'uncommon') return 1; if (r.includes('holo rare') || r.includes('special') || r.includes('secret') || r.includes('hyper')) return 4; if (r.includes('ultra') || r.includes('illustration')) return 3; return 2; };
     let selectedSet = 'me05';
+    let selectedStore = 'walmart';
     let SET = [];
     let BY = {};
 
@@ -442,6 +465,7 @@
     }
 
     const meta = () => SET_META[selectedSet];
+    const store = (id = selectedStore) => STORES[id] || STORES.walmart;
     const paidMode = () => S && !S.ended && (S.mode === 'normal' || S.mode === 'hard' || S.mode === 'chill');
     const quotaMode = () => S && (S.mode === 'normal' || S.mode === 'hard');
     const quotaStart = () => S.mode === 'hard' ? HARD_QUOTA_START : QUOTA_START;
@@ -455,6 +479,12 @@
       document.querySelectorAll('.set-choice').forEach(b => b.classList.toggle('on', b.dataset.set === selectedSet));
       $('setTitle').textContent = `${meta().series} — ${meta().name} • ${meta().code}`;
       $('packArt').src = meta().art; $('packArt').alt = `${meta().name} pack`;
+    }
+
+    function activateStore(id) {
+      selectedStore = STORES[id] ? id : 'walmart';
+      document.querySelectorAll('.store-choice').forEach(b => b.classList.toggle('on', b.dataset.store === selectedStore));
+      if (S) { S.store = selectedStore; save(); hud(); }
     }
 
     function switchSet(id) {
@@ -471,7 +501,7 @@
     }
 
     function newState(mode) {
-      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0 }, boxes: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
+      return { mode, set: selectedSet, store: selectedStore, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0 }, boxes: {}, boxStores: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
         quota: mode === 'normal' || mode === 'hard' ? { number: 1, cleared: 0, target: mode === 'hard' ? HARD_QUOTA_START : QUOTA_START, endsAt: Date.now() + (mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) * 1000 } : null };
     }
     function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
@@ -496,7 +526,7 @@
     }
     const binderCapacity = () => BINDER_CAPACITY_LEVELS[Math.min(BINDER_CAPACITY_LEVELS.length - 1, binderUpgradeLevel('binderspace'))];
     const binderGrowthMult = () => BINDER_GROWTH_LEVELS[Math.min(BINDER_GROWTH_LEVELS.length - 1, binderUpgradeLevel('bindergrowth'))];
-    const binderValue = item => +(item.value * (Date.now() - item.keptAt >= BINDER_GROW_MS ? binderGrowthMult() : 1)).toFixed(2);
+    const binderValue = item => item.fake ? 0 : +(item.value * (Date.now() - item.keptAt >= BINDER_GROW_MS ? binderGrowthMult() : 1)).toFixed(2);
     function keepCard(index) {
       const p = S.last && S.last.pull[index];
       if (!p || p.kept || BINDER.length >= binderCapacity()) return;
@@ -508,7 +538,7 @@
       }
       S.last.total = +(S.last.total - value).toFixed(2);
       p.kept = true;
-      BINDER.unshift({ uid: `${Date.now()}-${Math.random()}`, c: p.c, value, keptAt: Date.now(), grade: p.grade ? p.grade.n : null, shaken: !!p.shaken, set: selectedSet });
+      BINDER.unshift({ uid: `${Date.now()}-${Math.random()}`, c: p.c, value, keptAt: Date.now(), grade: p.grade ? p.grade.n : null, shaken: !!p.shaken, fake: !!p.fake, store: p.store || selectedStore, set: selectedSet });
       saveBinder(); save();
       render(S.last.pull, S.last.cost, S.last.total);
     }
@@ -538,8 +568,8 @@
     function gradeBinderCard(uid) {
       const item = BINDER.find(item => item.uid === uid);
       if (!item || item.grade) return;
-      const result = item.shaken ? GRADES.find(g => g.grade === 1) : rollGrade();
-      let value = result.grade === 1 ? .01 : +(item.value * result.mult).toFixed(2);
+      const result = item.shaken ? GRADES.find(g => g.grade === 1) : rollGrade(item.store);
+      let value = item.fake ? 0 : result.grade === 1 ? .01 : +(item.value * result.mult).toFixed(2);
       const coverLevel = S && S.up ? S.up.cover || 0 : 0;
       if (result.grade >= 2 && result.grade <= 4) value = Math.max(value, +(item.value * UPGRADES[8].mult[coverLevel]).toFixed(2));
       item.value = value;
@@ -570,7 +600,7 @@
         const stats = battleStats(item);
         const selected = BATTLE_DECK.includes(item.uid);
         const pickText = selected ? '✓ IN BATTLE DECK' : BATTLE_DECK.length >= 3 ? 'DECK FULL • REMOVE ONE FIRST' : '⚔️ ADD TO BATTLE DECK';
-        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}" data-binder-price="${item.uid}">${money(binderValue(item))}</span>${item.grade ? `<span class="tag">PSA ${item.grade}</span>` : selected ? '<span class="tag">BATTLE DECK</span>' : ''}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy"><div class="name">${item.c.n}</div><div class="rarity">${item.c.r}</div><div class="battle-stats">❤️ ${stats.hp} HP • 💥 ${stats.dmg} MAX DMG • 🏋️ ${stats.training}/10</div><button class="keep-btn" data-binder-deck="${item.uid}">${pickText}</button>${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}">${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `${selected ? 'SELL & REMOVE FROM DECK' : 'SELL'} • ${money(binderValue(item))}` : 'START OR CONTINUE A MONEY RUN TO SELL'}</button></div>`;
+        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}" data-binder-price="${item.uid}">${money(binderValue(item))}</span>${item.fake ? '<span class="tag">FAKE • $0</span>' : item.grade ? `<span class="tag">PSA ${item.grade}</span>` : selected ? '<span class="tag">BATTLE DECK</span>' : ''}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy"><div class="name">${item.c.n}</div><div class="rarity">${item.c.r}</div><div class="battle-stats">❤️ ${stats.hp} HP • 💥 ${stats.dmg} MAX DMG • 🏋️ ${stats.training}/10</div><button class="keep-btn" data-binder-deck="${item.uid}">${pickText}</button>${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}">${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `${selected ? 'SELL & REMOVE FROM DECK' : 'SELL'} • ${money(binderValue(item))}` : 'START OR CONTINUE A MONEY RUN TO SELL'}</button></div>`;
       }).join('') : '<p class="sub" style="grid-column:1/-1">Your binder is empty. Open a pack and press KEEP IN BINDER on any card.</p>';
       $('binderList').querySelectorAll('[data-sell]').forEach(b => b.onclick = () => sellBinder(b.dataset.sell));
       $('binderList').querySelectorAll('[data-binder-grade]').forEach(b => b.onclick = () => gradeBinderCard(b.dataset.binderGrade));
@@ -925,19 +955,19 @@
       }, 250);
     }
 
-    const packCost = () => paidMode() ? +(meta().price * UPGRADES[3].mult[S.up.whole] * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2) : 0;
+    const packCost = (storeId = selectedStore) => paidMode() ? +(meta().price * store(storeId).priceMult * UPGRADES[3].mult[S.up.whole] * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2) : 0;
     const boxDiscount = () => UPGRADES[10].mult[S.up.boxdeal];
     const boxCost = () => +(packCost() * BOX_PACKS * (1 - boxDiscount())).toFixed(2);
     const currentBoxPacks = () => (S.boxes && S.boxes[selectedSet]) || 0;
     const totalBoxPacks = () => Object.values(S.boxes || {}).reduce((sum, n) => sum + n, 0);
-    const minPackCost = () => Math.min(...Object.values(SET_META).map(s => +(s.price * UPGRADES[3].mult[S.up.whole] * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2)));
+    const minPackCost = () => Math.min(...Object.values(SET_META).map(s => +(s.price * STORES.black.priceMult * UPGRADES[3].mult[S.up.whole] * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2)));
     const bulkMult = () => UPGRADES[1].mult[S.up.bulk];
     const luckMult = () => UPGRADES[0].mult[S.up.luck];
     const shakeLuckMult = () => UPGRADES[13].mult[S.up.shakepower];
     const shakeCooldownSeconds = () => UPGRADES[14].mult[S.up.shakecool];
 
-    function rollHitRarity() {
-      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * (S.kissBoost ? KISS_LUCK_MULT : 1) * (S.shakeBoost ? shakeLuckMult() : 1) * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
+    function rollHitRarity(storeId = selectedStore) {
+      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * store(storeId).luckMult * (S.kissBoost ? KISS_LUCK_MULT : 1) * (S.shakeBoost ? shakeLuckMult() : 1) * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
       const total = entries.reduce((a, e) => a + e[1], 0);
       let x = Math.random() * total;
       for (const [r, w] of entries) { x -= w; if (x <= 0) return r; }
@@ -962,10 +992,11 @@
       }
       return GRADES[GRADES.length - 1];
     }
-    function rollGrade() {
+    function rollGrade(storeId = selectedStore) {
       const recheckLevel = S && S.up ? S.up.recheck || 0 : 0;
       let best = rollGradeOnce();
-      for (let i = 1; i < UPGRADES[11].mult[recheckLevel]; i++) {
+      const rolls = UPGRADES[11].mult[recheckLevel] + store(storeId).psaRerolls;
+      for (let i = 1; i < rolls; i++) {
         const result = rollGradeOnce();
         if (result.grade > best.grade) best = result;
       }
@@ -975,8 +1006,8 @@
     function gradeCard(index) {
       const p = S.last && S.last.pull[index];
       if (!p || p.grade || p.kept) return;
-      const result = p.shaken ? GRADES.find(g => g.grade === 1) : rollGrade();
-      let value = result.grade === 1 ? .01 : +(p.v * result.mult).toFixed(2);
+      const result = p.shaken ? GRADES.find(g => g.grade === 1) : rollGrade(p.store);
+      let value = p.fake ? 0 : result.grade === 1 ? .01 : +(p.v * result.mult).toFixed(2);
       if (result.grade >= 2 && result.grade <= 4) value = Math.max(value, +(p.v * UPGRADES[8].mult[S.up.cover]).toFixed(2));
       const delta = +(value - p.v).toFixed(2);
       p.grade = { n: result.grade, mult: result.mult, value, delta };
@@ -992,7 +1023,7 @@
       if (clearedQuota) $('title').textContent = '✅ QUOTA CLEARED!';
     }
 
-    function pullPack() {
+    function pullPack(storeId = selectedStore, fake = false) {
       const used = new Set();
       const take = (pool, slot) => { let c, n = 0; do { c = rand(pool); } while (used.has(c.id) && n++ < 50); used.add(c.id); return { c, slot, v: 0 }; };
       const base = [...BY['Common'], ...BY['Uncommon'], ...BY['Rare']];
@@ -1002,22 +1033,25 @@
       for (let i = 0; i < 3; i++) pull.push(take(BY['Uncommon'], 'base'));
       for (let i = 0; i < UPGRADES[12].mult[S.up.extras]; i++) pull.push(take([...BY['Common'], ...BY['Uncommon']], 'base'));
       if (!firstEdition) for (let i = 0; i < 2 + S.up.rev; i++) pull.push(take(base, 'rev'));
-      pull.push(take(BY[rollHitRarity()], 'hit'));
-      if (Math.random() < DOUBLE_HIT_CHANCE + UPGRADES[6].mult[S.up.bonus]) pull.push(take(BY[rollHitRarity()], 'hit'));
+      pull.push(take(BY[rollHitRarity(storeId)], 'hit'));
+      if (Math.random() < DOUBLE_HIT_CHANCE + UPGRADES[6].mult[S.up.bonus]) pull.push(take(BY[rollHitRarity(storeId)], 'hit'));
       for (let i = pull.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pull[i], pull[j]] = [pull[j], pull[i]];
       }
-      pull.forEach(p => p.v = cardValue(p.c, p.slot));
+      pull.forEach(p => { p.store = storeId; p.fake = fake; p.v = fake ? 0 : cardValue(p.c, p.slot); });
       return pull;
     }
 
     function openPack() {
       const fromBox = currentBoxPacks() > 0;
-      const cost = fromBox ? 0 : packCost();
+      const boxQueue = (S.boxStores && S.boxStores[selectedSet]) || [];
+      const storeId = fromBox ? (boxQueue.shift() || selectedStore) : selectedStore;
+      const cost = fromBox ? 0 : packCost(storeId);
       if (paidMode() && S.bank < cost) return;
       if (fromBox) S.boxes[selectedSet]--;
-      const pull = pullPack();
+      const fake = Math.random() < store(storeId).fakeChance;
+      const pull = pullPack(storeId, fake);
       if (S.shakeBoost) pull.forEach(p => p.shaken = true);
       S.kissBoost = false;
       S.shakeBoost = false;
@@ -1027,7 +1061,7 @@
       S.peak = Math.max(S.peak, S.bank);
       const hit = pull.reduce((a, p) => p.v > a.v ? p : a, pull[0]);
       if (!S.best || hit.v > S.best.v) S.best = { id: hit.c.id, n: hit.c.n, r: hit.c.r, v: hit.v, img: hit.c.img };
-      S.last = { pull, cost, total };
+      S.last = { pull, cost, total, store: storeId, fake };
       S.last.fromBox = fromBox;
       const missionRewards = [
         ...missionStep('packs'),
@@ -1082,7 +1116,7 @@
         const canKeep = !binderFull && (!paidMode() || S.bank >= shownValue);
         const keepText = binderFull ? `BINDER FULL • ${BINDER.length}/${binderCapacity()}` : canKeep ? 'KEEP IN BINDER' : 'NOT ENOUGH MONEY TO KEEP';
         const gradeText = p.grade ? `PSA ${p.grade.n} • ${money(p.v)} → ${money(p.grade.value)} (${p.grade.delta >= 0 ? '+' : ''}${money(p.grade.delta)})` : '';
-        d.innerHTML = `${p.grade ? `<span class="tag">PSA ${p.grade.n}</span>` : p.shaken ? '<span class="tag">SHAKEN</span>' : p.slot === 'rev' ? '<span class="tag">REVERSE</span>' : ''}
+        d.innerHTML = `${p.fake ? '<span class="tag">FAKE • $0</span>' : p.grade ? `<span class="tag">PSA ${p.grade.n}</span>` : p.shaken ? '<span class="tag">SHAKEN</span>' : p.slot === 'rev' ? '<span class="tag">REVERSE</span>' : ''}
           <span class="val ${big ? 'big' : p.slot === 'rev' ? 'rev' : ''}" style="animation-delay:${i * 0.14 + 0.3}s">${money(shownValue)}</span>
           <img src="${cardUrl(c)}" alt="${c.n}" loading="lazy">
           <div class="name">${c.n}</div>
@@ -1094,8 +1128,10 @@
       cardsEl.querySelectorAll('[data-keep]').forEach(b => b.onclick = () => keepCard(+b.dataset.keep));
       const delta = +(total - cost).toFixed(2);
       const hit = pull.reduce((best, p) => p.v > best.v ? p : best, pull[0]);
+      const purchaseStore = store((S.last && S.last.store) || selectedStore);
+      const fakeWarning = S.last && S.last.fake ? '<div style="color:#ff6969;font-weight:1000">⚠️ FAKE PACK — EVERY CARD IS WORTH $0</div>' : '';
       $('summary').innerHTML = paidMode()
-        ? `${S.last && S.last.fromBox ? 'Box pack' : `Pack ${money(cost)}`} → cards sold ${money(total)} <div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${money(delta)}</div><small style="opacity:.7">hit: ${hit.c.n} (${hit.c.r})</small>`
+        ? `${purchaseStore.icon} ${purchaseStore.name} • ${S.last && S.last.fromBox ? 'Box pack' : `Pack ${money(cost)}`} → cards sold ${money(total)} ${fakeWarning}<div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${money(delta)}</div><small style="opacity:.7">hit: ${hit.c.n} (${hit.c.r})</small>`
         : `Pack value ${money(total)} <small style="opacity:.7;display:block">hit: ${hit.c.n} (${hit.c.r})</small>`;
       if (S.last && S.last.mission && S.last.mission.length) $('summary').innerHTML += `<div style="margin-top:8px;color:#ffe066;font-weight:900">MISSION COMPLETE<br>${S.last.mission.join('<br>')}</div>`;
       $('title').textContent = delta >= 20 ? '💎 BIG HIT!' : '🔥 PACK OPENED!';
@@ -1108,7 +1144,7 @@
       const paid = paidMode();
       $('bank').textContent = paid ? money(S.bank) : 'SANDBOX';
       $('bank').classList.toggle('low', paid && S.bank < packCost() * 2);
-      $('hudSub').textContent = `${S.mode === 'hard' ? '🔥 HARD • ' : ''}${meta().name} • ` + (paid ? `${S.packs} opened • ${currentBoxPacks()} box packs • spent ${money(S.spent)} • pulled ${money(S.earned)}` : `${S.packs} packs • pulled ${money(S.earned)}`);
+      $('hudSub').textContent = `${S.mode === 'hard' ? '🔥 HARD • ' : ''}${meta().name} • ${store().icon} ${store().name} • ` + (paid ? `${S.packs} opened • ${currentBoxPacks()} box packs • spent ${money(S.spent)} • pulled ${money(S.earned)}` : `${S.packs} packs • pulled ${money(S.earned)}`);
       const ups = UPGRADES.filter(u => S.up[u.k]).map(u => u.ico + (u.tiers.length > 1 ? S.up[u.k] : '')).join(' ');
       $('hudUp').textContent = ups || 'no upgrades';
       $('btnShop').hidden = false;
@@ -1132,9 +1168,11 @@
       S.bank = +(S.bank - cost).toFixed(2);
       S.spent = +(S.spent + cost).toFixed(2);
       S.boxes[selectedSet] = currentBoxPacks() + BOX_PACKS;
+      S.boxStores = S.boxStores || {};
+      S.boxStores[selectedSet] = [...(S.boxStores[selectedSet] || []), ...Array(BOX_PACKS).fill(selectedStore)];
       save(); hud();
       $('title').textContent = '📦 BOX PURCHASED!';
-      $('summary').innerHTML = `You bought <b>${BOX_PACKS} ${meta().name} packs</b> for ${money(cost)}, saving ${Math.round(boxDiscount() * 100)}% compared with single packs.`;
+      $('summary').innerHTML = `You bought <b>${BOX_PACKS} ${meta().name} packs</b> from <b>${store().name}</b> for ${money(cost)}, saving ${Math.round(boxDiscount() * 100)}% compared with single packs.`;
     }
 
     function bust(reason = '💀 BUSTED') {
@@ -1175,8 +1213,10 @@
     function start(mode, resume) {
       if (resume) activateSet(resume.set || 'me05');
       S = resume || newState(mode);
+      activateStore(S.store || selectedStore || 'walmart');
       S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0, ...(S.up || {}) };
       S.boxes = { ...(S.boxes || {}) };
+      S.boxStores = { ...(S.boxStores || {}) };
       S.kissBoost = !!S.kissBoost;
       S.kissReadyAt = S.kissReadyAt || 0;
       S.shakeBoost = !!S.shakeBoost;
@@ -1208,10 +1248,16 @@
     const setButtons = target => {
       $(target).innerHTML = Object.entries(SET_META).map(([id, s]) => `<button class="set-choice" data-set="${id}"><img src="${s.art}" alt=""><b>${s.name}</b><small>${s.code} • ${money(s.price)} • ${SET_DATA[id].length} cards</small></button>`).join('');
     };
+    const storeButtons = target => {
+      $(target).innerHTML = Object.entries(STORES).map(([id, s]) => `<button class="store-choice" data-store="${id}"><b>${s.icon} ${s.name}</b><small>${s.desc}</small></button>`).join('');
+    };
     setButtons('setPicker'); setButtons('gameSetPicker');
+    storeButtons('storePicker'); storeButtons('gameStorePicker');
     $('setPicker').querySelectorAll('button').forEach(b => b.onclick = () => activateSet(b.dataset.set));
     $('gameSetPicker').querySelectorAll('button').forEach(b => b.onclick = () => switchSet(b.dataset.set));
+    document.querySelectorAll('.store-choice').forEach(b => b.onclick = () => { activateStore(b.dataset.store); $('storeSwitch').classList.remove('on'); });
     activateSet(selectedSet);
+    activateStore(selectedStore);
     $('startBank').textContent = money(START_BANK);
     $('priceDate').textContent = PRICE_DATE;
     $('btnNormal').onclick = () => startNewGame('normal');
@@ -1224,6 +1270,9 @@
     $('btnShake').onclick = shakePack;
     $('btnBox').onclick = buyBox;
     $('btnSwitchSet').onclick = () => $('setSwitch').classList.add('on');
+    $('btnSwitchStore').onclick = () => $('storeSwitch').classList.add('on');
+    $('btnStoreClose').onclick = () => $('storeSwitch').classList.remove('on');
+    $('storeSwitch').onclick = e => { if (e.target === $('storeSwitch')) $('storeSwitch').classList.remove('on'); };
     $('btnSetClose').onclick = () => $('setSwitch').classList.remove('on');
     $('setSwitch').onclick = e => { if (e.target === $('setSwitch')) $('setSwitch').classList.remove('on'); };
     $('btnHome').onclick = home;
