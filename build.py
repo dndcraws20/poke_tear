@@ -213,7 +213,9 @@ html = r'''<!doctype html>
   <div class="overlay" id="relicShop">
     <div class="sheet">
       <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🧿 Relic Shop</h2><button class="ghost" id="btnRelicsClose" style="margin:0;padding:8px 14px">✕</button></div>
-      <p class="sub" style="font-size:13px">Bankroll: <b id="relicBank"></b> • Equipped: <b id="relicCount">0/3</b></p>
+      <p class="sub" style="font-size:13px">Bankroll: <b id="relicBank"></b> • Equipped: <b id="relicCount">0/3</b> • New offers in <b id="relicRefresh">0:30</b></p>
+      <div id="equippedRelics"></div>
+      <h3>Current offers</h3>
       <div id="relicList"></div>
       <p class="note">You can equip only three relics. Destroying a relic permanently removes it and gives no refund.</p>
     </div>
@@ -368,17 +370,24 @@ html = r'''<!doctype html>
       { k: 'bribedeal', ico: '🤝', name: 'Shady Deal', desc: 'Reduces the cost of the once-per-match Bribe ability.', tiers: [175, 650], fx: ['$225 Bribe', '$150 Bribe'], mult: [1, .75, .5] },
       { k: 'battleprize', ico: '🏆', name: 'Prize Booster', desc: 'Increases cash rewards from single battles and tournaments.', tiers: [500, 2000, 6000], fx: ['+10% rewards', '+25% rewards', '+50% rewards'], mult: [1, 1.1, 1.25, 1.5] },
     ];
+    const RELIC_REFRESH_MS = 30 * 1000;
+    const RELIC_RARITIES = {
+      common: { name: 'COMMON', color: '#cbd5e1', weight: 50 },
+      rare: { name: 'RARE', color: '#60a5fa', weight: 20 },
+      legendary: { name: 'LEGENDARY', color: '#facc15', weight: 10 },
+      cursed: { name: 'CURSED', color: '#c084fc', weight: 20 },
+    };
     const RELICS = [
-      { k: 'luckycoin', ico: '🪙', name: 'Lucky Coin', cost: 95, desc: 'Raises chase-card luck by 25%.' },
-      { k: 'coupon', ico: '🎟️', name: 'Coupon Book', cost: 80, desc: 'Makes every single pack 5% cheaper.' },
-      { k: 'sleeve', ico: '🟨', name: 'Golden Sleeve', cost: 100, desc: 'All real cards are worth 10% more.' },
-      { k: 'prism', ico: '🔮', name: 'Holo Prism', cost: 110, desc: 'Reverse and hit cards are worth 15% more.' },
-      { k: 'loupe', ico: '🔎', name: 'Grading Loupe', cost: 105, desc: 'PSA grading rolls one extra result and keeps the best.' },
-      { k: 'detector', ico: '📡', name: 'Fake Detector', cost: 90, desc: 'Reduces a store’s fake-pack chance by 5 percentage points.' },
-      { k: 'boxcutter', ico: '✂️', name: 'Lucky Box Cutter', cost: 85, desc: 'Adds another 5% discount to six-pack boxes.' },
-      { k: 'binderclock', ico: '🕰️', name: 'Collector Clock', cost: 100, desc: 'Binder growth bonuses become 10% stronger.' },
-      { k: 'quotawatch', ico: '⌚', name: 'Quota Watch', cost: 75, desc: 'Adds five seconds to every quota.' },
-      { k: 'medal', ico: '🏅', name: 'Champion Medal', cost: 120, desc: 'Battle and tournament rewards are 15% larger.' },
+      { k: 'coupon', ico: '🎟️', name: 'Coupon Book', rarity: 'common', cost: 80, desc: 'Makes every single pack 5% cheaper.' },
+      { k: 'boxcutter', ico: '✂️', name: 'Lucky Box Cutter', rarity: 'common', cost: 85, desc: 'Adds another 5% discount to six-pack boxes.' },
+      { k: 'binderclock', ico: '🕰️', name: 'Collector Clock', rarity: 'common', cost: 90, desc: 'Binder growth bonuses become 10% stronger.' },
+      { k: 'quotawatch', ico: '⌚', name: 'Quota Watch', rarity: 'common', cost: 75, desc: 'Adds five seconds to every quota.' },
+      { k: 'luckycoin', ico: '🪙', name: 'Lucky Coin', rarity: 'rare', cost: 100, desc: 'Raises chase-card luck by 50%.' },
+      { k: 'prism', ico: '🔮', name: 'Holo Prism', rarity: 'rare', cost: 110, desc: 'Reverse and hit cards are worth 25% more.' },
+      { k: 'sleeve', ico: '🟨', name: 'Golden Sleeve', rarity: 'legendary', cost: 120, desc: 'All real cards are worth 20% more.' },
+      { k: 'loupe', ico: '🔎', name: 'Master Grading Loupe', rarity: 'legendary', cost: 120, desc: 'PSA grading rolls two extra results and keeps the best.' },
+      { k: 'crown', ico: '👑', name: 'Counterfeit Crown', rarity: 'cursed', cost: 70, desc: 'Real cards are worth 35% more, but fake-pack risk rises by 15 percentage points.' },
+      { k: 'idol', ico: '🗿', name: 'Greedy Idol', rarity: 'cursed', cost: 70, desc: 'Battle rewards are 50% larger, but every pack costs 15% more.' },
     ];
     const MISSIONS = [
       { k: 'packs', ico: '🎴', name: 'Pack Rookie', desc: 'Open 3 packs in this run.', goal: 3, reward: 10 },
@@ -389,6 +398,7 @@ html = r'''<!doctype html>
     let S = null; // run state
     let quotaTimer = null;
     let binderTimer = null;
+    let relicTimer = null;
     let kissTimer = null;
     let audioCtx = null, musicTimer = null, musicOn = false, musicStyle = 'electronic', musicStep = 0, nextMusicStep = 0;
     const $ = id => document.getElementById(id);
@@ -536,7 +546,7 @@ html = r'''<!doctype html>
     }
 
     function newState(mode) {
-      return { mode, set: selectedSet, store: selectedStore, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0 }, relics: [], boxes: {}, boxStores: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
+      return { mode, set: selectedSet, store: selectedStore, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0 }, relics: [], relicOffers: [], relicRefreshAt: 0, boxes: {}, boxStores: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
         quota: mode === 'normal' || mode === 'hard' ? { number: 1, cleared: 0, target: mode === 'hard' ? HARD_QUOTA_START : QUOTA_START, endsAt: Date.now() + (mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) * 1000 } : null };
     }
     function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
@@ -696,7 +706,7 @@ html = r'''<!doctype html>
       return Math.round(25 * Math.pow(level + 1, 1.45) * upgradeMultiplier('traincoach'));
     }
     const bribeCost = () => Math.round(BRIBE_BASE_COST * upgradeMultiplier('bribedeal'));
-    const battleReward = (level, type) => Math.round(level[type] * upgradeMultiplier('battleprize') * (hasRelic('medal') ? 1.15 : 1));
+    const battleReward = (level, type) => Math.round(level[type] * upgradeMultiplier('battleprize') * (hasRelic('idol') ? 1.5 : 1));
     function trainBattleCard(uid) {
       const item = BINDER.find(card => card.uid === uid);
       if (!item || !S || S.ended || (item.training || 0) >= 10) return;
@@ -990,19 +1000,19 @@ html = r'''<!doctype html>
       }, 250);
     }
 
-    const packCost = (storeId = selectedStore) => paidMode() ? +(meta().price * store(storeId).priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2) : 0;
+    const packCost = (storeId = selectedStore) => paidMode() ? +(meta().price * store(storeId).priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('idol') ? 1.15 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2) : 0;
     const boxDiscount = () => Math.min(.5, UPGRADES[10].mult[S.up.boxdeal] + (hasRelic('boxcutter') ? .05 : 0));
     const boxCost = () => +(packCost() * BOX_PACKS * (1 - boxDiscount())).toFixed(2);
     const currentBoxPacks = () => (S.boxes && S.boxes[selectedSet]) || 0;
     const totalBoxPacks = () => Object.values(S.boxes || {}).reduce((sum, n) => sum + n, 0);
-    const minPackCost = () => Math.min(...Object.values(SET_META).map(s => +(s.price * STORES.black.priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2)));
+    const minPackCost = () => Math.min(...Object.values(SET_META).map(s => +(s.price * STORES.black.priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('idol') ? 1.15 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2)));
     const bulkMult = () => UPGRADES[1].mult[S.up.bulk];
     const luckMult = () => UPGRADES[0].mult[S.up.luck];
     const shakeLuckMult = () => UPGRADES[13].mult[S.up.shakepower];
     const shakeCooldownSeconds = () => UPGRADES[14].mult[S.up.shakecool];
 
     function rollHitRarity(storeId = selectedStore) {
-      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * (hasRelic('luckycoin') ? 1.25 : 1) * store(storeId).luckMult * (S.kissBoost ? KISS_LUCK_MULT : 1) * (S.shakeBoost ? shakeLuckMult() : 1) * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
+      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * (hasRelic('luckycoin') ? 1.5 : 1) * store(storeId).luckMult * (S.kissBoost ? KISS_LUCK_MULT : 1) * (S.shakeBoost ? shakeLuckMult() : 1) * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
       const total = entries.reduce((a, e) => a + e[1], 0);
       let x = Math.random() * total;
       for (const [r, w] of entries) { x -= w; if (x <= 0) return r; }
@@ -1015,8 +1025,9 @@ html = r'''<!doctype html>
       if (!CHASE.has(c.r)) v *= bulkMult();
       if (slot === 'rev' || slot === 'hit') v *= UPGRADES[5].mult[S.up.shine];
       if (v >= 20) v *= UPGRADES[9].mult[S.up.jackpot];
-      v *= hasRelic('sleeve') ? 1.1 : 1;
-      if (slot === 'rev' || slot === 'hit') v *= hasRelic('prism') ? 1.15 : 1;
+      v *= hasRelic('sleeve') ? 1.2 : 1;
+      v *= hasRelic('crown') ? 1.35 : 1;
+      if (slot === 'rev' || slot === 'hit') v *= hasRelic('prism') ? 1.25 : 1;
       return +v.toFixed(2);
     }
 
@@ -1032,7 +1043,7 @@ html = r'''<!doctype html>
     function rollGrade(storeId = selectedStore) {
       const recheckLevel = S && S.up ? S.up.recheck || 0 : 0;
       let best = rollGradeOnce();
-      const rolls = UPGRADES[11].mult[recheckLevel] + store(storeId).psaRerolls + (hasRelic('loupe') ? 1 : 0);
+      const rolls = UPGRADES[11].mult[recheckLevel] + store(storeId).psaRerolls + (hasRelic('loupe') ? 2 : 0);
       for (let i = 1; i < rolls; i++) {
         const result = rollGradeOnce();
         if (result.grade > best.grade) best = result;
@@ -1087,7 +1098,7 @@ html = r'''<!doctype html>
       const cost = fromBox ? 0 : packCost(storeId);
       if (paidMode() && S.bank < cost) return;
       if (fromBox) S.boxes[selectedSet]--;
-      const fakeChance = Math.max(0, store(storeId).fakeChance - (hasRelic('detector') ? .05 : 0));
+      const fakeChance = Math.min(1, store(storeId).fakeChance + (hasRelic('crown') ? .15 : 0));
       const fake = Math.random() < fakeChance;
       const pull = pullPack(storeId, fake);
       if (S.shakeBoost) pull.forEach(p => p.shaken = true);
@@ -1248,17 +1259,47 @@ html = r'''<!doctype html>
       save(); hud(); shop();
     }
 
+    function rollRelicRarity() {
+      let x = Math.random() * 100;
+      for (const [key, rarity] of Object.entries(RELIC_RARITIES)) { x -= rarity.weight; if (x < 0) return key; }
+      return 'common';
+    }
+    function refreshRelicOffers() {
+      const offers = [];
+      while (offers.length < 5) {
+        const rarity = rollRelicRarity();
+        let choices = RELICS.filter(r => r.rarity === rarity && !offers.includes(r.k));
+        if (!choices.length) choices = RELICS.filter(r => !offers.includes(r.k));
+        offers.push(rand(choices).k);
+      }
+      S.relicOffers = offers;
+      S.relicRefreshAt = Date.now() + RELIC_REFRESH_MS;
+      save();
+    }
+    function ensureRelicOffers() {
+      if (!Array.isArray(S.relicOffers) || S.relicOffers.length !== 5 || Date.now() >= (S.relicRefreshAt || 0)) refreshRelicOffers();
+    }
+    function relicCard(r, owned, equipped) {
+      const rarity = RELIC_RARITIES[r.rarity], free = S.mode === 'sandbox', full = equipped >= 3;
+      return `<div class="up ${owned ? 'max' : ''}" style="border-color:${rarity.color}"><div class="ico">${r.ico}</div><div class="body"><b>${r.name} <span style="color:${rarity.color};font-size:11px">${rarity.name}</span></b><small>${r.desc}</small><div class="tier">${owned ? 'EQUIPPED' : free ? 'FREE IN SANDBOX' : money(r.cost)}</div></div>${owned ? `<button class="ghost" data-destroy-relic="${r.k}">DESTROY</button>` : `<button data-buy-relic="${r.k}" ${full || (!free && S.bank < r.cost) ? 'disabled' : ''}>${full ? '3/3 FULL' : free ? 'FREE' : money(r.cost)}</button>`}</div>`;
+    }
     function relicShop() {
+      ensureRelicOffers();
       const free = S.mode === 'sandbox', equipped = S.relics.length;
       $('relicBank').textContent = free ? 'FREE' : money(S.bank);
       $('relicCount').textContent = `${equipped}/3`;
-      $('relicList').innerHTML = RELICS.map(r => {
-        const owned = hasRelic(r.k), full = equipped >= 3;
-        return `<div class="up ${owned ? 'max' : ''}"><div class="ico">${r.ico}</div><div class="body"><b>${r.name}</b><small>${r.desc}</small><div class="tier">${owned ? 'EQUIPPED' : free ? 'FREE IN SANDBOX' : money(r.cost)}</div></div>${owned ? `<button class="ghost" data-destroy-relic="${r.k}">DESTROY</button>` : `<button data-buy-relic="${r.k}" ${full || (!free && S.bank < r.cost) ? 'disabled' : ''}>${full ? '3/3 FULL' : free ? 'FREE' : money(r.cost)}</button>`}</div>`;
-      }).join('');
+      $('equippedRelics').innerHTML = S.relics.length ? S.relics.map(k => relicCard(RELICS.find(r => r.k === k), true, equipped)).join('') : '<p class="sub">No relics equipped.</p>';
+      $('relicList').innerHTML = S.relicOffers.map(k => relicCard(RELICS.find(r => r.k === k), hasRelic(k), equipped)).join('');
       $('relicList').querySelectorAll('[data-buy-relic]').forEach(b => b.onclick = () => buyRelic(b.dataset.buyRelic));
-      $('relicList').querySelectorAll('[data-destroy-relic]').forEach(b => b.onclick = () => destroyRelic(b.dataset.destroyRelic));
+      document.querySelectorAll('#relicShop [data-destroy-relic]').forEach(b => b.onclick = () => destroyRelic(b.dataset.destroyRelic));
       $('relicShop').classList.add('on');
+      updateRelicCountdown();
+    }
+    function updateRelicCountdown() {
+      if (!S || !$('relicShop').classList.contains('on')) return;
+      if (Date.now() >= (S.relicRefreshAt || 0)) { refreshRelicOffers(); relicShop(); return; }
+      const seconds = Math.max(0, Math.ceil((S.relicRefreshAt - Date.now()) / 1000));
+      $('relicRefresh').textContent = `0:${String(seconds).padStart(2, '0')}`;
     }
     function buyRelic(k) {
       const relic = RELICS.find(r => r.k === k), free = S.mode === 'sandbox';
@@ -1280,7 +1321,9 @@ html = r'''<!doctype html>
       S = resume || newState(mode);
       activateStore(S.store || selectedStore || 'walmart');
       S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0, ...(S.up || {}) };
-      S.relics = Array.isArray(S.relics) ? S.relics.filter(k => RELICS.some(r => r.k === k)).slice(0, 3) : [];
+      S.relics = Array.isArray(S.relics) ? S.relics.map(k => k === 'detector' ? 'crown' : k === 'medal' ? 'idol' : k).filter((k, i, all) => RELICS.some(r => r.k === k) && all.indexOf(k) === i).slice(0, 3) : [];
+      S.relicOffers = Array.isArray(S.relicOffers) ? S.relicOffers.filter(k => RELICS.some(r => r.k === k)).slice(0, 5) : [];
+      S.relicRefreshAt = S.relicRefreshAt || 0;
       S.boxes = { ...(S.boxes || {}) };
       S.boxStores = { ...(S.boxStores || {}) };
       S.kissBoost = !!S.kissBoost;
@@ -1297,6 +1340,7 @@ html = r'''<!doctype html>
       hud();
       save(); startQuotaTimer();
       clearInterval(kissTimer); kissTimer = setInterval(() => { updateKissButton(); updateShakeButton(); }, 250);
+      clearInterval(relicTimer); relicTimer = setInterval(updateRelicCountdown, 250);
       if (S.last) render(S.last.pull, S.last.cost, S.last.total);
     }
     function startNewGame(mode) {
