@@ -267,9 +267,11 @@ html = r'''<!doctype html>
   <div class="overlay" id="cardTrade">
     <div class="sheet">
       <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🔄 Card Trade</h2><button class="ghost" id="btnTradeClose" style="margin:0;padding:8px 14px">✕</button></div>
-      <p class="sub" style="font-size:13px">The offered card’s normal value is within 50% below or above yours. Prices are hidden. There is a secret 10% chance that the offered card is fake.</p>
+      <p class="sub" id="tradePrompt" style="font-size:13px">The offered card’s normal value is within 50% below or above yours. Prices are hidden. There is a secret 10% chance that the offered card is fake.</p>
       <div class="trade-grid" id="tradeComparison"></div>
-      <div style="text-align:center"><button class="primary" id="btnAcceptTrade">ACCEPT TRADE</button><button class="ghost" id="btnDeclineTrade">DECLINE</button></div>
+      <div id="tradeResult"></div>
+      <div id="tradeActions" style="text-align:center"><button class="primary" id="btnAcceptTrade">ACCEPT TRADE</button><button class="ghost" id="btnDeclineTrade">DECLINE</button></div>
+      <div id="tradeContinue" style="text-align:center" hidden><button class="primary" id="btnTradeContinue">CONTINUE</button></div>
     </div>
   </div>
 
@@ -646,17 +648,44 @@ html = r'''<!doctype html>
       ACTIVE_TRADE = { uid, offer: findTradeOffer(item) };
       const offer = ACTIVE_TRADE.offer;
       $('tradeComparison').innerHTML = `<div class="trade-card"><img src="${cardUrl(item.c)}" alt="${item.c.n}"><b>${item.c.n}</b><small>${tradeSetName(item.set || item.c.id.split('-')[0])}</small></div><div class="trade-vs">⇄</div><div class="trade-card"><img src="${cardUrl(offer.c)}" alt="${offer.c.n}"><b>${offer.c.n}</b><small>${tradeSetName(offer.set)}</small></div>`;
+      $('tradePrompt').textContent = 'The offered card’s normal value is within 50% below or above yours. Prices are hidden. There is a secret 10% chance that the offered card is fake.';
+      $('tradeResult').innerHTML = '';
+      $('tradeActions').hidden = false;
+      $('tradeContinue').hidden = true;
       $('cardTrade').classList.add('on');
     }
     function closeTrade() { ACTIVE_TRADE = null; $('cardTrade').classList.remove('on'); }
+    function revealTrade(accepted) {
+      if (!ACTIVE_TRADE || ACTIVE_TRADE.resolved) return;
+      const item = BINDER.find(card => card.uid === ACTIVE_TRADE.uid);
+      if (!item) return closeTrade();
+      const offer = ACTIVE_TRADE.offer, ownValue = binderValue(item), offerValue = offer.fake ? 0 : offer.value;
+      const difference = +(offerValue - ownValue).toFixed(2);
+      ACTIVE_TRADE.resolved = true;
+      ACTIVE_TRADE.accepted = accepted;
+      ACTIVE_TRADE.ownValue = ownValue;
+      ACTIVE_TRADE.offerValue = offerValue;
+      $('tradeComparison').innerHTML = `<div class="trade-card"><img src="${cardUrl(item.c)}" alt="${item.c.n}"><b>${item.c.n}</b><small>${tradeSetName(item.set || item.c.id.split('-')[0])}</small><strong style="display:block;color:#8dffb0;margin-top:7px">${money(ownValue)}</strong></div><div class="trade-vs">⇄</div><div class="trade-card"><img src="${cardUrl(offer.c)}" alt="${offer.c.n}"><b>${offer.c.n}</b><small>${tradeSetName(offer.set)}</small><strong style="display:block;color:${offer.fake ? '#ff6b6b' : '#8dffb0'};margin-top:7px">${offer.fake ? 'FAKE • ' : ''}${money(offerValue)}</strong></div>`;
+      let verdict;
+      if (offer.fake) verdict = accepted ? '😱 The offered card was fake. You accepted a terrible trade!' : '🕵️ Great decline—the offered card was fake and worth nothing.';
+      else if (difference > 0) verdict = accepted ? `🎉 Great trade! You gained ${money(difference)} in card value.` : `😭 Ouch! You declined a great trade and missed ${money(difference)} in extra value.`;
+      else if (difference < 0) verdict = accepted ? `😬 Bad trade. Your new card is worth ${money(Math.abs(difference))} less.` : `😌 Good decline. The offered card was worth ${money(Math.abs(difference))} less.`;
+      else verdict = accepted ? '⚖️ Perfectly even trade.' : '⚖️ You declined a perfectly even trade.';
+      $('tradePrompt').textContent = accepted ? 'TRADE ACCEPTED — VALUES REVEALED' : 'TRADE DECLINED — VALUES REVEALED';
+      $('tradeResult').innerHTML = `<div class="summary" style="max-width:none;text-align:center"><b>${verdict}</b></div>`;
+      $('tradeActions').hidden = true;
+      $('tradeContinue').hidden = false;
+    }
+    function declineTrade() { revealTrade(false); }
     function acceptTrade() {
-      if (!ACTIVE_TRADE) return;
+      if (!ACTIVE_TRADE || ACTIVE_TRADE.resolved) return;
       const index = BINDER.findIndex(item => item.uid === ACTIVE_TRADE.uid);
       if (index < 0) return closeTrade();
       const old = BINDER[index], offer = ACTIVE_TRADE.offer;
+      revealTrade(true);
       BATTLE_DECK = BATTLE_DECK.filter(uid => uid !== old.uid);
       BINDER[index] = { uid: old.uid, c: offer.c, value: offer.fake ? 0 : offer.value, keptAt: Date.now(), grade: null, shaken: false, fake: offer.fake, store: 'trade', set: offer.set, training: 0 };
-      saveBinder(); saveBattleDeck(); closeTrade(); renderBinder();
+      saveBinder(); saveBattleDeck(); renderBinder();
     }
     function gradeBinderCard(uid) {
       const item = BINDER.find(item => item.uid === uid);
@@ -1446,10 +1475,11 @@ html = r'''<!doctype html>
     $('battle').onclick = e => { if (e.target === $('battle')) closeBattle(); };
     $('btnZoomClose').onclick = closeCardZoom;
     $('cardZoom').onclick = e => { if (e.target === $('cardZoom')) closeCardZoom(); };
-    $('btnTradeClose').onclick = closeTrade;
-    $('btnDeclineTrade').onclick = closeTrade;
+    $('btnTradeClose').onclick = () => ACTIVE_TRADE && ACTIVE_TRADE.resolved ? null : declineTrade();
+    $('btnDeclineTrade').onclick = declineTrade;
     $('btnAcceptTrade').onclick = acceptTrade;
-    $('cardTrade').onclick = e => { if (e.target === $('cardTrade')) closeTrade(); };
+    $('btnTradeContinue').onclick = closeTrade;
+    $('cardTrade').onclick = e => { if (e.target === $('cardTrade') && ACTIVE_TRADE && !ACTIVE_TRADE.resolved) declineTrade(); };
     document.querySelectorAll('.music-toggle').forEach(b => b.onclick = toggleMusic);
     document.querySelectorAll('.track-toggle').forEach(b => b.onclick = toggleTrack);
     $('btnShop').onclick = shop;
