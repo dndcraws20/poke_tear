@@ -1,12 +1,12 @@
 import json, os
 here = os.path.dirname(os.path.abspath(__file__))
 sets = {}
-for set_id in ("me04", "me05", "sv10", "me02", "sv03.5", "sm1", "base1"):
+for set_id in ("me04", "me05", "sv10", "me02", "sv03.5", "sm1", "sm7.5", "base1"):
     cards = json.load(open(os.path.join(here, f"{set_id}-cards.json"), encoding="utf-8"))
     series_id = "".join(ch for ch in set_id if ch.isalpha())
     pre = f"https://assets.tcgdex.net/en/{series_id}/{set_id}/"
     sets[set_id] = [
-        {"id": c["id"], "n": c["n"], "r": c["r"], "img": c["img"][len(pre):] if c["img"].startswith(pre) else c["img"], "p": c["p"], "pr": c["pr"], "ph": c["ph"]}
+        {"id": c["id"], "n": c["n"], "r": c["r"], "img": c["img"][len(pre):] if c.get("img", "").startswith(pre) else c.get("img", ""), "p": c["p"], "pr": c["pr"], "ph": c["ph"]}
         for c in cards
     ]
 data = json.dumps(sets, separators=(",", ":"), ensure_ascii=False)
@@ -258,6 +258,7 @@ html = r'''<!doctype html>
       me02: { name: 'Phantasmal Flames', series: 'Mega Evolution', code: 'ME02', official: 94, art: 'phantasmal-flames-pack.png', price: 22.5, valueMult: 1.6 },
       'sv03.5': { name: '151', series: 'Scarlet & Violet', code: 'SV03.5', official: 165, art: 'pokemon-151-pack.png', price: 35, valueMult: 2 },
       sm1: { name: 'Sun & Moon', series: 'Sun & Moon', code: 'SM1', official: 149, art: 'sun-moon-pack.png', price: 50, valueMult: 1.25 },
+      'sm7.5': { name: 'Dragon Majesty', series: 'Sun & Moon', code: 'SM7.5', official: 70, art: 'dragon-majesty-pack.jpg', price: 100, valueMult: 2.4 },
       base1: { name: 'Base Set First Edition', series: '1999 Original', code: 'BASE1', official: 102, art: 'first-edition-pack.jpg', price: 10000, valueMult: 3 },
     };
     const PRICE_DATE = '__DATE__';
@@ -302,14 +303,14 @@ html = r'''<!doctype html>
     ];
 
     // rank: 0 common · 1 uncommon · 2 rare/double rare · 3 ultra/illustration · 4 special illustration/hyper
-    const RANK = r => { r = r.toLowerCase(); if (r === 'common') return 0; if (r === 'uncommon') return 1; if (r.includes('holo rare') || r.includes('special') || r.includes('hyper')) return 4; if (r.includes('ultra') || r.includes('illustration')) return 3; return 2; };
+    const RANK = r => { r = r.toLowerCase(); if (r === 'common') return 0; if (r === 'uncommon') return 1; if (r.includes('holo rare') || r.includes('special') || r.includes('secret') || r.includes('hyper')) return 4; if (r.includes('ultra') || r.includes('illustration')) return 3; return 2; };
     let selectedSet = 'me05';
     let SET = [];
     let BY = {};
 
     // Hit-slot base weights (roughly real pull rates). Luck multiplies the chase tiers.
-    const HIT_W = { 'Rare': 55, 'Holo Rare': .8, 'Double rare': 22, 'Illustration rare': 10, 'Ultra Rare': 5, 'Special illustration rare': 2, 'Mega Hyper Rare': 0.4, 'Hyper rare': 0.4 };
-    const CHASE = new Set(['Holo Rare', 'Illustration rare', 'Ultra Rare', 'Special illustration rare', 'Mega Hyper Rare', 'Hyper rare']);
+    const HIT_W = { 'Rare': 55, 'Holo Rare': .8, 'Double rare': 22, 'Illustration rare': 10, 'Ultra Rare': 5, 'Secret Rare': 1, 'Special illustration rare': 2, 'Mega Hyper Rare': 0.4, 'Hyper rare': 0.4 };
+    const CHASE = new Set(['Holo Rare', 'Illustration rare', 'Ultra Rare', 'Secret Rare', 'Special illustration rare', 'Mega Hyper Rare', 'Hyper rare']);
 
     const UPGRADES = [
       { k: 'luck',  ico: '🍀', name: 'Lucky Charm', desc: 'Boosts the odds of the hit slot being an Illustration / Ultra / Special / Hyper rare.', tiers: [15, 40, 100], fx: ['1.6×', '2.6×', '4.5×'], mult: [1, 1.6, 2.6, 4.5] },
@@ -459,7 +460,7 @@ html = r'''<!doctype html>
     const quotaStart = () => S.mode === 'hard' ? HARD_QUOTA_START : QUOTA_START;
     const quotaMult = () => S.mode === 'hard' ? HARD_QUOTA_MULT : QUOTA_MULT;
     const quotaSeconds = () => (S.mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) + UPGRADES[7].mult[S.up.clock];
-    const cardUrl = c => { const id = c.id.split('-')[0], series = (id.match(/^[a-z]+/) || [''])[0]; return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
+    const cardUrl = c => { if (/^https?:\/\//.test(c.img || '')) return c.img; const id = c.id.split('-')[0], series = (id.match(/^[a-z]+/) || [''])[0]; return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
     function activateSet(id) {
       selectedSet = SET_DATA[id] ? id : 'me05';
       SET = SET_DATA[selectedSet]; BY = {};
