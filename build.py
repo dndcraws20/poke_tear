@@ -166,6 +166,8 @@ html = r'''<!doctype html>
       <button class="ghost" id="btnBattleHome">⚔️ Battles</button>
       <button class="ghost" id="btnAchievementsHome">🏆 Achievements</button>
       <button class="ghost" id="btnMuseumHome">🏛️ Museum</button>
+      <button class="ghost" id="btnAlbumsHome">🗂️ Set Albums</button>
+      <button class="ghost" id="btnAuctionHome">🔨 Auction House</button>
       <button class="ghost music-toggle">🔇 Music: Off</button>
       <button class="ghost track-toggle">🎼 Track: Electronic</button>
       <p class="note">Prices: TCGplayer market (USD), updated <span id="priceDate"></span>.</p>
@@ -195,6 +197,8 @@ html = r'''<!doctype html>
         <button class="ghost" id="btnBattle">⚔️ BATTLES</button>
         <button class="ghost" id="btnAchievements">🏆 ACHIEVEMENTS</button>
         <button class="ghost" id="btnMuseum">🏛️ MUSEUM</button>
+        <button class="ghost" id="btnAlbums">🗂️ SET ALBUMS</button>
+        <button class="ghost" id="btnAuction">🔨 AUCTIONS</button>
         <button class="ghost" id="btnSwitchStore">🏪 SWITCH STORE</button>
         <button class="ghost" id="btnSwitchSet">SWITCH SET</button>
         <button class="ghost" id="btnHome">HOME</button>
@@ -291,6 +295,20 @@ html = r'''<!doctype html>
     <div class="sheet binder-sheet">
       <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🏛️ Collection Museum</h2><button class="ghost" id="btnMuseumClose" style="margin:0;padding:8px 14px">✕</button></div>
       <p class="sub">Your permanent collection survives new runs.</p><div id="museumContent"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="setAlbums">
+    <div class="sheet binder-sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🗂️ Set Albums</h2><button class="ghost" id="btnAlbumsClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub">Discover cards from real packs to complete sets. Each completed album gives one cash prize and a permanent +2% card-value bonus.</p><div id="albumList"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="auctionHouse">
+    <div class="sheet binder-sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🔨 Auction House</h2><button class="ghost" id="btnAuctionClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub">Three cards are auctioned every 30 seconds. Computer collectors may outbid you. Your bid is held while you lead and refunded if somebody beats it.</p><div id="auctionStatus" class="summary" style="max-width:none"></div><div class="cards" id="auctionLots"></div>
     </div>
   </div>
 
@@ -443,6 +461,8 @@ html = r'''<!doctype html>
       { k: 'counterfeit', ico: '🚨', name: 'Counterfeit Wave', desc: 'The next pack has 20 percentage points more fake risk.' },
     ];
     const RANDOM_EVENT_CHANCE = .25;
+    const SET_REWARDS = { me05: 500, me04: 750, sv10: 1000, me02: 1500, 'sv03.5': 2500, sm1: 3500, 'sm7.5': 5000, base1: 25000 };
+    const AUCTION_SECONDS = 30;
     const ACHIEVEMENTS = [
       { k: 'firstpack', ico: '🎴', name: 'First Rip', desc: 'Open your first pack.', test: p => p.stats.packs >= 1 },
       { k: 'pack50', ico: '📦', name: 'Pack Veteran', desc: 'Open 50 packs across all runs.', test: p => p.stats.packs >= 50 },
@@ -467,6 +487,7 @@ html = r'''<!doctype html>
     let quotaTimer = null;
     let binderTimer = null;
     let relicTimer = null;
+    let auctionTimer = null;
     let kissTimer = null;
     let audioCtx = null, musicTimer = null, musicOn = false, musicStyle = 'electronic', musicStep = 0, nextMusicStep = 0;
     const $ = id => document.getElementById(id);
@@ -481,8 +502,8 @@ html = r'''<!doctype html>
     const loadBattleCooldowns = () => { try { return { single: 0, tournament: 0, ...(JSON.parse(localStorage.getItem(BATTLE_COOLDOWN_KEY)) || {}) }; } catch (e) { return { single: 0, tournament: 0 }; } };
     const saveBattleCooldowns = () => { try { localStorage.setItem(BATTLE_COOLDOWN_KEY, JSON.stringify(BATTLE_COOLDOWNS)); } catch (e) {} };
     let BATTLE_COOLDOWNS = loadBattleCooldowns(), battleCooldownTimer = null, ACTIVE_BATTLE = null, battleQuotaPausedAt = 0;
-    const emptyProfile = () => ({ stats: { packs: 0, psa10: 0, bestQuota: 0, tournamentWins: 0, tradeWins: 0, fusions: 0, fakePacks: 0 }, achievements: {}, stars: 0, cards: [], psa10: [], relics: [], trophies: {}, setSeen: {} });
-    const loadProfile = () => { try { const p = JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}, base = emptyProfile(); return { ...base, ...p, stats: { ...base.stats, ...(p.stats || {}) }, achievements: { ...(p.achievements || {}) }, trophies: { ...(p.trophies || {}) }, setSeen: { ...(p.setSeen || {}) }, cards: p.cards || [], psa10: p.psa10 || [], relics: p.relics || [] }; } catch (e) { return emptyProfile(); } };
+    const emptyProfile = () => ({ stats: { packs: 0, psa10: 0, bestQuota: 0, tournamentWins: 0, tradeWins: 0, fusions: 0, fakePacks: 0 }, achievements: {}, stars: 0, cards: [], psa10: [], relics: [], trophies: {}, setSeen: {}, setRewards: {} });
+    const loadProfile = () => { try { const p = JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}, base = emptyProfile(); return { ...base, ...p, stats: { ...base.stats, ...(p.stats || {}) }, achievements: { ...(p.achievements || {}) }, trophies: { ...(p.trophies || {}) }, setSeen: { ...(p.setSeen || {}) }, setRewards: { ...(p.setRewards || {}) }, cards: p.cards || [], psa10: p.psa10 || [], relics: p.relics || [] }; } catch (e) { return emptyProfile(); } };
     const saveProfile = () => { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(PROFILE)); } catch (e) {} };
     let PROFILE = loadProfile();
     const BATTLE_LEVELS = {
@@ -618,7 +639,7 @@ html = r'''<!doctype html>
     }
 
     function newState(mode) {
-      return { mode, set: selectedSet, store: selectedStore, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0 }, relics: [], relicOffers: [], relicRefreshAt: 0, event: null, boxes: {}, boxStores: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
+      return { mode, set: selectedSet, store: selectedStore, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0 }, relics: [], relicOffers: [], relicRefreshAt: 0, event: null, auctions: [], auctionEndsAt: 0, auctionMessage: '', boxes: {}, boxStores: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
         quota: mode === 'normal' || mode === 'hard' ? { number: 1, cleared: 0, target: mode === 'hard' ? HARD_QUOTA_START : QUOTA_START, endsAt: Date.now() + (mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) * 1000 } : null };
     }
     function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
@@ -680,6 +701,57 @@ html = r'''<!doctype html>
       $('museumContent').innerHTML = `<div class="summary">⭐ ${PROFILE.stars} Museum Stars • ${museumUniqueCards(PROFILE)} unique cards • ${completedMuseumSets(PROFILE).length} completed sets</div><h3>Best Pulls</h3><div class="cards">${PROFILE.cards.length ? PROFILE.cards.map(museumCardHtml).join('') : '<p class="sub">Open real packs to create exhibits.</p>'}</div><h3>PSA 10 Gallery</h3><div class="cards">${PROFILE.psa10.length ? PROFILE.psa10.map(museumCardHtml).join('') : '<p class="sub">No PSA 10 cards yet.</p>'}</div><h3>Battle Trophies</h3>${trophies}<h3>Rare Relics Discovered</h3>${relics}<h3>Set Completion</h3>${sets}`;
       $('museum').classList.add('on');
     }
+    function showSetAlbums() {
+      const active = paidMode(), claimed = Object.values(PROFILE.setRewards).filter(Boolean).length;
+      $('albumList').innerHTML = Object.entries(SET_DATA).map(([id, cards]) => {
+        const seen = (PROFILE.setSeen[id] || []).length, complete = seen >= cards.length, rewarded = !!PROFILE.setRewards[id], reward = SET_REWARDS[id] || 1000;
+        return `<div class="up ${rewarded ? 'max' : ''}"><div class="ico">${rewarded ? '🏆' : complete ? '🎁' : '🗂️'}</div><div class="body"><b>${SET_META[id].name}</b><small>${seen}/${cards.length} cards • reward ${money(reward)} + permanent 2% card value</small><div class="quota-track"><div class="quota-fill" style="width:${seen / cards.length * 100}%"></div></div><div class="tier">${rewarded ? 'REWARD CLAIMED' : complete ? active ? 'SET COMPLETE!' : 'START A MONEY RUN TO CLAIM' : `${cards.length - seen} cards remaining`}</div></div><button data-claim-set="${id}" ${!complete || rewarded || !active ? 'disabled' : ''}>${rewarded ? '✓' : 'CLAIM'}</button></div>`;
+      }).join('') + `<div class="summary">Permanent album bonus: <b>+${claimed * 2}% real-card value</b></div>`;
+      $('albumList').querySelectorAll('[data-claim-set]').forEach(b => b.onclick = () => claimSetReward(b.dataset.claimSet));
+      $('setAlbums').classList.add('on');
+    }
+    function claimSetReward(setId) {
+      if (!paidMode() || PROFILE.setRewards[setId] || (PROFILE.setSeen[setId] || []).length < SET_DATA[setId].length) return;
+      const reward = SET_REWARDS[setId] || 1000;
+      PROFILE.setRewards[setId] = true; S.bank = +(S.bank + reward).toFixed(2); S.earned = +(S.earned + reward).toFixed(2); S.peak = Math.max(S.peak, S.bank);
+      saveProfile(); save(); hud(); showSetAlbums();
+    }
+    function generateAuctions() {
+      const all = Object.entries(SET_DATA).flatMap(([setId, cards]) => cards.map(c => ({ c, set: setId, value: Math.max(.01, tradeCardValue(c, setId)) })));
+      const used = new Set(); S.auctions = Array.from({ length: 3 }, (_, i) => { let item; do { item = rand(all); } while (used.has(item.c.id)); used.add(item.c.id); const bid = +(item.value * (.6 + Math.random() * .3)).toFixed(2); return { id: `${Date.now()}-${i}`, ...item, bid: Math.max(.01, bid), leader: 'ai', escrow: 0 }; });
+      S.auctionEndsAt = Date.now() + AUCTION_SECONDS * 1000; save();
+    }
+    function resolveAuctions() {
+      const won = [];
+      (S.auctions || []).forEach(lot => { if (lot.leader !== 'player') return; if (BINDER.length < binderCapacity()) { BINDER.push({ uid: `${Date.now()}-${Math.random()}`, c: lot.c, value: lot.value, keptAt: Date.now(), grade: null, shaken: false, fake: false, store: 'auction', set: lot.set, training: 0 }); won.push(lot.c.n); } else { S.bank = +(S.bank + lot.escrow).toFixed(2); } });
+      if (won.length) saveBinder();
+      S.auctionMessage = won.length ? `🏆 Won: ${won.join(', ')}` : 'The computer collectors won the last auction.';
+      generateAuctions(); save(); hud();
+    }
+    function updateAuctions() {
+      if (!S || S.ended || !paidMode()) return;
+      if (!S.auctions || S.auctions.length !== 3) generateAuctions();
+      if (Date.now() >= S.auctionEndsAt) resolveAuctions();
+      let changed = false;
+      S.auctions.forEach(lot => { if (Math.random() < .12) { lot.bid = +(lot.bid * 1.1).toFixed(2); if (lot.leader === 'player') { S.bank = +(S.bank + lot.escrow).toFixed(2); lot.escrow = 0; } lot.leader = 'ai'; changed = true; } });
+      if (changed) { save(); hud(); }
+      if ($('auctionHouse').classList.contains('on')) renderAuctions();
+    }
+    function placeAuctionBid(id) {
+      if (!paidMode()) return; const lot = S.auctions.find(x => x.id === id); if (!lot || lot.leader === 'player') return;
+      const reserved = S.auctions.filter(x => x.leader === 'player').length, bid = +(lot.bid * 1.1).toFixed(2);
+      if (S.bank < bid || BINDER.length + reserved >= binderCapacity()) return;
+      S.bank = +(S.bank - bid).toFixed(2); lot.bid = bid; lot.escrow = bid; lot.leader = 'player'; save(); hud(); renderAuctions();
+    }
+    function renderAuctions() {
+      if (!paidMode()) { $('auctionStatus').innerHTML = 'Start or continue a money run to enter auctions.'; $('auctionLots').innerHTML = ''; return; }
+      if (!S.auctions || S.auctions.length !== 3) generateAuctions();
+      const seconds = Math.max(0, Math.ceil((S.auctionEndsAt - Date.now()) / 1000));
+      $('auctionStatus').innerHTML = `<b>${S.auctionMessage || 'Live auction'}</b> • ${seconds}s remaining • Bankroll ${money(S.bank)}`;
+      $('auctionLots').innerHTML = S.auctions.map(lot => `<div class="card r${RANK(lot.c.r)}"><span class="val ${lot.bid >= 5 ? 'big' : ''}">${money(lot.bid)}</span><img src="${cardUrl(lot.c)}" alt="${lot.c.n}" loading="lazy"><div class="name">${lot.c.n}</div><div class="rarity">${tradeSetName(lot.set)} • ${lot.leader === 'player' ? 'YOU LEAD' : 'COMPUTER LEADS'}</div><button data-auction-bid="${lot.id}" ${lot.leader === 'player' ? 'disabled' : ''}>${lot.leader === 'player' ? '✓ LEADING' : `BID ${money(lot.bid * 1.1)}`}</button></div>`).join('');
+      $('auctionLots').querySelectorAll('[data-auction-bid]').forEach(b => b.onclick = () => placeAuctionBid(b.dataset.auctionBid));
+    }
+    function showAuctionHouse() { renderAuctions(); $('auctionHouse').classList.add('on'); }
 
     function binderUpgradeLevel(key) {
       const run = S && !S.ended ? S : load();
@@ -1219,6 +1291,7 @@ html = r'''<!doctype html>
       if (slot === 'rev' || slot === 'hit') v *= hasRelic('prism') ? 1.25 : 1;
       if (S.event && S.event.k === 'boom') v *= 1.5;
       if (S.event && S.event.k === 'crash') v *= .6;
+      v *= 1 + Object.values(PROFILE.setRewards || {}).filter(Boolean).length * .02;
       return +v.toFixed(2);
     }
 
@@ -1546,6 +1619,9 @@ html = r'''<!doctype html>
       S.relicOffers = Array.isArray(S.relicOffers) ? S.relicOffers.filter(k => RELICS.some(r => r.k === k)).slice(0, 5) : [];
       S.relicRefreshAt = S.relicRefreshAt || 0;
       S.event = S.event && RANDOM_EVENTS.some(e => e.k === S.event.k) ? S.event : null;
+      S.auctions = Array.isArray(S.auctions) ? S.auctions : [];
+      S.auctionEndsAt = S.auctionEndsAt || 0;
+      S.auctionMessage = S.auctionMessage || '';
       S.boxes = { ...(S.boxes || {}) };
       S.boxStores = { ...(S.boxStores || {}) };
       S.kissBoost = !!S.kissBoost;
@@ -1563,6 +1639,8 @@ html = r'''<!doctype html>
       save(); startQuotaTimer();
       clearInterval(kissTimer); kissTimer = setInterval(() => { updateKissButton(); updateShakeButton(); }, 250);
       clearInterval(relicTimer); relicTimer = setInterval(updateRelicCountdown, 250);
+      clearInterval(auctionTimer); auctionTimer = setInterval(updateAuctions, 1000);
+      if (paidMode()) updateAuctions();
       if (S.last) render(S.last.pull, S.last.cost, S.last.total);
     }
     function startNewGame(mode) {
@@ -1612,14 +1690,22 @@ html = r'''<!doctype html>
     $('btnBinderHome').onclick = showBinder;
     $('btnAchievementsHome').onclick = showAchievements;
     $('btnMuseumHome').onclick = showMuseum;
+    $('btnAlbumsHome').onclick = showSetAlbums;
+    $('btnAuctionHome').onclick = showAuctionHouse;
     $('btnBattle').onclick = showBattle;
     $('btnBattleHome').onclick = showBattle;
     $('btnAchievements').onclick = showAchievements;
     $('btnMuseum').onclick = showMuseum;
+    $('btnAlbums').onclick = showSetAlbums;
+    $('btnAuction').onclick = showAuctionHouse;
     $('btnAchievementsClose').onclick = () => $('achievements').classList.remove('on');
     $('achievements').onclick = e => { if (e.target === $('achievements')) $('achievements').classList.remove('on'); };
     $('btnMuseumClose').onclick = () => $('museum').classList.remove('on');
     $('museum').onclick = e => { if (e.target === $('museum')) $('museum').classList.remove('on'); };
+    $('btnAlbumsClose').onclick = () => $('setAlbums').classList.remove('on');
+    $('setAlbums').onclick = e => { if (e.target === $('setAlbums')) $('setAlbums').classList.remove('on'); };
+    $('btnAuctionClose').onclick = () => $('auctionHouse').classList.remove('on');
+    $('auctionHouse').onclick = e => { if (e.target === $('auctionHouse')) $('auctionHouse').classList.remove('on'); };
     $('btnBinderClose').onclick = closeBinder;
     $('binder').onclick = e => { if (e.target === $('binder')) closeBinder(); };
     $('btnBattleFromBinder').onclick = showBattle;
