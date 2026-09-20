@@ -151,6 +151,8 @@
       <button class="ghost" id="btnContinue" hidden>▶ Continue run</button>
       <button class="ghost" id="btnBinderHome">📚 Binder</button>
       <button class="ghost" id="btnBattleHome">⚔️ Battles</button>
+      <button class="ghost" id="btnAchievementsHome">🏆 Achievements</button>
+      <button class="ghost" id="btnMuseumHome">🏛️ Museum</button>
       <button class="ghost music-toggle">🔇 Music: Off</button>
       <button class="ghost track-toggle">🎼 Track: Electronic</button>
       <p class="note">Prices: TCGplayer market (USD), updated <span id="priceDate"></span>.</p>
@@ -178,6 +180,8 @@
         <button class="ghost track-toggle">🎼 ELECTRONIC</button>
         <button class="ghost" id="btnBinder">📚 BINDER</button>
         <button class="ghost" id="btnBattle">⚔️ BATTLES</button>
+        <button class="ghost" id="btnAchievements">🏆 ACHIEVEMENTS</button>
+        <button class="ghost" id="btnMuseum">🏛️ MUSEUM</button>
         <button class="ghost" id="btnSwitchStore">🏪 SWITCH STORE</button>
         <button class="ghost" id="btnSwitchSet">SWITCH SET</button>
         <button class="ghost" id="btnHome">HOME</button>
@@ -263,6 +267,20 @@
     </div>
   </div>
 
+  <div class="overlay" id="achievements">
+    <div class="sheet binder-sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🏆 Achievements</h2><button class="ghost" id="btnAchievementsClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub" id="achievementSummary"></p><div id="achievementList"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="museum">
+    <div class="sheet binder-sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🏛️ Collection Museum</h2><button class="ghost" id="btnMuseumClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub">Your permanent collection survives new runs.</p><div id="museumContent"></div>
+    </div>
+  </div>
+
   <div class="overlay" id="battle">
     <div class="sheet battle-sheet">
       <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">⚔️ Binder Battles</h2><button class="ghost" id="btnBattleClose" style="margin:0;padding:8px 14px">✕</button></div>
@@ -319,6 +337,7 @@
     const BINDER_KEY = 'poke-tear-binder-v1';
     const BATTLE_DECK_KEY = 'poke-tear-battle-deck-v1';
     const BATTLE_COOLDOWN_KEY = 'poke-tear-battle-cooldowns-v1';
+    const PROFILE_KEY = 'poke-tear-collection-profile-v1';
     const SINGLE_BATTLE_COOLDOWN_MS = 10 * 1000;
     const TOURNAMENT_COOLDOWN_MS = 30 * 1000;
     const BRIBE_BASE_COST = 300;
@@ -411,6 +430,18 @@
       { k: 'counterfeit', ico: '🚨', name: 'Counterfeit Wave', desc: 'The next pack has 20 percentage points more fake risk.' },
     ];
     const RANDOM_EVENT_CHANCE = .25;
+    const ACHIEVEMENTS = [
+      { k: 'firstpack', ico: '🎴', name: 'First Rip', desc: 'Open your first pack.', test: p => p.stats.packs >= 1 },
+      { k: 'pack50', ico: '📦', name: 'Pack Veteran', desc: 'Open 50 packs across all runs.', test: p => p.stats.packs >= 50 },
+      { k: 'gemmint', ico: '💎', name: 'Gem Mint', desc: 'Grade a card PSA 10.', test: p => p.stats.psa10 >= 1 },
+      { k: 'quota5', ico: '⏱️', name: 'Quota Climber', desc: 'Clear five quotas in one run.', test: p => p.stats.bestQuota >= 5 },
+      { k: 'champion', ico: '⚔️', name: 'Battle Champion', desc: 'Win a tournament.', test: p => p.stats.tournamentWins >= 1 },
+      { k: 'tradeup', ico: '🔄', name: 'Trade Up', desc: 'Accept a trade that gains card value.', test: p => p.stats.tradeWins >= 1 },
+      { k: 'alchemist', ico: '✨', name: 'Relic Alchemist', desc: 'Fuse two relics.', test: p => p.stats.fusions >= 1 },
+      { k: 'counterfeit', ico: '🚨', name: 'Counterfeit Victim', desc: 'Open a fake pack.', test: p => p.stats.fakePacks >= 1 },
+      { k: 'collector100', ico: '🏛️', name: 'Master Collector', desc: 'Discover 100 different cards.', test: p => museumUniqueCards(p) >= 100 },
+      { k: 'setmaster', ico: '👑', name: 'Set Master', desc: 'Complete every card in one set.', test: p => completedMuseumSets(p).length >= 1 },
+    ];
     const MISSIONS = [
       { k: 'packs', ico: '🎴', name: 'Pack Rookie', desc: 'Open 3 packs in this run.', goal: 3, reward: 10 },
       { k: 'grades', ico: '🏅', name: 'PSA Apprentice', desc: 'Grade 2 cards in this run.', goal: 2, reward: 12 },
@@ -437,6 +468,10 @@
     const loadBattleCooldowns = () => { try { return { single: 0, tournament: 0, ...(JSON.parse(localStorage.getItem(BATTLE_COOLDOWN_KEY)) || {}) }; } catch (e) { return { single: 0, tournament: 0 }; } };
     const saveBattleCooldowns = () => { try { localStorage.setItem(BATTLE_COOLDOWN_KEY, JSON.stringify(BATTLE_COOLDOWNS)); } catch (e) {} };
     let BATTLE_COOLDOWNS = loadBattleCooldowns(), battleCooldownTimer = null, ACTIVE_BATTLE = null, battleQuotaPausedAt = 0;
+    const emptyProfile = () => ({ stats: { packs: 0, psa10: 0, bestQuota: 0, tournamentWins: 0, tradeWins: 0, fusions: 0, fakePacks: 0 }, achievements: {}, stars: 0, cards: [], psa10: [], relics: [], trophies: {}, setSeen: {} });
+    const loadProfile = () => { try { const p = JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}, base = emptyProfile(); return { ...base, ...p, stats: { ...base.stats, ...(p.stats || {}) }, achievements: { ...(p.achievements || {}) }, trophies: { ...(p.trophies || {}) }, setSeen: { ...(p.setSeen || {}) }, cards: p.cards || [], psa10: p.psa10 || [], relics: p.relics || [] }; } catch (e) { return emptyProfile(); } };
+    const saveProfile = () => { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(PROFILE)); } catch (e) {} };
+    let PROFILE = loadProfile();
     const BATTLE_LEVELS = {
       easy: { label: 'Easy', ico: '🌱', hp: [110, 190], dmg: [40, 75], single: 250, tournament: 1000, entry: 50, rank: [0, 1] },
       medium: { label: 'Normal', ico: '⚡', hp: [180, 280], dmg: [75, 125], single: 750, tournament: 5000, entry: 200, rank: [1, 2] },
@@ -585,6 +620,54 @@
     function quotaRecord() { try { return +(localStorage.getItem(QUOTA_RECORD_KEY) || 0); } catch (e) { return 0; } }
     function saveQuotaRecord(n) { try { localStorage.setItem(QUOTA_RECORD_KEY, String(Math.max(n, quotaRecord()))); } catch (e) {} }
 
+    const museumUniqueCards = p => Object.values(p.setSeen || {}).reduce((sum, ids) => sum + ids.length, 0);
+    const completedMuseumSets = p => Object.entries(SET_DATA).filter(([setId, cards]) => ((p.setSeen || {})[setId] || []).length >= cards.length).map(([setId]) => setId);
+    function checkAchievements() {
+      let changed = false;
+      ACHIEVEMENTS.forEach(a => { if (!PROFILE.achievements[a.k] && a.test(PROFILE)) { PROFILE.achievements[a.k] = Date.now(); PROFILE.stars++; changed = true; } });
+      if (changed) saveProfile();
+    }
+    function recordMuseumCard(c, value, setId, grade = null) {
+      if (!c || value <= 0) return;
+      const exhibit = { id: c.id, n: c.n, r: c.r, img: c.img, v: +value.toFixed(2), set: setId, grade };
+      const old = PROFILE.cards.findIndex(x => x.id === c.id);
+      if (old < 0) PROFILE.cards.push(exhibit); else if (PROFILE.cards[old].v < exhibit.v) PROFILE.cards[old] = exhibit;
+      PROFILE.cards.sort((a, b) => b.v - a.v); PROFILE.cards = PROFILE.cards.slice(0, 12);
+      if (grade === 10) {
+        const psaOld = PROFILE.psa10.findIndex(x => x.id === c.id);
+        if (psaOld < 0) PROFILE.psa10.push(exhibit); else if (PROFILE.psa10[psaOld].v < exhibit.v) PROFILE.psa10[psaOld] = exhibit;
+        PROFILE.psa10.sort((a, b) => b.v - a.v); PROFILE.psa10 = PROFILE.psa10.slice(0, 12);
+      }
+      saveProfile();
+    }
+    function recordPackMuseum(pull, setId, fake) {
+      PROFILE.stats.packs++;
+      if (fake) PROFILE.stats.fakePacks++;
+      if (!fake) {
+        const seen = new Set(PROFILE.setSeen[setId] || []);
+        pull.forEach(p => { seen.add(p.c.id); recordMuseumCard(p.c, p.v, setId); });
+        PROFILE.setSeen[setId] = [...seen];
+      }
+      saveProfile(); checkAchievements();
+    }
+    function recordPSA10(c, value, setId) { PROFILE.stats.psa10++; recordMuseumCard(c, value, setId, 10); saveProfile(); checkAchievements(); }
+    function recordRelicDiscovery(k) { const r = RELICS.find(x => x.k === k); if (r && ['rare', 'legendary', 'cursed', 'fused'].includes(r.rarity) && !PROFILE.relics.includes(k)) { PROFILE.relics.push(k); saveProfile(); } }
+    function showAchievements() {
+      checkAchievements(); const unlocked = ACHIEVEMENTS.filter(a => PROFILE.achievements[a.k]).length;
+      $('achievementSummary').innerHTML = `<b>${unlocked}/${ACHIEVEMENTS.length}</b> unlocked • ⭐ ${PROFILE.stars} Museum Stars`;
+      $('achievementList').innerHTML = ACHIEVEMENTS.map(a => `<div class="up ${PROFILE.achievements[a.k] ? 'max' : ''}"><div class="ico">${PROFILE.achievements[a.k] ? a.ico : '🔒'}</div><div class="body"><b>${a.name}</b><small>${a.desc}</small><div class="tier">${PROFILE.achievements[a.k] ? 'UNLOCKED • +1 MUSEUM STAR' : 'LOCKED'}</div></div></div>`).join('');
+      $('achievements').classList.add('on');
+    }
+    function museumCardHtml(x) { const c = Object.values(SET_DATA).flat().find(card => card.id === x.id) || x; return `<div class="card r${RANK(x.r)}"><span class="val ${x.v >= 5 ? 'big' : ''}">${money(x.v)}</span>${x.grade === 10 ? '<span class="tag">PSA 10</span>' : ''}<img src="${cardUrl(c)}" alt="${x.n}" loading="lazy"><div class="name">${x.n}</div><div class="rarity">${tradeSetName(x.set)}</div></div>`; }
+    function showMuseum() {
+      checkAchievements();
+      const sets = Object.entries(SET_DATA).map(([id, cards]) => { const seen = (PROFILE.setSeen[id] || []).length, done = seen >= cards.length; return `<div class="up ${done ? 'max' : ''}"><div class="ico">${done ? '✅' : '🗂️'}</div><div class="body"><b>${SET_META[id].name}</b><small>${seen}/${cards.length} different cards discovered</small><div class="quota-track"><div class="quota-fill" style="width:${seen / cards.length * 100}%"></div></div></div></div>`; }).join('');
+      const trophies = Object.entries(PROFILE.trophies).map(([k, n]) => `<span class="tag" style="position:static;display:inline-block;margin:4px">🏆 ${k.replace('-', ' ')} ×${n}</span>`).join('') || '<p class="sub">No battle trophies yet.</p>';
+      const relics = PROFILE.relics.map(k => RELICS.find(r => r.k === k)).filter(Boolean).map(r => `<span class="tag" style="position:static;display:inline-block;margin:4px">${r.ico} ${r.name}</span>`).join('') || '<p class="sub">No rare relic discoveries yet.</p>';
+      $('museumContent').innerHTML = `<div class="summary">⭐ ${PROFILE.stars} Museum Stars • ${museumUniqueCards(PROFILE)} unique cards • ${completedMuseumSets(PROFILE).length} completed sets</div><h3>Best Pulls</h3><div class="cards">${PROFILE.cards.length ? PROFILE.cards.map(museumCardHtml).join('') : '<p class="sub">Open real packs to create exhibits.</p>'}</div><h3>PSA 10 Gallery</h3><div class="cards">${PROFILE.psa10.length ? PROFILE.psa10.map(museumCardHtml).join('') : '<p class="sub">No PSA 10 cards yet.</p>'}</div><h3>Battle Trophies</h3>${trophies}<h3>Rare Relics Discovered</h3>${relics}<h3>Set Completion</h3>${sets}`;
+      $('museum').classList.add('on');
+    }
+
     function binderUpgradeLevel(key) {
       const run = S && !S.ended ? S : load();
       return run && run.up ? run.up[key] || 0 : 0;
@@ -671,6 +754,7 @@
       ACTIVE_TRADE.accepted = accepted;
       ACTIVE_TRADE.ownValue = ownValue;
       ACTIVE_TRADE.offerValue = offerValue;
+      if (accepted && difference > 0) { PROFILE.stats.tradeWins++; saveProfile(); checkAchievements(); }
       $('tradeComparison').innerHTML = `<div class="trade-card"><img src="${cardUrl(item.c)}" alt="${item.c.n}"><b>${item.c.n}</b><small>${tradeSetName(item.set || item.c.id.split('-')[0])}</small><strong style="display:block;color:#8dffb0;margin-top:7px">${money(ownValue)}</strong></div><div class="trade-vs">⇄</div><div class="trade-card"><img src="${cardUrl(offer.c)}" alt="${offer.c.n}"><b>${offer.c.n}</b><small>${tradeSetName(offer.set)}</small><strong style="display:block;color:${offer.fake ? '#ff6b6b' : '#8dffb0'};margin-top:7px">${offer.fake ? 'FAKE • ' : ''}${money(offerValue)}</strong></div>`;
       let verdict;
       if (offer.fake) verdict = accepted ? '😱 The offered card was fake. You accepted a terrible trade!' : '🕵️ Great decline—the offered card was fake and worth nothing.';
@@ -702,6 +786,7 @@
       if (result.grade >= 2 && result.grade <= 4) value = Math.max(value, +(item.value * UPGRADES[8].mult[coverLevel]).toFixed(2));
       item.value = value;
       item.grade = result.grade;
+      if (result.grade === 10) recordPSA10(item.c, value, item.set || item.c.id.split('-')[0]);
       saveBinder();
       if (paidMode()) {
         missionStep('grades');
@@ -935,6 +1020,7 @@
       resumeQuotaAfterBattle();
       const reward = won ? awardBattleCash(rewardAmount) : 0;
       ACTIVE_BATTLE.reward = reward;
+      if (won) { const key = `${ACTIVE_BATTLE.type}-${ACTIVE_BATTLE.difficulty}`; PROFILE.trophies[key] = (PROFILE.trophies[key] || 0) + 1; if (ACTIVE_BATTLE.type === 'tournament') PROFILE.stats.tournamentWins++; saveProfile(); checkAchievements(); }
       startBattleCooldown(ACTIVE_BATTLE.type);
       hud();
       renderInteractiveBattle();
@@ -1057,6 +1143,7 @@
     function advanceQuota() {
       S.quota.cleared++;
       S.quota.number++;
+      PROFILE.stats.bestQuota = Math.max(PROFILE.stats.bestQuota, S.quota.cleared); saveProfile(); checkAchievements();
       S.quota.target = +(quotaStart() * Math.pow(quotaMult(), S.quota.number - 1)).toFixed(2);
       S.quota.endsAt = Date.now() + quotaSeconds() * 1000;
       saveQuotaRecord(S.quota.number);
@@ -1150,6 +1237,7 @@
       if (result.grade >= 2 && result.grade <= 4) value = Math.max(value, +(p.v * UPGRADES[8].mult[S.up.cover]).toFixed(2));
       const delta = +(value - p.v).toFixed(2);
       p.grade = { n: result.grade, mult: result.mult, value, delta };
+      if (result.grade === 10) recordPSA10(p.c, value, selectedSet);
       S.last.total = +(S.last.total + delta).toFixed(2);
       S.earned = +(S.earned + delta).toFixed(2);
       if (paidMode()) S.bank = +(S.bank + delta).toFixed(2);
@@ -1193,6 +1281,7 @@
       const fake = Math.random() < fakeChance;
       const usedEvent = S.event;
       const pull = pullPack(storeId, fake);
+      recordPackMuseum(pull, selectedSet, fake);
       if (S.shakeBoost) pull.forEach(p => p.shaken = true);
       S.kissBoost = false;
       S.shakeBoost = false;
@@ -1407,6 +1496,7 @@
       if (!relic || hasRelic(k) || S.relics.length >= 3 || (!free && S.bank < relic.cost)) return;
       if (!free) { S.bank = +(S.bank - relic.cost).toFixed(2); S.spent = +(S.spent + relic.cost).toFixed(2); }
       S.relics.push(k);
+      recordRelicDiscovery(k);
       if (k === 'quotawatch' && S.quota) S.quota.endsAt += 5000;
       save(); hud(); relicShop();
     }
@@ -1427,6 +1517,7 @@
       const result = rand(pool.length ? pool : RELICS.filter(r => r.fusionOnly));
       S.relics = S.relics.filter(k => !FUSION_SELECTION.includes(k));
       S.relics.push(result.k);
+      PROFILE.stats.fusions++; recordRelicDiscovery(result.k); saveProfile(); checkAchievements();
       FUSION_SELECTION = [];
       save(); hud(); relicShop();
       $('fusionStatus').innerHTML = `✨ Created <b>${result.ico} ${result.name}</b>!`;
@@ -1506,8 +1597,16 @@
     $('btnHome').onclick = home;
     $('btnBinder').onclick = showBinder;
     $('btnBinderHome').onclick = showBinder;
+    $('btnAchievementsHome').onclick = showAchievements;
+    $('btnMuseumHome').onclick = showMuseum;
     $('btnBattle').onclick = showBattle;
     $('btnBattleHome').onclick = showBattle;
+    $('btnAchievements').onclick = showAchievements;
+    $('btnMuseum').onclick = showMuseum;
+    $('btnAchievementsClose').onclick = () => $('achievements').classList.remove('on');
+    $('achievements').onclick = e => { if (e.target === $('achievements')) $('achievements').classList.remove('on'); };
+    $('btnMuseumClose').onclick = () => $('museum').classList.remove('on');
+    $('museum').onclick = e => { if (e.target === $('museum')) $('museum').classList.remove('on'); };
     $('btnBinderClose').onclick = closeBinder;
     $('binder').onclick = e => { if (e.target === $('binder')) closeBinder(); };
     $('btnBattleFromBinder').onclick = showBattle;
