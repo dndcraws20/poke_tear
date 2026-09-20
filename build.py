@@ -282,7 +282,7 @@ html = r'''<!doctype html>
     const BATTLE_COOLDOWN_KEY = 'poke-tear-battle-cooldowns-v1';
     const SINGLE_BATTLE_COOLDOWN_MS = 10 * 1000;
     const TOURNAMENT_COOLDOWN_MS = 30 * 1000;
-    const BRIBE_COST = 300;
+    const BRIBE_BASE_COST = 300;
     const BINDER_GROW_MS = 60 * 1000;
     const BINDER_CAPACITY_LEVELS = [8, 11, 14, 17, 20];
     const BINDER_GROWTH_LEVELS = [1.2, 1.3, 1.4, 1.5];
@@ -329,6 +329,11 @@ html = r'''<!doctype html>
       { k: 'shakecool', ico: '⏳', name: 'Fast Hands', desc: 'Reduces the cooldown before Shake the Pack can be used again.', tiers: [65, 170], fx: ['45s cooldown', '30s cooldown'], mult: [60, 45, 30] },
       { k: 'binderspace', ico: '📚', name: 'Bigger Binder', desc: 'Increases the maximum number of cards your Binder can hold.', tiers: [50, 150, 400, 1000], fx: ['11 cards', '14 cards', '17 cards', '20 cards'], mult: BINDER_CAPACITY_LEVELS },
       { k: 'bindergrowth', ico: '📈', name: 'Collector Interest', desc: 'Raises the hidden value bonus that Binder cards receive after one minute.', tiers: [75, 250, 750], fx: ['30% bonus', '40% bonus', '50% bonus'], mult: BINDER_GROWTH_LEVELS },
+      { k: 'battlearmor', ico: '🛡️', name: 'Battle Armor', desc: 'Gives every Pokémon in your battle deck more maximum HP.', tiers: [200, 700, 2000], fx: ['+10% HP', '+20% HP', '+35% HP'], mult: [1, 1.1, 1.2, 1.35] },
+      { k: 'battlepower', ico: '💥', name: 'Power Training', desc: 'Increases the maximum damage dealt by every Pokémon in your battle deck.', tiers: [250, 850, 2400], fx: ['+10% damage', '+20% damage', '+35% damage'], mult: [1, 1.1, 1.2, 1.35] },
+      { k: 'traincoach', ico: '🏋️', name: 'Training Coach', desc: 'Reduces the cash price of every permanent Pokémon training level.', tiers: [120, 400, 1100], fx: ['15% cheaper', '30% cheaper', '50% cheaper'], mult: [1, .85, .7, .5] },
+      { k: 'bribedeal', ico: '🤝', name: 'Shady Deal', desc: 'Reduces the cost of the once-per-match Bribe ability.', tiers: [175, 650], fx: ['$225 Bribe', '$150 Bribe'], mult: [1, .75, .5] },
+      { k: 'battleprize', ico: '🏆', name: 'Prize Booster', desc: 'Increases cash rewards from single battles and tournaments.', tiers: [500, 2000, 6000], fx: ['+10% rewards', '+25% rewards', '+50% rewards'], mult: [1, 1.1, 1.25, 1.5] },
     ];
     const MISSIONS = [
       { k: 'packs', ico: '🎴', name: 'Pack Rookie', desc: 'Open 3 packs in this run.', goal: 3, reward: 10 },
@@ -478,7 +483,7 @@ html = r'''<!doctype html>
     }
 
     function newState(mode) {
-      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0 }, boxes: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
+      return { mode, set: selectedSet, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0 }, boxes: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
         quota: mode === 'normal' || mode === 'hard' ? { number: 1, cleared: 0, target: mode === 'hard' ? HARD_QUOTA_START : QUOTA_START, endsAt: Date.now() + (mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) * 1000 } : null };
     }
     function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
@@ -496,6 +501,10 @@ html = r'''<!doctype html>
     function binderUpgradeLevel(key) {
       const run = S && !S.ended ? S : load();
       return run && run.up ? run.up[key] || 0 : 0;
+    }
+    function upgradeMultiplier(key) {
+      const upgrade = UPGRADES.find(item => item.k === key);
+      return upgrade.mult[Math.min(upgrade.mult.length - 1, binderUpgradeLevel(key))];
     }
     const binderCapacity = () => BINDER_CAPACITY_LEVELS[Math.min(BINDER_CAPACITY_LEVELS.length - 1, binderUpgradeLevel('binderspace'))];
     const binderGrowthMult = () => BINDER_GROWTH_LEVELS[Math.min(BINDER_GROWTH_LEVELS.length - 1, binderUpgradeLevel('bindergrowth'))];
@@ -605,11 +614,13 @@ html = r'''<!doctype html>
     function battleStats(item) {
       const rank = RANK(item.c.r), grade = item.grade || 0, training = item.training || 0;
       const value = Math.max(.01, binderValue(item));
+      const hp = 70 + rank * 30 + Math.min(120, Math.log2(value + 1) * 18) + grade * 3 + training * 12;
+      const dmg = 20 + rank * 22 + Math.min(100, Math.sqrt(value) * 10) + grade * 2 + training * 7;
       return {
         name: item.c.n,
         image: cardUrl(item.c),
-        hp: roundBattle(70 + rank * 30 + Math.min(120, Math.log2(value + 1) * 18) + grade * 3 + training * 12, 10),
-        dmg: roundBattle(20 + rank * 22 + Math.min(100, Math.sqrt(value) * 10) + grade * 2 + training * 7),
+        hp: roundBattle(hp * upgradeMultiplier('battlearmor'), 10),
+        dmg: roundBattle(dmg * upgradeMultiplier('battlepower')),
         training,
       };
     }
@@ -629,8 +640,10 @@ html = r'''<!doctype html>
     }
     function trainingCost(item) {
       const level = item.training || 0;
-      return Math.round(25 * Math.pow(level + 1, 1.45));
+      return Math.round(25 * Math.pow(level + 1, 1.45) * upgradeMultiplier('traincoach'));
     }
+    const bribeCost = () => Math.round(BRIBE_BASE_COST * upgradeMultiplier('bribedeal'));
+    const battleReward = (level, type) => Math.round(level[type] * upgradeMultiplier('battleprize'));
     function trainBattleCard(uid) {
       const item = BINDER.find(card => card.uid === uid);
       if (!item || !S || S.ended || (item.training || 0) >= 10) return;
@@ -679,13 +692,13 @@ html = r'''<!doctype html>
       document.querySelectorAll('[data-single]').forEach(button => {
         const level = BATTLE_LEVELS[button.dataset.single], seconds = Math.ceil(battleCooldownLeft('single') / 1000);
         button.disabled = !ready || seconds > 0;
-        button.innerHTML = `${level.ico} ${level.label}<br><small>${seconds ? `READY IN ${seconds}s` : `Win ${money(level.single)}`}</small>`;
+        button.innerHTML = `${level.ico} ${level.label}<br><small>${seconds ? `READY IN ${seconds}s` : `Win ${money(battleReward(level, 'single'))}`}</small>`;
       });
       document.querySelectorAll('[data-tournament]').forEach(button => {
         const level = BATTLE_LEVELS[button.dataset.tournament], seconds = Math.ceil(battleCooldownLeft('tournament') / 1000);
         const lacksEntry = paidMode() && S.bank < level.entry;
         button.disabled = !ready || seconds > 0 || lacksEntry;
-        button.innerHTML = `${level.ico} ${level.label}<br><small>${seconds ? `READY IN ${seconds}s` : lacksEntry ? `NEED ${money(level.entry)}` : `Entry ${paidMode() ? money(level.entry) : 'FREE'} • Prize ${money(level.tournament)}`}</small>`;
+        button.innerHTML = `${level.ico} ${level.label}<br><small>${seconds ? `READY IN ${seconds}s` : lacksEntry ? `NEED ${money(level.entry)}` : `Entry ${paidMode() ? money(level.entry) : 'FREE'} • Prize ${money(battleReward(level, 'tournament'))}`}</small>`;
       });
     }
     function startInteractiveMatch() {
@@ -719,12 +732,13 @@ html = r'''<!doctype html>
     }
     function living(cards) { return cards.filter(card => card.left > 0); }
     function useBattleBribe() {
-      if (!ACTIVE_BATTLE || ACTIVE_BATTLE.finished || ACTIVE_BATTLE.waitingNext || ACTIVE_BATTLE.bribeUsed || !paidMode() || S.bank < BRIBE_COST) return;
-      S.bank = +(S.bank - BRIBE_COST).toFixed(2);
-      S.spent = +(S.spent + BRIBE_COST).toFixed(2);
+      const cost = bribeCost();
+      if (!ACTIVE_BATTLE || ACTIVE_BATTLE.finished || ACTIVE_BATTLE.waitingNext || ACTIVE_BATTLE.bribeUsed || !paidMode() || S.bank < cost) return;
+      S.bank = +(S.bank - cost).toFixed(2);
+      S.spent = +(S.spent + cost).toFixed(2);
       ACTIVE_BATTLE.bribeUsed = true;
       ACTIVE_BATTLE.bribeReady = true;
-      ACTIVE_BATTLE.log.push(`💵 You paid ${money(BRIBE_COST)}. Your next chosen Pokémon attacks twice before the trainer can respond.`);
+      ACTIVE_BATTLE.log.push(`💵 You paid ${money(cost)}. Your next chosen Pokémon attacks twice before the trainer can respond.`);
       save(); hud(); renderInteractiveBattle();
     }
     function playerBattleAttack(uid) {
@@ -766,7 +780,7 @@ html = r'''<!doctype html>
     }
     function finishInteractiveBattle(won) {
       const level = BATTLE_LEVELS[ACTIVE_BATTLE.difficulty];
-      const rewardAmount = ACTIVE_BATTLE.type === 'single' ? level.single : level.tournament;
+      const rewardAmount = battleReward(level, ACTIVE_BATTLE.type === 'single' ? 'single' : 'tournament');
       ACTIVE_BATTLE.finished = true;
       ACTIVE_BATTLE.won = won;
       resumeQuotaAfterBattle();
@@ -794,8 +808,8 @@ html = r'''<!doctype html>
       if (battle.waitingNext) action = '<button class="primary" id="btnNextBattleMatch">NEXT MATCH</button>';
       if (battle.finished) action = `<p>${battle.won ? (paidMode() ? `Reward: <b>${money(battle.reward)}</b>` : 'Sandbox victory — no cash reward.') : 'Your cards are safe. Train or change your deck and try again.'}</p>`;
       if (!battle.finished && !battle.waitingNext) {
-        const canBribe = paidMode() && S.bank >= BRIBE_COST && !battle.bribeUsed;
-        const bribeText = battle.bribeReady ? '⚡ EXTRA ATTACK READY' : battle.bribeUsed ? '💵 BRIBE USED THIS MATCH' : paidMode() ? `💵 BRIBE TRAINER • ${money(BRIBE_COST)}` : '💵 BRIBE REQUIRES MONEY MODE';
+        const canBribe = paidMode() && S.bank >= bribeCost() && !battle.bribeUsed;
+        const bribeText = battle.bribeReady ? '⚡ EXTRA ATTACK READY' : battle.bribeUsed ? '💵 BRIBE USED THIS MATCH' : paidMode() ? `💵 BRIBE TRAINER • ${money(bribeCost())}` : '💵 BRIBE REQUIRES MONEY MODE';
         bribeAction = `<button class="ghost" id="btnBattleBribe" ${canBribe ? '' : 'disabled'}>${bribeText}</button>`;
       }
       $('battleResult').innerHTML = `<div class="battle-result ${battle.finished ? battle.won ? 'win' : 'loss' : ''}"><h2>${heading}</h2><div class="battle-prompt">${score}</div>${bribeAction}<div class="battle-arena"><div><b>Your team</b><div class="battle-lineup">${battle.player.map(card => interactiveFighterHtml(card, true, false)).join('')}</div></div><div class="battle-vs">VS</div><div><b>Trainer team</b><div class="battle-lineup">${battle.enemy.map(card => interactiveFighterHtml(card, false, target === card)).join('')}</div></div></div>${action}<div class="battle-log">${battle.log.slice(-12).join('<br>')}</div></div>`;
@@ -822,8 +836,8 @@ html = r'''<!doctype html>
     function renderBattle() {
       const active = S && !S.ended;
       $('battleStatus').innerHTML = !active ? 'Start or continue a run before battling.' : S.mode === 'sandbox' ? '<b>Sandbox practice:</b> training is free, but battles do not award cash.' : `<b>Bankroll: ${money(S.bank)}</b> • Training permanently improves Binder cards.`;
-      $('singleBattles').innerHTML = Object.entries(BATTLE_LEVELS).map(([key, level]) => `<button data-single="${key}">${level.ico} ${level.label}<br><small>Win ${money(level.single)}</small></button>`).join('');
-      $('tournamentBattles').innerHTML = Object.entries(BATTLE_LEVELS).map(([key, level]) => `<button data-tournament="${key}">${level.ico} ${level.label}<br><small>Entry ${paidMode() ? money(level.entry) : 'FREE'} • Prize ${money(level.tournament)}</small></button>`).join('');
+      $('singleBattles').innerHTML = Object.entries(BATTLE_LEVELS).map(([key, level]) => `<button data-single="${key}">${level.ico} ${level.label}<br><small>Win ${money(battleReward(level, 'single'))}</small></button>`).join('');
+      $('tournamentBattles').innerHTML = Object.entries(BATTLE_LEVELS).map(([key, level]) => `<button data-tournament="${key}">${level.ico} ${level.label}<br><small>Entry ${paidMode() ? money(level.entry) : 'FREE'} • Prize ${money(battleReward(level, 'tournament'))}</small></button>`).join('');
       $('singleBattles').querySelectorAll('[data-single]').forEach(button => button.onclick = () => runSingleBattle(button.dataset.single));
       $('tournamentBattles').querySelectorAll('[data-tournament]').forEach(button => button.onclick = () => runTournament(button.dataset.tournament));
       renderBattleCardsOnly();
@@ -1173,7 +1187,7 @@ html = r'''<!doctype html>
     function start(mode, resume) {
       if (resume) activateSet(resume.set || 'me05');
       S = resume || newState(mode);
-      S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, ...(S.up || {}) };
+      S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0, ...(S.up || {}) };
       S.boxes = { ...(S.boxes || {}) };
       S.kissBoost = !!S.kissBoost;
       S.kissReadyAt = S.kissReadyAt || 0;
