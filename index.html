@@ -392,6 +392,10 @@
       { k: 'loupe', ico: '🔎', name: 'Master Grading Loupe', rarity: 'legendary', cost: 120, desc: 'PSA grading rolls two extra results and keeps the best.' },
       { k: 'crown', ico: '👑', name: 'Counterfeit Crown', rarity: 'cursed', cost: 70, desc: 'Real cards are worth 35% more, but fake-pack risk rises by 15 percentage points.' },
       { k: 'idol', ico: '🗿', name: 'Greedy Idol', rarity: 'cursed', cost: 70, desc: 'Battle rewards are 50% larger, but every pack costs 15% more.' },
+      { k: 'cursedclover', ico: '☘️', name: 'Cursed Clover', rarity: 'cursed', cost: 75, desc: 'Doubles chase-card luck, but every real card is worth 20% less.' },
+      { k: 'smugglermap', ico: '🗺️', name: 'Smuggler’s Map', rarity: 'cursed', cost: 65, desc: 'Makes packs 20% cheaper, but fake-pack risk rises by 20 percentage points.' },
+      { k: 'darkmirror', ico: '🪞', name: 'Dark Mirror', rarity: 'cursed', cost: 80, desc: 'Hit cards are worth 75% more, but every non-hit card is worth 40% less.' },
+      { k: 'warchain', ico: '⛓️', name: 'War Chain', rarity: 'cursed', cost: 80, desc: 'Battle rewards are 75% larger, but enemy Pokémon gain 25% HP and damage.' },
     ];
     const MISSIONS = [
       { k: 'packs', ico: '🎴', name: 'Pack Rookie', desc: 'Open 3 packs in this run.', goal: 3, reward: 10 },
@@ -771,7 +775,7 @@
       return Math.round(25 * Math.pow(level + 1, 1.45) * upgradeMultiplier('traincoach'));
     }
     const bribeCost = () => Math.round(BRIBE_BASE_COST * upgradeMultiplier('bribedeal'));
-    const battleReward = (level, type) => Math.round(level[type] * upgradeMultiplier('battleprize') * (hasRelic('idol') ? 1.5 : 1));
+    const battleReward = (level, type) => Math.round(level[type] * upgradeMultiplier('battleprize') * (hasRelic('idol') ? 1.5 : 1) * (hasRelic('warchain') ? 1.75 : 1));
     function trainBattleCard(uid) {
       const item = BINDER.find(card => card.uid === uid);
       if (!item || !S || S.ended || (item.training || 0) >= 10) return;
@@ -796,7 +800,8 @@
         do { card = rand(pool); } while (used.has(card.id) && guard++ < 30);
         used.add(card.id);
         const ramp = 1 + i * .05;
-        return { name: card.n, image: cardUrl(card), hp: roundBattle(randomBetween(level.hp) * ramp, 10), dmg: roundBattle(randomBetween(level.dmg) * ramp) };
+        const curse = hasRelic('warchain') ? 1.25 : 1;
+        return { name: card.n, image: cardUrl(card), hp: roundBattle(randomBetween(level.hp) * ramp * curse, 10), dmg: roundBattle(randomBetween(level.dmg) * ramp * curse) };
       });
     }
     function awardBattleCash(amount) {
@@ -1065,19 +1070,19 @@
       }, 250);
     }
 
-    const packCost = (storeId = selectedStore) => paidMode() ? +(meta().price * store(storeId).priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('idol') ? 1.15 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2) : 0;
+    const packCost = (storeId = selectedStore) => paidMode() ? +(meta().price * store(storeId).priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('smugglermap') ? .8 : 1) * (hasRelic('idol') ? 1.15 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2) : 0;
     const boxDiscount = () => Math.min(.5, UPGRADES[10].mult[S.up.boxdeal] + (hasRelic('boxcutter') ? .05 : 0));
     const boxCost = () => +(packCost() * BOX_PACKS * (1 - boxDiscount())).toFixed(2);
     const currentBoxPacks = () => (S.boxes && S.boxes[selectedSet]) || 0;
     const totalBoxPacks = () => Object.values(S.boxes || {}).reduce((sum, n) => sum + n, 0);
-    const minPackCost = () => Math.min(...Object.values(SET_META).map(s => +(s.price * STORES.black.priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('idol') ? 1.15 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2)));
+    const minPackCost = () => Math.min(...Object.values(SET_META).map(s => +(s.price * STORES.black.priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('smugglermap') ? .8 : 1) * (hasRelic('idol') ? 1.15 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2)));
     const bulkMult = () => UPGRADES[1].mult[S.up.bulk];
     const luckMult = () => UPGRADES[0].mult[S.up.luck];
     const shakeLuckMult = () => UPGRADES[13].mult[S.up.shakepower];
     const shakeCooldownSeconds = () => UPGRADES[14].mult[S.up.shakecool];
 
     function rollHitRarity(storeId = selectedStore) {
-      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * (hasRelic('luckycoin') ? 1.5 : 1) * store(storeId).luckMult * (S.kissBoost ? KISS_LUCK_MULT : 1) * (S.shakeBoost ? shakeLuckMult() : 1) * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
+      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * (hasRelic('luckycoin') ? 1.5 : 1) * (hasRelic('cursedclover') ? 2 : 1) * store(storeId).luckMult * (S.kissBoost ? KISS_LUCK_MULT : 1) * (S.shakeBoost ? shakeLuckMult() : 1) * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
       const total = entries.reduce((a, e) => a + e[1], 0);
       let x = Math.random() * total;
       for (const [r, w] of entries) { x -= w; if (x <= 0) return r; }
@@ -1092,6 +1097,8 @@
       if (v >= 20) v *= UPGRADES[9].mult[S.up.jackpot];
       v *= hasRelic('sleeve') ? 1.2 : 1;
       v *= hasRelic('crown') ? 1.35 : 1;
+      v *= hasRelic('cursedclover') ? .8 : 1;
+      if (hasRelic('darkmirror')) v *= slot === 'hit' ? 1.75 : .6;
       if (slot === 'rev' || slot === 'hit') v *= hasRelic('prism') ? 1.25 : 1;
       return +v.toFixed(2);
     }
@@ -1163,7 +1170,7 @@
       const cost = fromBox ? 0 : packCost(storeId);
       if (paidMode() && S.bank < cost) return;
       if (fromBox) S.boxes[selectedSet]--;
-      const fakeChance = Math.min(1, store(storeId).fakeChance + (hasRelic('crown') ? .15 : 0));
+      const fakeChance = Math.min(1, store(storeId).fakeChance + (hasRelic('crown') ? .15 : 0) + (hasRelic('smugglermap') ? .20 : 0));
       const fake = Math.random() < fakeChance;
       const pull = pullPack(storeId, fake);
       if (S.shakeBoost) pull.forEach(p => p.shaken = true);
