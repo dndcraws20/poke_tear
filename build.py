@@ -308,7 +308,7 @@ html = r'''<!doctype html>
   <div class="overlay" id="auctionHouse">
     <div class="sheet binder-sheet">
       <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🔨 Auction House</h2><button class="ghost" id="btnAuctionClose" style="margin:0;padding:8px 14px">✕</button></div>
-      <p class="sub">Three cards are auctioned every 30 seconds. Computer collectors may outbid you. Your bid is held while you lead and refunded if somebody beats it.</p><div id="auctionStatus" class="summary" style="max-width:none"></div><div class="cards" id="auctionLots"></div>
+      <p class="sub">Choose one Binder card. Five AI collectors make offers one at a time. Accept an offer or risk waiting; the fifth and usually worst offer is mandatory.</p><div id="auctionStatus" class="summary" style="max-width:none"></div><div id="auctionLots"></div>
     </div>
   </div>
 
@@ -462,7 +462,9 @@ html = r'''<!doctype html>
     ];
     const RANDOM_EVENT_CHANCE = .25;
     const SET_REWARDS = { me05: 500, me04: 750, sv10: 1000, me02: 1500, 'sv03.5': 2500, sm1: 3500, 'sm7.5': 5000, base1: 25000 };
-    const AUCTION_SECONDS = 30;
+    const AUCTION_BUYERS = [
+      { name: 'Mia the Collector', ico: '🧢' }, { name: 'Dexter Deals', ico: '🤓' }, { name: 'Team Rocket Ron', ico: '🥷' }, { name: 'Professor Penny', ico: '🧑‍🔬' }, { name: 'Last-Chance Larry', ico: '😈' },
+    ];
     const ACHIEVEMENTS = [
       { k: 'firstpack', ico: '🎴', name: 'First Rip', desc: 'Open your first pack.', test: p => p.stats.packs >= 1 },
       { k: 'pack50', ico: '📦', name: 'Pack Veteran', desc: 'Open 50 packs across all runs.', test: p => p.stats.packs >= 50 },
@@ -487,7 +489,6 @@ html = r'''<!doctype html>
     let quotaTimer = null;
     let binderTimer = null;
     let relicTimer = null;
-    let auctionTimer = null;
     let kissTimer = null;
     let audioCtx = null, musicTimer = null, musicOn = false, musicStyle = 'electronic', musicStep = 0, nextMusicStep = 0;
     const $ = id => document.getElementById(id);
@@ -604,6 +605,7 @@ html = r'''<!doctype html>
     const meta = () => SET_META[selectedSet];
     const store = (id = selectedStore) => STORES[id] || STORES.walmart;
     const paidMode = () => S && !S.ended && (S.mode === 'normal' || S.mode === 'hard' || S.mode === 'chill');
+    const auctionMode = () => S && !S.ended;
     const quotaMode = () => S && (S.mode === 'normal' || S.mode === 'hard');
     const quotaStart = () => S.mode === 'hard' ? HARD_QUOTA_START : QUOTA_START;
     const quotaMult = () => S.mode === 'hard' ? HARD_QUOTA_MULT : QUOTA_MULT;
@@ -639,13 +641,13 @@ html = r'''<!doctype html>
     }
 
     function newState(mode) {
-      return { mode, set: selectedSet, store: selectedStore, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0 }, relics: [], relicOffers: [], relicRefreshAt: 0, event: null, auctions: [], auctionEndsAt: 0, auctionMessage: '', boxes: {}, boxStores: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
+      return { mode, set: selectedSet, store: selectedStore, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0 }, relics: [], relicOffers: [], relicRefreshAt: 0, event: null, cardAuction: null, auctionMessage: '', boxes: {}, boxStores: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
         quota: mode === 'normal' || mode === 'hard' ? { number: 1, cleared: 0, target: mode === 'hard' ? HARD_QUOTA_START : QUOTA_START, endsAt: Date.now() + (mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) * 1000 } : null };
     }
     function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
     function load() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
     function binderSellRun() {
-      if (S && !S.ended) return paidMode() ? S : null;
+      if (S && !S.ended) return S;
       const saved = load();
       return saved && !saved.ended && ['normal', 'hard', 'chill'].includes(saved.mode) ? saved : null;
     }
@@ -716,40 +718,37 @@ html = r'''<!doctype html>
       PROFILE.setRewards[setId] = true; S.bank = +(S.bank + reward).toFixed(2); S.earned = +(S.earned + reward).toFixed(2); S.peak = Math.max(S.peak, S.bank);
       saveProfile(); save(); hud(); showSetAlbums();
     }
-    function generateAuctions() {
-      const all = Object.entries(SET_DATA).flatMap(([setId, cards]) => cards.map(c => ({ c, set: setId, value: Math.max(.01, tradeCardValue(c, setId)) })));
-      const used = new Set(); S.auctions = Array.from({ length: 3 }, (_, i) => { let item; do { item = rand(all); } while (used.has(item.c.id)); used.add(item.c.id); const bid = +(item.value * (.6 + Math.random() * .3)).toFixed(2); return { id: `${Date.now()}-${i}`, ...item, bid: Math.max(.01, bid), leader: 'ai', escrow: 0 }; });
-      S.auctionEndsAt = Date.now() + AUCTION_SECONDS * 1000; save();
+    function startCardAuction(uid) {
+      if (!auctionMode() || S.cardAuction) return;
+      const item = BINDER.find(x => x.uid === uid); if (!item) return;
+      const value = binderValue(item);
+      const offers = AUCTION_BUYERS.map((buyer, i) => { const mult = i === 4 ? (Math.random() < .75 ? .5 + Math.random() * .4 : .9 + Math.random() * .3) : .5 + Math.random() * 1.25; return { ...buyer, amount: +Math.max(.01, value * mult).toFixed(2) }; });
+      S.cardAuction = { uid, value, offerIndex: 0, offers }; S.auctionMessage = ''; save(); renderAuctions();
     }
-    function resolveAuctions() {
-      const won = [];
-      (S.auctions || []).forEach(lot => { if (lot.leader !== 'player') return; if (BINDER.length < binderCapacity()) { BINDER.push({ uid: `${Date.now()}-${Math.random()}`, c: lot.c, value: lot.value, keptAt: Date.now(), grade: null, shaken: false, fake: false, store: 'auction', set: lot.set, training: 0 }); won.push(lot.c.n); } else { S.bank = +(S.bank + lot.escrow).toFixed(2); } });
-      if (won.length) saveBinder();
-      S.auctionMessage = won.length ? `🏆 Won: ${won.join(', ')}` : 'The computer collectors won the last auction.';
-      generateAuctions(); save(); hud();
+    function declineAuctionOffer() {
+      if (!S || !S.cardAuction || S.cardAuction.offerIndex >= 4) return;
+      S.cardAuction.offerIndex++; save(); renderAuctions();
     }
-    function updateAuctions() {
-      if (!S || S.ended || !paidMode()) return;
-      if (!S.auctions || S.auctions.length !== 3) generateAuctions();
-      if (Date.now() >= S.auctionEndsAt) resolveAuctions();
-      let changed = false;
-      S.auctions.forEach(lot => { if (Math.random() < .12) { lot.bid = +(lot.bid * 1.1).toFixed(2); if (lot.leader === 'player') { S.bank = +(S.bank + lot.escrow).toFixed(2); lot.escrow = 0; } lot.leader = 'ai'; changed = true; } });
-      if (changed) { save(); hud(); }
-      if ($('auctionHouse').classList.contains('on')) renderAuctions();
-    }
-    function placeAuctionBid(id) {
-      if (!paidMode()) return; const lot = S.auctions.find(x => x.id === id); if (!lot || lot.leader === 'player') return;
-      const reserved = S.auctions.filter(x => x.leader === 'player').length, bid = +(lot.bid * 1.1).toFixed(2);
-      if (S.bank < bid || BINDER.length + reserved >= binderCapacity()) return;
-      S.bank = +(S.bank - bid).toFixed(2); lot.bid = bid; lot.escrow = bid; lot.leader = 'player'; save(); hud(); renderAuctions();
+    function acceptAuctionOffer() {
+      if (!S || !S.cardAuction) return;
+      const auction = S.cardAuction, itemIndex = BINDER.findIndex(x => x.uid === auction.uid); if (itemIndex < 0) { S.cardAuction = null; save(); return renderAuctions(); }
+      const item = BINDER[itemIndex], offer = auction.offers[auction.offerIndex];
+      BINDER.splice(itemIndex, 1); BATTLE_DECK = BATTLE_DECK.filter(uid => uid !== auction.uid);
+      S.bank = +(S.bank + offer.amount).toFixed(2); S.earned = +(S.earned + offer.amount).toFixed(2); S.peak = Math.max(S.peak, S.bank);
+      S.auctionMessage = `${offer.ico} ${offer.name} bought ${item.c.n} for ${money(offer.amount)} on offer ${auction.offerIndex + 1}/5.`; S.cardAuction = null;
+      saveBinder(); saveBattleDeck(); save(); hud(); renderBinder(); renderAuctions();
     }
     function renderAuctions() {
-      if (!paidMode()) { $('auctionStatus').innerHTML = 'Start or continue a money run to enter auctions.'; $('auctionLots').innerHTML = ''; return; }
-      if (!S.auctions || S.auctions.length !== 3) generateAuctions();
-      const seconds = Math.max(0, Math.ceil((S.auctionEndsAt - Date.now()) / 1000));
-      $('auctionStatus').innerHTML = `<b>${S.auctionMessage || 'Live auction'}</b> • ${seconds}s remaining • Bankroll ${money(S.bank)}`;
-      $('auctionLots').innerHTML = S.auctions.map(lot => `<div class="card r${RANK(lot.c.r)}"><span class="val ${lot.bid >= 5 ? 'big' : ''}">${money(lot.bid)}</span><img src="${cardUrl(lot.c)}" alt="${lot.c.n}" loading="lazy"><div class="name">${lot.c.n}</div><div class="rarity">${tradeSetName(lot.set)} • ${lot.leader === 'player' ? 'YOU LEAD' : 'COMPUTER LEADS'}</div><button data-auction-bid="${lot.id}" ${lot.leader === 'player' ? 'disabled' : ''}>${lot.leader === 'player' ? '✓ LEADING' : `BID ${money(lot.bid * 1.1)}`}</button></div>`).join('');
-      $('auctionLots').querySelectorAll('[data-auction-bid]').forEach(b => b.onclick = () => placeAuctionBid(b.dataset.auctionBid));
+      if (!auctionMode()) { $('auctionStatus').innerHTML = 'Start any game mode to auction Binder cards.'; $('auctionLots').innerHTML = ''; return; }
+      $('auctionStatus').innerHTML = S.auctionMessage || (S.cardAuction ? 'Your card is locked into this auction. You must accept one of the five offers.' : 'Choose a Binder card to begin. Once started, the card cannot leave the auction.');
+      if (!S.cardAuction) {
+        $('auctionLots').innerHTML = BINDER.length ? `<div class="binder-cards">${BINDER.map(item => `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}">${money(binderValue(item))}</span><img src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy"><div class="name">${item.c.n}</div><div class="rarity">${tradeSetName(item.set || item.c.id.split('-')[0])}</div><button data-start-auction="${item.uid}">AUCTION THIS CARD</button></div>`).join('')}</div>` : '<p class="sub">Your Binder is empty. Keep a card before starting an auction.</p>';
+        $('auctionLots').querySelectorAll('[data-start-auction]').forEach(b => b.onclick = () => startCardAuction(b.dataset.startAuction)); return;
+      }
+      const auction = S.cardAuction, item = BINDER.find(x => x.uid === auction.uid); if (!item) { S.cardAuction = null; save(); return renderAuctions(); }
+      const i = auction.offerIndex, offer = auction.offers[i], final = i === 4;
+      $('auctionLots').innerHTML = `<div class="trade-grid"><div class="trade-card"><img src="${cardUrl(item.c)}" alt="${item.c.n}"><b>${item.c.n}</b><small>Your card value</small><strong style="display:block;color:#8dffb0;margin-top:7px">${money(auction.value)}</strong></div><div class="trade-vs">→</div><div class="trade-card"><div style="font-size:70px">${offer.ico}</div><b>${offer.name}</b><small>AI buyer ${i + 1} of 5</small><strong style="display:block;color:${offer.amount >= auction.value ? '#8dffb0' : '#ffb36b'};margin-top:7px">OFFERS ${money(offer.amount)}</strong></div></div><div class="summary" style="text-align:center">${final ? '<b>FINAL OFFER — YOU MUST ACCEPT</b><br>The fifth buyer is usually the worst deal.' : `<b>Accept now, or decline and hope buyer ${i + 2} pays more.</b>`}</div><div style="text-align:center"><button class="primary" id="btnAcceptAuction">ACCEPT ${money(offer.amount)}</button>${final ? '' : '<button class="ghost" id="btnDeclineAuction">DECLINE & WAIT</button>'}</div>`;
+      $('btnAcceptAuction').onclick = acceptAuctionOffer; if ($('btnDeclineAuction')) $('btnDeclineAuction').onclick = declineAuctionOffer;
     }
     function showAuctionHouse() { renderAuctions(); $('auctionHouse').classList.add('on'); }
 
@@ -780,6 +779,7 @@ html = r'''<!doctype html>
       render(S.last.pull, S.last.cost, S.last.total);
     }
     function sellBinder(uid) {
+      if (S && S.cardAuction && S.cardAuction.uid === uid) return showAuctionHouse();
       const run = binderSellRun();
       if (!run) return;
       const index = BINDER.findIndex(item => item.uid === uid);
@@ -817,6 +817,7 @@ html = r'''<!doctype html>
       return { ...offer, fake: Math.random() < .10 };
     }
     function openTrade(uid) {
+      if (S && S.cardAuction && S.cardAuction.uid === uid) return showAuctionHouse();
       const item = BINDER.find(card => card.uid === uid);
       if (!item) return;
       ACTIVE_TRADE = { uid, offer: findTradeOffer(item) };
@@ -863,6 +864,7 @@ html = r'''<!doctype html>
       saveBinder(); saveBattleDeck(); renderBinder();
     }
     function gradeBinderCard(uid) {
+      if (S && S.cardAuction && S.cardAuction.uid === uid) return showAuctionHouse();
       const item = BINDER.find(item => item.uid === uid);
       if (!item || item.grade) return;
       const result = item.shaken ? GRADES.find(g => g.grade === 1) : rollGrade(item.store);
@@ -897,13 +899,19 @@ html = r'''<!doctype html>
       $('binderList').innerHTML = BINDER.length ? BINDER.map(item => {
         const stats = battleStats(item);
         const selected = BATTLE_DECK.includes(item.uid);
-        const pickText = selected ? '✓ IN BATTLE DECK' : BATTLE_DECK.length >= 3 ? 'DECK FULL • REMOVE ONE FIRST' : '⚔️ ADD TO BATTLE DECK';
-        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}" data-binder-price="${item.uid}">${money(binderValue(item))}</span>${item.fake ? '<span class="tag">FAKE • $0</span>' : item.grade ? `<span class="tag">PSA ${item.grade}</span>` : selected ? '<span class="tag">BATTLE DECK</span>' : ''}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy"><div class="name">${item.c.n}</div><div class="rarity">${item.c.r}</div><div class="battle-stats">❤️ ${stats.hp} HP • 💥 ${stats.dmg} MAX DMG • 🏋️ ${stats.training}/10</div><button class="keep-btn" data-binder-deck="${item.uid}">${pickText}</button><button class="ghost" style="width:100%;padding:8px 6px;font-size:12px" data-trade="${item.uid}">🔄 TRADE CARD</button>${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}">${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell ? '' : 'disabled'}>${canSell ? `${selected ? 'SELL & REMOVE FROM DECK' : 'SELL'} • ${money(binderValue(item))}` : 'START OR CONTINUE A MONEY RUN TO SELL'}</button></div>`;
+        const locked = !!(S && S.cardAuction && S.cardAuction.uid === item.uid);
+        const pickText = locked ? '🔒 LOCKED IN AUCTION' : selected ? '✓ IN BATTLE DECK' : BATTLE_DECK.length >= 3 ? 'DECK FULL • REMOVE ONE FIRST' : '⚔️ ADD TO BATTLE DECK';
+        const tag = locked ? '<span class="tag">IN AUCTION</span>' : item.fake ? '<span class="tag">FAKE • $0</span>' : item.grade ? `<span class="tag">PSA ${item.grade}</span>` : selected ? '<span class="tag">BATTLE DECK</span>' : '';
+        return `<div class="card binder-card r${RANK(item.c.r)}"><span class="val ${binderValue(item) >= 5 ? 'big' : ''}" data-binder-price="${item.uid}">${money(binderValue(item))}</span>${tag}<img data-view="${item.uid}" src="${cardUrl(item.c)}" alt="${item.c.n}" loading="lazy"><div class="name">${item.c.n}</div><div class="rarity">${item.c.r}</div><div class="battle-stats">❤️ ${stats.hp} HP • 💥 ${stats.dmg} MAX DMG • 🏋️ ${stats.training}/10</div><button class="keep-btn" data-binder-deck="${item.uid}" ${locked ? 'disabled' : ''}>${pickText}</button><button class="ghost" style="width:100%;padding:8px 6px;font-size:12px" data-trade="${item.uid}" ${locked ? 'disabled' : ''}>🔄 TRADE CARD</button><button class="ghost" style="width:100%;padding:8px 6px;font-size:12px" data-auction-card="${item.uid}">${locked ? '🔨 CONTINUE AUCTION' : '🔨 AUCTION CARD'}</button>${item.grade ? '' : `<button class="grade-btn" data-binder-grade="${item.uid}" ${locked ? 'disabled' : ''}>${item.shaken ? 'GRADE WITH PSA • FORCED PSA 1' : 'GRADE WITH PSA'}</button>`}<button class="grade-btn" data-sell="${item.uid}" ${canSell && !locked ? '' : 'disabled'}>${locked ? 'LOCKED IN AUCTION' : canSell ? `${selected ? 'SELL & REMOVE FROM DECK' : 'SELL'} • ${money(binderValue(item))}` : 'START ANY GAME TO SELL'}</button></div>`;
       }).join('') : '<p class="sub" style="grid-column:1/-1">Your binder is empty. Open a pack and press KEEP IN BINDER on any card.</p>';
       $('binderList').querySelectorAll('[data-sell]').forEach(b => b.onclick = () => sellBinder(b.dataset.sell));
       $('binderList').querySelectorAll('[data-binder-grade]').forEach(b => b.onclick = () => gradeBinderCard(b.dataset.binderGrade));
       $('binderList').querySelectorAll('[data-binder-deck]').forEach(b => b.onclick = () => toggleBattleCard(b.dataset.binderDeck));
       $('binderList').querySelectorAll('[data-trade]').forEach(b => b.onclick = () => openTrade(b.dataset.trade));
+      $('binderList').querySelectorAll('[data-auction-card]').forEach(b => b.onclick = () => {
+        if (S && S.cardAuction) showAuctionHouse();
+        else { startCardAuction(b.dataset.auctionCard); showAuctionHouse(); }
+      });
       $('binderList').querySelectorAll('[data-view]').forEach(img => img.onclick = () => zoomBinderCard(img.dataset.view));
     }
     function refreshBinderPrices() {
@@ -948,6 +956,7 @@ html = r'''<!doctype html>
       saveBattleDeck();
     }
     function toggleBattleCard(uid) {
+      if (S && S.cardAuction && S.cardAuction.uid === uid) return showAuctionHouse();
       cleanBattleDeck();
       const index = BATTLE_DECK.indexOf(uid);
       if (index >= 0) BATTLE_DECK.splice(index, 1);
@@ -1619,8 +1628,7 @@ html = r'''<!doctype html>
       S.relicOffers = Array.isArray(S.relicOffers) ? S.relicOffers.filter(k => RELICS.some(r => r.k === k)).slice(0, 5) : [];
       S.relicRefreshAt = S.relicRefreshAt || 0;
       S.event = S.event && RANDOM_EVENTS.some(e => e.k === S.event.k) ? S.event : null;
-      S.auctions = Array.isArray(S.auctions) ? S.auctions : [];
-      S.auctionEndsAt = S.auctionEndsAt || 0;
+      S.cardAuction = S.cardAuction && BINDER.some(item => item.uid === S.cardAuction.uid) ? S.cardAuction : null;
       S.auctionMessage = S.auctionMessage || '';
       S.boxes = { ...(S.boxes || {}) };
       S.boxStores = { ...(S.boxStores || {}) };
@@ -1639,8 +1647,6 @@ html = r'''<!doctype html>
       save(); startQuotaTimer();
       clearInterval(kissTimer); kissTimer = setInterval(() => { updateKissButton(); updateShakeButton(); }, 250);
       clearInterval(relicTimer); relicTimer = setInterval(updateRelicCountdown, 250);
-      clearInterval(auctionTimer); auctionTimer = setInterval(updateAuctions, 1000);
-      if (paidMode()) updateAuctions();
       if (S.last) render(S.last.pull, S.last.cost, S.last.total);
     }
     function startNewGame(mode) {
