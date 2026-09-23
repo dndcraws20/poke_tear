@@ -450,6 +450,10 @@ html = r'''<!doctype html>
       { k: 'traincoach', ico: '🏋️', name: 'Training Coach', desc: 'Reduces the cash price of every permanent Pokémon training level.', tiers: [120, 400, 1100], fx: ['15% cheaper', '30% cheaper', '50% cheaper'], mult: [1, .85, .7, .5] },
       { k: 'bribedeal', ico: '🤝', name: 'Shady Deal', desc: 'Reduces the cost of the once-per-match Bribe ability.', tiers: [175, 650], fx: ['$225 Bribe', '$150 Bribe'], mult: [1, .75, .5] },
       { k: 'battleprize', ico: '🏆', name: 'Prize Booster', desc: 'Increases cash rewards from single battles and tournaments.', tiers: [500, 2000, 6000], fx: ['+10% rewards', '+25% rewards', '+50% rewards'], mult: [1, 1.1, 1.25, 1.5] },
+      { k: 'auctionfloor', ico: '📣', name: 'Auction Hype', desc: 'Raises the lowest offer the first four AI auction buyers can make. The maximum stays at 175% of card value.', tiers: [125, 400, 1200], fx: ['65% minimum', '80% minimum', '100% minimum'], mult: [.5, .65, .8, 1] },
+      { k: 'finaloffer', ico: '🧾', name: 'Final Offer Insurance', desc: 'Raises the minimum price of the mandatory fifth auction offer.', tiers: [175, 550], fx: ['65% minimum', '80% minimum'], mult: [.5, .65, .8] },
+      { k: 'fakeguard', ico: '🔦', name: 'Counterfeit Scanner', desc: 'Reduces the chance that a Temu or Black Market pack is fake.', tiers: [100, 350, 1000], fx: ['-5% fake chance', '-10% fake chance', '-20% fake chance'], mult: [0, .05, .1, .2] },
+      { k: 'kisscool', ico: '💄', name: 'Quick Kiss', desc: 'Reduces the cooldown for Kiss the Pack.', tiers: [80, 250, 700], fx: ['25s cooldown', '20s cooldown', '15s cooldown'], mult: [30, 25, 20, 15] },
     ];
     const RELIC_REFRESH_MS = 30 * 1000;
     const RELIC_RARITIES = {
@@ -749,7 +753,13 @@ html = r'''<!doctype html>
       if (!auctionMode() || S.cardAuction) return;
       const item = BINDER.find(x => x.uid === uid); if (!item) return;
       const value = binderValue(item);
-      const offers = AUCTION_BUYERS.map((buyer, i) => { const mult = i === 4 ? (Math.random() < .75 ? .5 + Math.random() * .4 : .9 + Math.random() * .3) : .5 + Math.random() * 1.25; return { ...buyer, amount: +Math.max(.01, value * mult).toFixed(2) }; });
+      const offerFloor = upgradeMultiplier('auctionfloor'), finalFloor = upgradeMultiplier('finaloffer');
+      const offers = AUCTION_BUYERS.map((buyer, i) => {
+        const mult = i === 4
+          ? (Math.random() < .75 ? finalFloor + Math.random() * (.9 - finalFloor) : .9 + Math.random() * .3)
+          : offerFloor + Math.random() * (1.75 - offerFloor);
+        return { ...buyer, amount: +Math.max(.01, value * mult).toFixed(2) };
+      });
       S.cardAuction = { uid, value, offerIndex: 0, offers }; S.auctionMessage = ''; save(); renderAuctions();
     }
     function declineAuctionOffer() {
@@ -1448,7 +1458,7 @@ html = r'''<!doctype html>
       const cost = fromBox ? 0 : packCost(storeId);
       if (paidMode() && S.bank < cost) return;
       if (fromBox) S.boxes[selectedSet]--;
-      const fakeChance = Math.max(0, Math.min(1, store(storeId).fakeChance + (hasRelic('crown') ? .15 : 0) + (hasRelic('smugglermap') ? .20 : 0) + (S.event && S.event.k === 'counterfeit' ? .20 : 0) - (hasRelic('guardianeye') ? .10 : 0)));
+      const fakeChance = Math.max(0, Math.min(1, store(storeId).fakeChance + (hasRelic('crown') ? .15 : 0) + (hasRelic('smugglermap') ? .20 : 0) + (S.event && S.event.k === 'counterfeit' ? .20 : 0) - (hasRelic('guardianeye') ? .10 : 0) - upgradeMultiplier('fakeguard')));
       const fake = Math.random() < fakeChance;
       const usedEvent = S.event;
       const pull = pullPack(storeId, fake);
@@ -1492,7 +1502,7 @@ html = r'''<!doctype html>
     function kissPack() {
       if (!S || S.kissBoost || Date.now() < (S.kissReadyAt || 0)) return;
       S.kissBoost = true;
-      S.kissReadyAt = Date.now() + KISS_COOLDOWN_SECONDS * 1000;
+      S.kissReadyAt = Date.now() + upgradeMultiplier('kisscool') * 1000;
       save(); updateKissButton();
       $('title').textContent = '💋 PACK KISSED!';
       $('summary').innerHTML = 'Your next pack has <b>2× chase-card luck</b>. The luck is used when you open the pack.';
@@ -1703,7 +1713,7 @@ html = r'''<!doctype html>
       if (resume) activateSet(resume.set || 'me05');
       S = resume || newState(mode);
       activateStore(S.store || selectedStore || 'walmart');
-      S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0, ...(S.up || {}) };
+      S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0, auctionfloor: 0, finaloffer: 0, fakeguard: 0, kisscool: 0, ...(S.up || {}) };
       S.relics = Array.isArray(S.relics) ? S.relics.map(k => k === 'detector' ? 'crown' : k === 'medal' ? 'idol' : k).filter((k, i, all) => RELICS.some(r => r.k === k) && all.indexOf(k) === i).slice(0, 3) : [];
       S.relicOffers = Array.isArray(S.relicOffers) ? S.relicOffers.filter(k => RELICS.some(r => r.k === k)).slice(0, 5) : [];
       S.relicRefreshAt = S.relicRefreshAt || 0;
