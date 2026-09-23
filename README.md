@@ -2,6 +2,7 @@
 
 Single-file pack-opening game with a set picker for Mega Evolution — Chaos Rising (ME04), Pitch Black (ME05), Phantasmal Flames (ME02), Scarlet & Violet — Destined Rivals (SV10), Scarlet & Violet — 151 (SV03.5), Sun & Moon (SM1), Sun & Moon—Dragon Majesty (SM7.5), and the original 1999 Base Set First Edition (BASE1).
 
+- **Main-screen controls** — music on/off, music type, Achievements, and Museum stay visible at the top of the active game screen.
 - **Sandbox** — free rips, every card shows its market value.
 - **Chill** — no quota or timer, but packs and upgrades still cost money and the run ends if you cannot afford another pack.
 - **Sandbox upgrades** — the full upgrade shop is available for free in Sandbox mode.
