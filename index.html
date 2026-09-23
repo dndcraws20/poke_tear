@@ -125,6 +125,8 @@
     .health-track { height: 7px; background: #09060d; border-radius: 99px; overflow: hidden; margin: 4px 0; }
     .health-fill { height: 100%; background: linear-gradient(90deg, #ef4444, #facc15, #22c55e); transition: width .25s; }
     .battle-prompt { text-align: center; color: #ffe066; font-size: 18px; font-weight: 1000; margin: 10px 0; }
+    .main-tools { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin: 10px 0 14px; }
+    .main-tools .ghost { margin: 0; padding: 9px 6px; font-size: 11px; }
     @keyframes pop { from { opacity: 0; transform: scale(.7) translateY(25px); } to { opacity: 1; transform: none; } }
     @keyframes glow { from { box-shadow: 0 0 18px #ff4fd088; } to { box-shadow: 0 0 44px #ff4fd0ee, 0 0 80px #ff9800aa; } }
     @keyframes flash { 0% { background: #22c55e66; } 100% { background: #120c1c; } }
@@ -165,6 +167,12 @@
         <div><div class="bank" id="bank"></div><small id="hudSub"></small></div>
         <div class="r"><button class="ghost" id="btnMissions" style="margin:0;padding:10px 12px">🎯 Missions</button><button class="ghost" id="btnRelics" style="margin:0;padding:10px 12px">🧿 Relics</button><button class="ghost" id="btnShop" style="margin:0;padding:10px 12px">🛒 Upgrades</button><small id="hudUp"></small></div>
       </div>
+      <div class="main-tools" aria-label="Music and collection controls">
+        <button class="ghost music-toggle">🔇 MUSIC: OFF</button>
+        <button class="ghost track-toggle">🎼 ELECTRONIC</button>
+        <button class="ghost" id="btnAchievements">🏆 ACHIEVEMENTS</button>
+        <button class="ghost" id="btnMuseum">🏛️ MUSEUM</button>
+      </div>
       <div class="quota" id="quotaBox" hidden>
         <div class="quota-top"><span id="quotaLabel"></span><span class="quota-time" id="quotaTime"></span></div>
         <div class="quota-track"><div class="quota-fill" id="quotaFill"></div></div>
@@ -178,12 +186,8 @@
         <button class="ghost" id="btnKiss">💋 KISS THE PACK</button>
         <button class="ghost" id="btnShake">🫨 SHAKE THE PACK</button>
         <button class="ghost" id="btnBox">BUY 6-PACK BOX</button>
-        <button class="ghost music-toggle">🔇 MUSIC: OFF</button>
-        <button class="ghost track-toggle">🎼 ELECTRONIC</button>
         <button class="ghost" id="btnBinder">📚 BINDER</button>
         <button class="ghost" id="btnBattle">⚔️ BATTLES</button>
-        <button class="ghost" id="btnAchievements">🏆 ACHIEVEMENTS</button>
-        <button class="ghost" id="btnMuseum">🏛️ MUSEUM</button>
         <button class="ghost" id="btnAlbums">🗂️ SET ALBUMS</button>
         <button class="ghost" id="btnAuction">🔨 AUCTIONS</button>
         <button class="ghost" id="btnSwitchStore">🏪 SWITCH STORE</button>
