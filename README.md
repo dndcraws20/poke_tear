@@ -4,6 +4,7 @@ Single-file pack-opening game with a set picker for Mega Evolution — Chaos Ris
 
 - **Main-screen controls** — music on/off, music type, Achievements, and Museum stay visible at the top of the active game screen.
 - **Animated pack opening** — the selected booster flies onto the screen, its foil top tears away, and every card bursts out into a responsive 2-column mobile or 5-column desktop layout before the results appear.
+- **Correct pack size** — standard packs contain exactly ten cards without Pack Stretcher upgrades. A double-hit roll replaces a normal slot with a second hit instead of incorrectly adding an eleventh card; the original Base Set pack remains an authentic eleven cards.
 - **Sandbox** — free rips, every card shows its market value.
 - **Chill** — no quota or timer, but packs and upgrades still cost money and the run ends if you cannot afford another pack.
 - **Sandbox upgrades** — the full upgrade shop is available for free in Sandbox mode.

@@ -637,7 +637,8 @@ html = r'''<!doctype html>
     const quotaMult = () => S.mode === 'hard' ? HARD_QUOTA_MULT : QUOTA_MULT;
     const hasRelic = k => !!(S && Array.isArray(S.relics) && S.relics.includes(k));
     const quotaSeconds = () => (S.mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) + UPGRADES[7].mult[S.up.clock] + (hasRelic('quotawatch') ? 5 : 0);
-    const cardUrl = c => { if (/^https?:\/\//.test(c.img || '')) return c.img; const id = c.id.split('-')[0], series = (id.match(/^[a-z]+/) || [''])[0]; return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
+    const CARD_IMAGE_FIXES = { 'sv03.5-163': 'https://images.pokemontcg.io/sv3pt5/163_hires.png' };
+    const cardUrl = c => { if (CARD_IMAGE_FIXES[c.id]) return CARD_IMAGE_FIXES[c.id]; if (/^https?:\/\//.test(c.img || '')) return c.img; const id = c.id.split('-')[0], series = (id.match(/^[a-z]+/) || [''])[0]; return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
     function activateSet(id) {
       selectedSet = SET_DATA[id] ? id : 'me05';
       SET = SET_DATA[selectedSet]; BY = {};
@@ -1382,7 +1383,10 @@ html = r'''<!doctype html>
       for (let i = 0; i < UPGRADES[12].mult[S.up.extras]; i++) pull.push(take([...BY['Common'], ...BY['Uncommon']], 'base'));
       if (!firstEdition) for (let i = 0; i < 2 + S.up.rev; i++) pull.push(take(base, 'rev'));
       pull.push(take(BY[rollHitRarity(storeId)], 'hit'));
-      if (Math.random() < DOUBLE_HIT_CHANCE + UPGRADES[6].mult[S.up.bonus]) pull.push(take(BY[rollHitRarity(storeId)], 'hit'));
+      if (!firstEdition && Math.random() < DOUBLE_HIT_CHANCE + UPGRADES[6].mult[S.up.bonus]) {
+        const replaceable = pull.map((p, i) => p.slot !== 'hit' ? i : -1).filter(i => i >= 0);
+        pull[rand(replaceable)] = take(BY[rollHitRarity(storeId)], 'hit');
+      }
       for (let i = pull.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pull[i], pull[j]] = [pull[j], pull[i]];
