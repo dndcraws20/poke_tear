@@ -82,6 +82,18 @@ html = r'''<!doctype html>
     .delta.up { color: #8dffb0; } .delta.down { color: #ff6b6b; }
     .note { font-size: 12px; opacity: .6; margin-top: 12px; }
     .actions { position: sticky; bottom: 0; padding: 10px 0 12px; background: linear-gradient(transparent, #08050d 40%); }
+    .pack-opening { position: fixed; inset: 0; z-index: 60; display: none; overflow: hidden; background: radial-gradient(circle at 50% 45%, #43205f 0, #13091f 48%, #050308 100%); }
+    .pack-opening.on { display: block; }
+    .opening-stage { position: relative; width: 100%; height: 100%; padding: max(18px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom)); }
+    .opening-title { position: absolute; left: 0; right: 0; top: max(24px, env(safe-area-inset-top)); color: #ffe066; font-size: clamp(19px, 5vw, 30px); font-weight: 1000; text-align: center; text-shadow: 0 3px 16px #000; }
+    .opening-pack { position: absolute; left: 50%; top: 50%; width: min(48vw, 230px); transform: translate(-50%, -50%) scale(.65); filter: drop-shadow(0 24px 25px #000b); animation: packArrive .42s cubic-bezier(.2,.8,.2,1) forwards; }
+    .opening-pack img { display: block; width: 100%; max-height: 52vh; object-fit: contain; }
+    .opening-pack.opened img { clip-path: inset(13% 0 0 0); }
+    .pack-rip { position: absolute; inset: 0; overflow: hidden; clip-path: inset(0 0 86% 0); opacity: 0; pointer-events: none; }
+    .pack-rip img { width: 100%; }
+    .pack-rip.tear { opacity: 1; animation: tearTop .62s cubic-bezier(.2,.7,.3,1) forwards; }
+    .flying-cards { position: absolute; inset: 14% 4% 5%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: center; justify-items: center; gap: 7px; pointer-events: none; }
+    .flying-card { width: min(31vw, 116px); max-height: 23vh; aspect-ratio: 63/88; object-fit: contain; border-radius: 7px; opacity: 0; filter: drop-shadow(0 8px 8px #000b); will-change: transform, opacity; }
     .overlay { position: fixed; inset: 0; background: #000a; display: none; align-items: flex-end; justify-content: center; z-index: 20; }
     .overlay.on { display: flex; }
     .sheet { background: #14101f; border: 1px solid #654d83; border-radius: 20px 20px 0 0; width: min(560px, 100%); max-height: 88vh; overflow: auto; padding: 16px 16px 26px; text-align: left; }
@@ -143,11 +155,21 @@ html = r'''<!doctype html>
     @keyframes pop { from { opacity: 0; transform: scale(.7) translateY(25px); } to { opacity: 1; transform: none; } }
     @keyframes glow { from { box-shadow: 0 0 18px #ff4fd088; } to { box-shadow: 0 0 44px #ff4fd0ee, 0 0 80px #ff9800aa; } }
     @keyframes flash { 0% { background: #22c55e66; } 100% { background: #120c1c; } }
+    @keyframes packArrive { to { transform: translate(-50%, -50%) scale(1); } }
+    @keyframes tearTop { 0% { transform: none; } 35% { transform: translateY(-8px) rotate(-5deg); } 100% { transform: translate(70vw, -35vh) rotate(42deg); opacity: 0; } }
     .flash { animation: flash .8s; }
-    @media (min-width: 700px) { .cards { grid-template-columns: repeat(5, 1fr); } .binder-cards { grid-template-columns: repeat(2, 1fr); } .battle-grid { grid-template-columns: repeat(4, 1fr); } .battle-modes { grid-template-columns: repeat(4, 1fr); } .overlay { align-items: center; } .sheet { border-radius: 20px; } }
+    @media (min-width: 700px) { .cards { grid-template-columns: repeat(5, 1fr); } .binder-cards { grid-template-columns: repeat(2, 1fr); } .battle-grid { grid-template-columns: repeat(4, 1fr); } .battle-modes { grid-template-columns: repeat(4, 1fr); } .overlay { align-items: center; } .sheet { border-radius: 20px; } .flying-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); inset: 16% 5% 5%; gap: 10px; } .flying-card { width: min(14vw, 125px); max-height: 34vh; } }
+    @media (prefers-reduced-motion: reduce) { .opening-pack, .pack-rip.tear { animation-duration: .01ms; } }
   </style>
 </head>
 <body>
+  <div class="pack-opening" id="packOpening" aria-hidden="true">
+    <div class="opening-stage">
+      <div class="opening-title" id="openingTitle">OPENING PACK…</div>
+      <div class="opening-pack" id="openingPack"><img id="openingPackImage" src="pack.jpg" alt=""><div class="pack-rip" id="packRip"><img id="openingPackTop" src="pack.jpg" alt=""></div></div>
+      <div class="flying-cards" id="flyingCards"></div>
+    </div>
+  </div>
   <div class="wrap">
 
     <section id="home" class="screen on">
@@ -494,7 +516,7 @@ html = r'''<!doctype html>
     let binderTimer = null;
     let relicTimer = null;
     let kissTimer = null;
-    let audioCtx = null, musicTimer = null, musicOn = false, musicStyle = 'electronic', musicStep = 0, nextMusicStep = 0;
+    let audioCtx = null, musicTimer = null, musicOn = false, musicStyle = 'electronic', musicStep = 0, nextMusicStep = 0, packAnimating = false;
     const $ = id => document.getElementById(id);
     const money = v => (v < 0 ? '-' : '') + '$' + Math.abs(v).toFixed(2);
     const rand = a => a[Math.floor(Math.random() * a.length)];
@@ -1369,7 +1391,53 @@ html = r'''<!doctype html>
       return pull;
     }
 
-    function openPack() {
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+    async function playPackOpening(pull) {
+      const overlay = $('packOpening'), pack = $('openingPack'), rip = $('packRip'), cards = $('flyingCards');
+      const art = meta().art;
+      $('openingPackImage').src = art;
+      $('openingPackTop').src = art;
+      $('openingTitle').textContent = `OPENING ${meta().name.toUpperCase()}…`;
+      cards.innerHTML = '';
+      pack.classList.remove('opened');
+      rip.classList.remove('tear');
+      overlay.classList.add('on');
+      overlay.setAttribute('aria-hidden', 'false');
+      await wait(520);
+      rip.classList.add('tear');
+      pack.classList.add('opened');
+      await wait(480);
+      pull.forEach(p => {
+        const img = document.createElement('img');
+        img.className = 'flying-card';
+        img.src = cardUrl(p.c);
+        img.alt = p.c.n;
+        cards.appendChild(img);
+      });
+      await new Promise(requestAnimationFrame);
+      const packRect = pack.getBoundingClientRect();
+      const originX = packRect.left + packRect.width / 2;
+      const originY = packRect.top + packRect.height * .45;
+      const animations = [...cards.children].map((card, i) => {
+        const rect = card.getBoundingClientRect();
+        const dx = originX - (rect.left + rect.width / 2);
+        const dy = originY - (rect.top + rect.height / 2);
+        return card.animate([
+          { opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(.16) rotate(${i % 2 ? 14 : -14}deg)` },
+          { opacity: 1, transform: 'translate(0, 0) scale(1.06) rotate(0deg)', offset: .82 },
+          { opacity: 1, transform: 'translate(0, 0) scale(1) rotate(0deg)' },
+        ], { duration: 620, delay: i * 85, easing: 'cubic-bezier(.18,.78,.24,1)', fill: 'forwards' }).finished.catch(() => {});
+      });
+      await Promise.all(animations);
+      $('openingTitle').textContent = 'PACK OPENED!';
+      await wait(260);
+      overlay.classList.remove('on');
+      overlay.setAttribute('aria-hidden', 'true');
+      cards.innerHTML = '';
+    }
+
+    async function openPack() {
+      if (packAnimating) return;
       const fromBox = currentBoxPacks() > 0;
       const boxQueue = (S.boxStores && S.boxStores[selectedSet]) || [];
       const storeId = fromBox ? (boxQueue.shift() || selectedStore) : selectedStore;
@@ -1401,6 +1469,10 @@ html = r'''<!doctype html>
       if (missionRewards.length) S.last.mission = missionRewards;
       const clearedQuota = checkQuotaProgress();
       save();
+      packAnimating = true;
+      $('btnOpen').disabled = true;
+      try { await playPackOpening(pull); }
+      finally { packAnimating = false; }
       render(pull, cost, total);
       if (usedEvent) $('summary').innerHTML += `<div style="margin-top:8px;color:#67e8f9;font-weight:900">${usedEvent.ico} ${usedEvent.name} affected this pack.</div>`;
       if (S.event) $('summary').innerHTML += `<div style="margin-top:8px;color:#ffe066;font-weight:900">NEW EVENT: ${S.event.ico} ${S.event.name}<br><small>${S.event.desc}</small></div>`;
