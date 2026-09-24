@@ -372,6 +372,7 @@ html = r'''<!doctype html>
     const STORES = {
       pokemon: { name: 'Pokémon Store', icon: '✨', priceMult: 1.10, fakeChance: 0, luckMult: 2, psaRerolls: 1, desc: '10% more expensive • 2× luck • better PSA grades • always real' },
       walmart: { name: 'Walmart', icon: '🏪', priceMult: 1, fakeChance: 0, luckMult: 1, psaRerolls: 0, desc: 'Normal price • normal luck • always real' },
+      collector: { name: 'Collector’s Club', icon: '🎟️', priceMult: 1.05, fakeChance: 0, luckMult: 1.4, psaRerolls: 0, desc: '5% more expensive • 1.4× chase luck • always real' },
       temu: { name: 'Temu', icon: '📦', priceMult: .90, fakeChance: .10, luckMult: 1, psaRerolls: 0, desc: '10% cheaper • 10% chance of a fake pack' },
       black: { name: 'Black Market', icon: '🕶️', priceMult: .70, fakeChance: .30, luckMult: 1, psaRerolls: 0, desc: '30% cheaper • 30% chance of a fake pack' },
     };
@@ -454,6 +455,9 @@ html = r'''<!doctype html>
       { k: 'auctionfloor', ico: '📣', name: 'Auction Hype', desc: 'Raises the lowest offer the first four AI auction buyers can make. The maximum stays at 175% of card value.', tiers: [125, 400, 1200], fx: ['65% minimum', '80% minimum', '100% minimum'], mult: [.5, .65, .8, 1] },
       { k: 'finaloffer', ico: '🧾', name: 'Final Offer Insurance', desc: 'Raises the minimum price of the mandatory fifth auction offer.', tiers: [175, 550], fx: ['65% minimum', '80% minimum'], mult: [.5, .65, .8] },
       { k: 'kisscool', ico: '💄', name: 'Quick Kiss', desc: 'Reduces the cooldown for Kiss the Pack.', tiers: [80, 250, 700], fx: ['25s cooldown', '20s cooldown', '15s cooldown'], mult: [30, 25, 20, 15] },
+      { k: 'baseboost', ico: '🧺', name: 'Bulk Binder', desc: 'Raises the sale value of common and uncommon cards in regular pack slots.', tiers: [35, 100], fx: ['1.15× base value', '1.3× base value'], mult: [1, 1.15, 1.3] },
+      { k: 'rareboost', ico: '💎', name: 'Rare Resale', desc: 'Raises the value of rare and double-rare hit cards.', tiers: [75, 220], fx: ['1.2× rare hits', '1.4× rare hits'], mult: [1, 1.2, 1.4] },
+      { k: 'marketboost', ico: '📊', name: 'Market Mentor', desc: 'Raises the value of every real card in newly opened packs.', tiers: [250, 750, 1800], fx: ['+5% value', '+10% value', '+15% value'], mult: [1, 1.05, 1.10, 1.15] },
     ];
     const RELIC_REFRESH_MS = 30 * 1000;
     const RELIC_RARITIES = {
@@ -672,7 +676,7 @@ html = r'''<!doctype html>
     }
 
     function newState(mode) {
-      return { mode, set: selectedSet, store: selectedStore, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0 }, relics: [], relicOffers: [], relicRefreshAt: 0, event: null, cardAuction: null, auctionMessage: '', boxes: {}, boxStores: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
+      return { mode, set: selectedSet, store: selectedStore, bank: START_BANK, packs: 0, spent: 0, earned: 0, peak: START_BANK, best: null, up: Object.fromEntries(UPGRADES.map(u => [u.k, 0])), relics: [], relicOffers: [], relicRefreshAt: 0, event: null, cardAuction: null, auctionMessage: '', boxes: {}, boxStores: {}, kissBoost: false, kissReadyAt: 0, shakeBoost: false, shakeReadyAt: 0, missions: { packs: 0, grades: 0, big: 0, claimed: {} }, last: null,
         quota: mode === 'normal' || mode === 'hard' ? { number: 1, cleared: 0, target: mode === 'hard' ? HARD_QUOTA_START : QUOTA_START, endsAt: Date.now() + (mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) * 1000 } : null };
     }
     function save() { try { if (paidMode()) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
@@ -1327,6 +1331,9 @@ html = r'''<!doctype html>
       let v = slot === 'rev' ? (c.pr || c.p || c.ph || 0) : rk >= 2 ? (c.ph || c.p || c.pr || 0) : (c.p || c.pr || c.ph || 0);
       v *= meta().valueMult;
       if (!CHASE.has(c.r)) v *= bulkMult();
+      if (slot === 'base') v *= UPGRADES[25].mult[S.up.baseboost];
+      if (slot === 'hit' && rk === 2) v *= UPGRADES[26].mult[S.up.rareboost];
+      v *= UPGRADES[27].mult[S.up.marketboost];
       if (slot === 'rev' || slot === 'hit') v *= UPGRADES[5].mult[S.up.shine];
       if (v >= 20) v *= UPGRADES[9].mult[S.up.jackpot];
       v *= hasRelic('sleeve') ? 1.2 : 1;
@@ -1713,7 +1720,7 @@ html = r'''<!doctype html>
       if (resume) activateSet(resume.set || 'me05');
       S = resume || newState(mode);
       activateStore(S.store || selectedStore || 'walmart');
-      S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0, auctionfloor: 0, finaloffer: 0, kisscool: 0, ...(S.up || {}) };
+      S.up = { ...Object.fromEntries(UPGRADES.map(u => [u.k, 0])), ...(S.up || {}) };
       S.relics = Array.isArray(S.relics) ? S.relics.map(k => k === 'detector' ? 'crown' : k === 'medal' ? 'idol' : k).filter((k, i, all) => RELICS.some(r => r.k === k) && all.indexOf(k) === i).slice(0, 3) : [];
       S.relicOffers = Array.isArray(S.relicOffers) ? S.relicOffers.filter(k => RELICS.some(r => r.k === k)).slice(0, 5) : [];
       S.relicRefreshAt = S.relicRefreshAt || 0;
