@@ -1,7 +1,7 @@
 import json, os
 here = os.path.dirname(os.path.abspath(__file__))
 sets = {}
-for set_id in ("me04", "me05", "sv10", "me02", "sv03.5", "sm1", "sm7.5", "base1"):
+for set_id in ("me04", "me05", "swsh1", "sv10", "me02", "sv03.5", "sm1", "sm7.5", "base1"):
     cards = json.load(open(os.path.join(here, f"{set_id}-cards.json"), encoding="utf-8"))
     series_id = "".join(ch for ch in set_id if ch.isalpha())
     pre = f"https://assets.tcgdex.net/en/{series_id}/{set_id}/"
@@ -361,6 +361,7 @@ html = r'''<!doctype html>
     const SET_META = {
       me04: { name: 'Chaos Rising', series: 'Mega Evolution', code: 'ME04', official: 86, art: 'chaos-rising-pack.png', price: 9.99, valueMult: 1.2 },
       me05: { name: 'Pitch Black', series: 'Mega Evolution', code: 'ME05', official: 84, art: 'pack.jpg', price: 4.99, valueMult: 1 },
+      swsh1: { name: 'Sword & Shield', series: 'Sword & Shield', code: 'SWSH1', official: 202, art: 'sword-shield-pack.jpg', price: 12, valueMult: 1.35 },
       sv10: { name: 'Destined Rivals', series: 'Scarlet & Violet', code: 'SV10', official: 182, art: 'destined-rivals-pack.jpg', price: 15, valueMult: 1.3 },
       me02: { name: 'Phantasmal Flames', series: 'Mega Evolution', code: 'ME02', official: 94, art: 'phantasmal-flames-pack.png', price: 22.5, valueMult: 1.6 },
       'sv03.5': { name: '151', series: 'Scarlet & Violet', code: 'SV03.5', official: 165, art: 'pokemon-151-pack.png', price: 35, valueMult: 2 },
@@ -490,7 +491,7 @@ html = r'''<!doctype html>
       { k: 'counterfeit', ico: '🚨', name: 'Counterfeit Wave', desc: 'The next pack has 20 percentage points more fake risk.' },
     ];
     const RANDOM_EVENT_CHANCE = .25;
-    const SET_REWARDS = { me05: 500, me04: 750, sv10: 1000, me02: 1500, 'sv03.5': 2500, sm1: 3500, 'sm7.5': 5000, base1: 25000 };
+    const SET_REWARDS = { me05: 500, me04: 750, swsh1: 1800, sv10: 1000, me02: 1500, 'sv03.5': 2500, sm1: 3500, 'sm7.5': 5000, base1: 25000 };
     const AUCTION_BUYERS = [
       { name: 'Mia the Collector', ico: '🧢' }, { name: 'Dexter Deals', ico: '🤓' }, { name: 'Team Rocket Ron', ico: '🥷' }, { name: 'Professor Penny', ico: '🧑‍🔬' }, { name: 'Last-Chance Larry', ico: '😈' },
     ];
