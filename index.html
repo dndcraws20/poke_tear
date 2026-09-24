@@ -416,7 +416,7 @@
 
     const UPGRADES = [
       { k: 'luck',  ico: '🍀', name: 'Lucky Charm', desc: 'Boosts the odds of the hit slot being an Illustration / Ultra / Special / Hyper rare.', tiers: [15, 40, 100], fx: ['1.6×', '2.6×', '4.5×'], mult: [1, 1.6, 2.6, 4.5] },
-      { k: 'bulk',  ico: '📦', name: 'Bulk Baron', desc: 'Commons, uncommons, rares and double rares sell for a multiple of market price.', tiers: [12, 30, 75], fx: ['2×', '3×', '5×'], mult: [1, 2, 3, 5] },
+      { k: 'bulk',  ico: '📦', name: 'Bulk Baron', desc: 'Commons, uncommons, rares and double rares sell for a modest multiple of market price.', tiers: [12, 30, 75], fx: ['1.25×', '1.5×', '2×'], mult: [1, 1.25, 1.5, 2] },
       { k: 'rev',   ico: '✨', name: 'Reverse Radar', desc: 'Every pack gets a third reverse-holo slot (11 cards per pack).', tiers: [20], fx: ['+1 slot'], mult: [0, 1] },
       { k: 'whole', ico: '🏷️', name: 'Wholesale', desc: 'Packs cost less.', tiers: [25, 60], fx: ['-10%', '-20%'], mult: [1, 0.9, 0.8] },
       { k: 'mint',  ico: '🧤', name: 'Mint Condition Kit', desc: 'Careful handling raises every PSA result, up to PSA 10.', tiers: [35, 90], fx: ['+1 PSA grade', '+2 PSA grades'], mult: [0, 1, 2] },
@@ -439,7 +439,6 @@
       { k: 'battleprize', ico: '🏆', name: 'Prize Booster', desc: 'Increases cash rewards from single battles and tournaments.', tiers: [500, 2000, 6000], fx: ['+10% rewards', '+25% rewards', '+50% rewards'], mult: [1, 1.1, 1.25, 1.5] },
       { k: 'auctionfloor', ico: '📣', name: 'Auction Hype', desc: 'Raises the lowest offer the first four AI auction buyers can make. The maximum stays at 175% of card value.', tiers: [125, 400, 1200], fx: ['65% minimum', '80% minimum', '100% minimum'], mult: [.5, .65, .8, 1] },
       { k: 'finaloffer', ico: '🧾', name: 'Final Offer Insurance', desc: 'Raises the minimum price of the mandatory fifth auction offer.', tiers: [175, 550], fx: ['65% minimum', '80% minimum'], mult: [.5, .65, .8] },
-      { k: 'fakeguard', ico: '🔦', name: 'Counterfeit Scanner', desc: 'Reduces the chance that a Temu or Black Market pack is fake.', tiers: [100, 350, 1000], fx: ['-5% fake chance', '-10% fake chance', '-20% fake chance'], mult: [0, .05, .1, .2] },
       { k: 'kisscool', ico: '💄', name: 'Quick Kiss', desc: 'Reduces the cooldown for Kiss the Pack.', tiers: [80, 250, 700], fx: ['25s cooldown', '20s cooldown', '15s cooldown'], mult: [30, 25, 20, 15] },
     ];
     const RELIC_REFRESH_MS = 30 * 1000;
@@ -1445,7 +1444,7 @@
       const cost = fromBox ? 0 : packCost(storeId);
       if (paidMode() && S.bank < cost) return;
       if (fromBox) S.boxes[selectedSet]--;
-      const fakeChance = Math.max(0, Math.min(1, store(storeId).fakeChance + (hasRelic('crown') ? .15 : 0) + (hasRelic('smugglermap') ? .20 : 0) + (S.event && S.event.k === 'counterfeit' ? .20 : 0) - (hasRelic('guardianeye') ? .10 : 0) - upgradeMultiplier('fakeguard')));
+      const fakeChance = Math.max(0, Math.min(1, store(storeId).fakeChance + (hasRelic('crown') ? .15 : 0) + (hasRelic('smugglermap') ? .20 : 0) + (S.event && S.event.k === 'counterfeit' ? .20 : 0) - (hasRelic('guardianeye') ? .10 : 0)));
       const fake = Math.random() < fakeChance;
       const usedEvent = S.event;
       const pull = pullPack(storeId, fake);
@@ -1700,7 +1699,7 @@
       if (resume) activateSet(resume.set || 'me05');
       S = resume || newState(mode);
       activateStore(S.store || selectedStore || 'walmart');
-      S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0, auctionfloor: 0, finaloffer: 0, fakeguard: 0, kisscool: 0, ...(S.up || {}) };
+      S.up = { luck: 0, bulk: 0, rev: 0, whole: 0, mint: 0, shine: 0, bonus: 0, clock: 0, cover: 0, jackpot: 0, boxdeal: 0, recheck: 0, extras: 0, shakepower: 0, shakecool: 0, binderspace: 0, bindergrowth: 0, battlearmor: 0, battlepower: 0, traincoach: 0, bribedeal: 0, battleprize: 0, auctionfloor: 0, finaloffer: 0, kisscool: 0, ...(S.up || {}) };
       S.relics = Array.isArray(S.relics) ? S.relics.map(k => k === 'detector' ? 'crown' : k === 'medal' ? 'idol' : k).filter((k, i, all) => RELICS.some(r => r.k === k) && all.indexOf(k) === i).slice(0, 3) : [];
       S.relicOffers = Array.isArray(S.relicOffers) ? S.relicOffers.filter(k => RELICS.some(r => r.k === k)).slice(0, 5) : [];
       S.relicRefreshAt = S.relicRefreshAt || 0;
