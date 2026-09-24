@@ -1,10 +1,11 @@
 # poke_tear — Pokémon Pack Opener
 
-Single-file pack-opening game with a set picker for Mega Evolution — Chaos Rising (ME04), Pitch Black (ME05), Phantasmal Flames (ME02), Scarlet & Violet — Destined Rivals (SV10), Scarlet & Violet — 151 (SV03.5), Sun & Moon (SM1), Sun & Moon—Dragon Majesty (SM7.5), and the original 1999 Base Set First Edition (BASE1).
+Single-file pack-opening game with a set picker for Mega Evolution — Chaos Rising (ME04), Pitch Black (ME05), Sword & Shield Base (SWSH1), Phantasmal Flames (ME02), Scarlet & Violet — Destined Rivals (SV10), Scarlet & Violet — 151 (SV03.5), Sun & Moon (SM1), Sun & Moon—Dragon Majesty (SM7.5), and the original 1999 Base Set First Edition (BASE1).
 
 - **Main-screen controls** — music on/off, music type, Achievements, and Museum stay visible at the top of the active game screen.
 - **Animated pack opening** — the selected booster flies onto the screen, its foil top tears away, and every card bursts out into a responsive 2-column mobile or 5-column desktop layout before the results appear.
 - **Correct pack size** — standard packs contain exactly ten cards without Pack Stretcher upgrades. A double-hit roll replaces a normal slot with a second hit instead of incorrectly adding an eleventh card; the original Base Set pack remains an authentic eleven cards.
+- **Sword & Shield Base** — a $12 pack containing all 216 real cards from the original Sword & Shield set, including Pokémon V, VMAX, Ultra Rare, and Secret Rare cards. Its balanced 1.35× value boost places it between Chaos Rising and the more expensive premium packs, and completing its large Set Album awards $1,800.
 - **Sandbox** — free rips, every card shows its market value.
 - **Chill** — no quota or timer, but packs and upgrades still cost money and the run ends if you cannot afford another pack.
 - **Sandbox upgrades** — the full upgrade shop is available for free in Sandbox mode.
