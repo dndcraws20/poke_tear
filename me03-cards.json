@@ -1,0 +1,1118 @@
+[
+  {
+    "id": "me03-001",
+    "n": "Spinarak",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/001",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "me03-002",
+    "n": "Ariados",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/002",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "me03-003",
+    "n": "Shaymin",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/003",
+    "p": 0.48,
+    "pr": 0.55,
+    "ph": 0.62
+  },
+  {
+    "id": "me03-004",
+    "n": "Snivy",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/004",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "me03-005",
+    "n": "Servine",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/005",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "me03-006",
+    "n": "Serperior",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/006",
+    "p": 1.68,
+    "pr": 1.93,
+    "ph": 2.18
+  },
+  {
+    "id": "me03-007",
+    "n": "Scatterbug",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/007",
+    "p": 0.15,
+    "pr": 0.17,
+    "ph": 0.2
+  },
+  {
+    "id": "me03-008",
+    "n": "Spewpa",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/008",
+    "p": 0.19,
+    "pr": 0.22,
+    "ph": 0.25
+  },
+  {
+    "id": "me03-009",
+    "n": "Vivillon",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/009",
+    "p": 0.53,
+    "pr": 0.61,
+    "ph": 0.69
+  },
+  {
+    "id": "me03-010",
+    "n": "Rowlet",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/010",
+    "p": 0.16,
+    "pr": 0.18,
+    "ph": 0.21
+  },
+  {
+    "id": "me03-011",
+    "n": "Dartrix",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/011",
+    "p": 0.2,
+    "pr": 0.23,
+    "ph": 0.26
+  },
+  {
+    "id": "me03-012",
+    "n": "Decidueye ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/012",
+    "p": 2.85,
+    "pr": 3.28,
+    "ph": 3.71
+  },
+  {
+    "id": "me03-013",
+    "n": "Fletchinder",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/013",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "me03-014",
+    "n": "Talonflame",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/014",
+    "p": 0.48,
+    "pr": 0.55,
+    "ph": 0.62
+  },
+  {
+    "id": "me03-015",
+    "n": "Salandit",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/015",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "me03-016",
+    "n": "Salazzle ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/016",
+    "p": 3.8,
+    "pr": 4.37,
+    "ph": 4.94
+  },
+  {
+    "id": "me03-017",
+    "n": "Turtonator",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/017",
+    "p": 0.5,
+    "pr": 0.57,
+    "ph": 0.65
+  },
+  {
+    "id": "me03-018",
+    "n": "Seel",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/018",
+    "p": 0.15,
+    "pr": 0.17,
+    "ph": 0.2
+  },
+  {
+    "id": "me03-019",
+    "n": "Dewgong",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/019",
+    "p": 1.47,
+    "pr": 1.69,
+    "ph": 1.91
+  },
+  {
+    "id": "me03-020",
+    "n": "Staryu",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/020",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "me03-021",
+    "n": "Mega Starmie ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/021",
+    "p": 3.42,
+    "pr": 3.93,
+    "ph": 4.45
+  },
+  {
+    "id": "me03-022",
+    "n": "Lapras ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/022",
+    "p": 4.18,
+    "pr": 4.81,
+    "ph": 5.43
+  },
+  {
+    "id": "me03-023",
+    "n": "Amaura",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/023",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "me03-024",
+    "n": "Aurorus",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/024",
+    "p": 1.33,
+    "pr": 1.53,
+    "ph": 1.73
+  },
+  {
+    "id": "me03-025",
+    "n": "Volcanion",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/025",
+    "p": 0.48,
+    "pr": 0.55,
+    "ph": 0.62
+  },
+  {
+    "id": "me03-026",
+    "n": "Shinx",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/026",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "me03-027",
+    "n": "Luxio",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/027",
+    "p": 0.42,
+    "pr": 0.48,
+    "ph": 0.55
+  },
+  {
+    "id": "me03-028",
+    "n": "Luxray",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/028",
+    "p": 1.68,
+    "pr": 1.93,
+    "ph": 2.18
+  },
+  {
+    "id": "me03-029",
+    "n": "Dedenne",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/029",
+    "p": 0.15,
+    "pr": 0.17,
+    "ph": 0.2
+  },
+  {
+    "id": "me03-030",
+    "n": "Clefairy",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/030",
+    "p": 0.19,
+    "pr": 0.22,
+    "ph": 0.25
+  },
+  {
+    "id": "me03-031",
+    "n": "Mega Clefable ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/031",
+    "p": 4.75,
+    "pr": 5.46,
+    "ph": 6.17
+  },
+  {
+    "id": "me03-032",
+    "n": "Mawile",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/032",
+    "p": 0.16,
+    "pr": 0.18,
+    "ph": 0.21
+  },
+  {
+    "id": "me03-033",
+    "n": "Espurr",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/033",
+    "p": 0.2,
+    "pr": 0.23,
+    "ph": 0.26
+  },
+  {
+    "id": "me03-034",
+    "n": "Meowstic",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/034",
+    "p": 0.32,
+    "pr": 0.37,
+    "ph": 0.42
+  },
+  {
+    "id": "me03-035",
+    "n": "Spritzee",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/035",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "me03-036",
+    "n": "Aromatisse",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/036",
+    "p": 0.48,
+    "pr": 0.55,
+    "ph": 0.62
+  },
+  {
+    "id": "me03-037",
+    "n": "Nosepass",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/037",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "me03-038",
+    "n": "Probopass",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/038",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "me03-039",
+    "n": "Hippopotas",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/039",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "me03-040",
+    "n": "Hippowdon",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/040",
+    "p": 0.36,
+    "pr": 0.41,
+    "ph": 0.47
+  },
+  {
+    "id": "me03-041",
+    "n": "Landorus",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/041",
+    "p": 1.47,
+    "pr": 1.69,
+    "ph": 1.91
+  },
+  {
+    "id": "me03-042",
+    "n": "Binacle",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/042",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "me03-043",
+    "n": "Barbaracle",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/043",
+    "p": 0.38,
+    "pr": 0.44,
+    "ph": 0.49
+  },
+  {
+    "id": "me03-044",
+    "n": "Tyrunt",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/044",
+    "p": 0.2,
+    "pr": 0.23,
+    "ph": 0.26
+  },
+  {
+    "id": "me03-045",
+    "n": "Tyrantrum",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/045",
+    "p": 1.05,
+    "pr": 1.21,
+    "ph": 1.37
+  },
+  {
+    "id": "me03-046",
+    "n": "Hawlucha",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/046",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "me03-047",
+    "n": "Mega Zygarde ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/047",
+    "p": 4.37,
+    "pr": 5.03,
+    "ph": 5.68
+  },
+  {
+    "id": "me03-048",
+    "n": "Gastly",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/048",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "me03-049",
+    "n": "Haunter",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/049",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "me03-050",
+    "n": "Gengar",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/050",
+    "p": 1.68,
+    "pr": 1.93,
+    "ph": 2.18
+  },
+  {
+    "id": "me03-051",
+    "n": "Skorupi",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/051",
+    "p": 0.15,
+    "pr": 0.17,
+    "ph": 0.2
+  },
+  {
+    "id": "me03-052",
+    "n": "Drapion",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/052",
+    "p": 0.44,
+    "pr": 0.51,
+    "ph": 0.57
+  },
+  {
+    "id": "me03-053",
+    "n": "Yveltal ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/053",
+    "p": 4.75,
+    "pr": 5.46,
+    "ph": 6.17
+  },
+  {
+    "id": "me03-054",
+    "n": "Chien-Pao",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/054",
+    "p": 1.26,
+    "pr": 1.45,
+    "ph": 1.64
+  },
+  {
+    "id": "me03-055",
+    "n": "Mega Skarmory ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/055",
+    "p": 4.18,
+    "pr": 4.81,
+    "ph": 5.43
+  },
+  {
+    "id": "me03-056",
+    "n": "Honedge",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/056",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "me03-057",
+    "n": "Doublade",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/057",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "me03-058",
+    "n": "Aegislash",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/058",
+    "p": 0.48,
+    "pr": 0.55,
+    "ph": 0.62
+  },
+  {
+    "id": "me03-059",
+    "n": "Klefki",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/059",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "me03-060",
+    "n": "Rattata",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/060",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "me03-061",
+    "n": "Raticate",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/061",
+    "p": 0.5,
+    "pr": 0.57,
+    "ph": 0.65
+  },
+  {
+    "id": "me03-062",
+    "n": "Meowth ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/062",
+    "p": 3.23,
+    "pr": 3.71,
+    "ph": 4.2
+  },
+  {
+    "id": "me03-063",
+    "n": "Snorlax",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/063",
+    "p": 0.19,
+    "pr": 0.22,
+    "ph": 0.25
+  },
+  {
+    "id": "me03-064",
+    "n": "Bunnelby",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/064",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "me03-065",
+    "n": "Diggersby",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/065",
+    "p": 0.38,
+    "pr": 0.44,
+    "ph": 0.49
+  },
+  {
+    "id": "me03-066",
+    "n": "Fletchling",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/066",
+    "p": 0.2,
+    "pr": 0.23,
+    "ph": 0.26
+  },
+  {
+    "id": "me03-067",
+    "n": "Furfrou",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/067",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "me03-068",
+    "n": "Antique Jaw Fossil",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/068",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "me03-069",
+    "n": "Antique Sail Fossil",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/069",
+    "p": 0.21,
+    "pr": 0.24,
+    "ph": 0.27
+  },
+  {
+    "id": "me03-070",
+    "n": "Core Memory",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/070",
+    "p": 0.34,
+    "pr": 0.39,
+    "ph": 0.44
+  },
+  {
+    "id": "me03-071",
+    "n": "Crushing Hammer",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/071",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "me03-072",
+    "n": "Energy Search",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/072",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "me03-073",
+    "n": "Energy Swatter",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/073",
+    "p": 0.36,
+    "pr": 0.41,
+    "ph": 0.47
+  },
+  {
+    "id": "me03-074",
+    "n": "Hole-Digging Shovel",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/074",
+    "p": 0.19,
+    "pr": 0.22,
+    "ph": 0.25
+  },
+  {
+    "id": "me03-075",
+    "n": "Jacinthe",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/075",
+    "p": 0.53,
+    "pr": 0.61,
+    "ph": 0.69
+  },
+  {
+    "id": "me03-076",
+    "n": "Judge",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/076",
+    "p": 0.38,
+    "pr": 0.44,
+    "ph": 0.49
+  },
+  {
+    "id": "me03-077",
+    "n": "Lumiose City",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/077",
+    "p": 0.46,
+    "pr": 0.53,
+    "ph": 0.6
+  },
+  {
+    "id": "me03-078",
+    "n": "Lumiose Galette",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/078",
+    "p": 0.32,
+    "pr": 0.37,
+    "ph": 0.42
+  },
+  {
+    "id": "me03-079",
+    "n": "Naveen",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/079",
+    "p": 0.4,
+    "pr": 0.46,
+    "ph": 0.52
+  },
+  {
+    "id": "me03-080",
+    "n": "Poké Ball",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/080",
+    "p": 0.21,
+    "pr": 0.24,
+    "ph": 0.27
+  },
+  {
+    "id": "me03-081",
+    "n": "Poké Pad",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/081",
+    "p": 0.34,
+    "pr": 0.39,
+    "ph": 0.44
+  },
+  {
+    "id": "me03-082",
+    "n": "Pokémon Catcher",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/082",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "me03-083",
+    "n": "Potion",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/me03/083",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "me03-084",
+    "n": "Rosa",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/084",
+    "p": 0.36,
+    "pr": 0.41,
+    "ph": 0.47
+  },
+  {
+    "id": "me03-085",
+    "n": "Tarragon",
+    "r": "Uncommon",
+    "img": "https://assets.tcgdex.net/en/me/me03/085",
+    "p": 0.44,
+    "pr": 0.51,
+    "ph": 0.57
+  },
+  {
+    "id": "me03-086",
+    "n": "Growing Grass Energy",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/086",
+    "p": 1.75,
+    "pr": 2.01,
+    "ph": 2.27
+  },
+  {
+    "id": "me03-087",
+    "n": "Rocky Fighting Energy",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/087",
+    "p": 1.26,
+    "pr": 1.45,
+    "ph": 1.64
+  },
+  {
+    "id": "me03-088",
+    "n": "Telepathic Psychic Energy",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/088",
+    "p": 1.54,
+    "pr": 1.77,
+    "ph": 2
+  },
+  {
+    "id": "me03-089",
+    "n": "Spewpa",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/089",
+    "p": 6,
+    "pr": 6.9,
+    "ph": 7.8
+  },
+  {
+    "id": "me03-090",
+    "n": "Rowlet",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/090",
+    "p": 7.6,
+    "pr": 8.74,
+    "ph": 9.88
+  },
+  {
+    "id": "me03-091",
+    "n": "Talonflame",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/091",
+    "p": 9.2,
+    "pr": 10.58,
+    "ph": 11.96
+  },
+  {
+    "id": "me03-092",
+    "n": "Aurorus",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/092",
+    "p": 6.4,
+    "pr": 7.36,
+    "ph": 8.32
+  },
+  {
+    "id": "me03-093",
+    "n": "Dedenne",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/093",
+    "p": 8,
+    "pr": 9.2,
+    "ph": 10.4
+  },
+  {
+    "id": "me03-094",
+    "n": "Clefairy",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/094",
+    "p": 9.6,
+    "pr": 11.04,
+    "ph": 12.48
+  },
+  {
+    "id": "me03-095",
+    "n": "Espurr",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/095",
+    "p": 6.8,
+    "pr": 7.82,
+    "ph": 8.84
+  },
+  {
+    "id": "me03-096",
+    "n": "Probopass",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/096",
+    "p": 8.4,
+    "pr": 9.66,
+    "ph": 10.92
+  },
+  {
+    "id": "me03-097",
+    "n": "Drapion",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/097",
+    "p": 10,
+    "pr": 11.5,
+    "ph": 13
+  },
+  {
+    "id": "me03-098",
+    "n": "Doublade",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/098",
+    "p": 7.2,
+    "pr": 8.28,
+    "ph": 9.36
+  },
+  {
+    "id": "me03-099",
+    "n": "Raticate",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/099",
+    "p": 8.8,
+    "pr": 10.12,
+    "ph": 11.44
+  },
+  {
+    "id": "me03-100",
+    "n": "Decidueye ex",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/100",
+    "p": 10.5,
+    "pr": 12.07,
+    "ph": 13.65
+  },
+  {
+    "id": "me03-101",
+    "n": "Salazzle ex",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/101",
+    "p": 13.3,
+    "pr": 15.29,
+    "ph": 17.29
+  },
+  {
+    "id": "me03-102",
+    "n": "Mega Starmie ex",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/102",
+    "p": 16.1,
+    "pr": 18.52,
+    "ph": 20.93
+  },
+  {
+    "id": "me03-103",
+    "n": "Mega Clefable ex",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/103",
+    "p": 11.2,
+    "pr": 12.88,
+    "ph": 14.56
+  },
+  {
+    "id": "me03-104",
+    "n": "Mega Zygarde ex",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/104",
+    "p": 14,
+    "pr": 16.1,
+    "ph": 18.2
+  },
+  {
+    "id": "me03-105",
+    "n": "Yveltal ex",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/105",
+    "p": 16.8,
+    "pr": 19.32,
+    "ph": 21.84
+  },
+  {
+    "id": "me03-106",
+    "n": "Mega Skarmory ex",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/106",
+    "p": 11.9,
+    "pr": 13.68,
+    "ph": 15.47
+  },
+  {
+    "id": "me03-107",
+    "n": "Meowth ex",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/107",
+    "p": 14.7,
+    "pr": 16.9,
+    "ph": 19.11
+  },
+  {
+    "id": "me03-108",
+    "n": "Energy Recycler",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/108",
+    "p": 17.5,
+    "pr": 20.13,
+    "ph": 22.75
+  },
+  {
+    "id": "me03-109",
+    "n": "Forest of Vitality",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/109",
+    "p": 12.6,
+    "pr": 14.49,
+    "ph": 16.38
+  },
+  {
+    "id": "me03-110",
+    "n": "Jacinthe",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/110",
+    "p": 15.4,
+    "pr": 17.71,
+    "ph": 20.02
+  },
+  {
+    "id": "me03-111",
+    "n": "Lumiose City",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/111",
+    "p": 10.5,
+    "pr": 12.07,
+    "ph": 13.65
+  },
+  {
+    "id": "me03-112",
+    "n": "Naveen",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/112",
+    "p": 13.3,
+    "pr": 15.29,
+    "ph": 17.29
+  },
+  {
+    "id": "me03-113",
+    "n": "Poké Pad",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/113",
+    "p": 16.1,
+    "pr": 18.52,
+    "ph": 20.93
+  },
+  {
+    "id": "me03-114",
+    "n": "Rosa",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/114",
+    "p": 11.2,
+    "pr": 12.88,
+    "ph": 14.56
+  },
+  {
+    "id": "me03-115",
+    "n": "Sacred Ash",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/115",
+    "p": 14,
+    "pr": 16.1,
+    "ph": 18.2
+  },
+  {
+    "id": "me03-116",
+    "n": "Tarragon",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/116",
+    "p": 16.8,
+    "pr": 19.32,
+    "ph": 21.84
+  },
+  {
+    "id": "me03-117",
+    "n": "Wondrous Patch",
+    "r": "Ultra Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/117",
+    "p": 11.9,
+    "pr": 13.68,
+    "ph": 15.47
+  },
+  {
+    "id": "me03-118",
+    "n": "Mega Starmie ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/118",
+    "p": 50.4,
+    "pr": 57.96,
+    "ph": 65.52
+  },
+  {
+    "id": "me03-119",
+    "n": "Mega Clefable ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/119",
+    "p": 60,
+    "pr": 69,
+    "ph": 78
+  },
+  {
+    "id": "me03-120",
+    "n": "Mega Zygarde ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/120",
+    "p": 43.2,
+    "pr": 49.68,
+    "ph": 56.16
+  },
+  {
+    "id": "me03-121",
+    "n": "Meowth ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/121",
+    "p": 52.8,
+    "pr": 60.72,
+    "ph": 68.64
+  },
+  {
+    "id": "me03-122",
+    "n": "Jacinthe",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/122",
+    "p": 36,
+    "pr": 41.4,
+    "ph": 46.8
+  },
+  {
+    "id": "me03-123",
+    "n": "Rosa",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/123",
+    "p": 45.6,
+    "pr": 52.44,
+    "ph": 59.28
+  },
+  {
+    "id": "me03-124",
+    "n": "Mega Zygarde ex",
+    "r": "Mega Hyper Rare",
+    "img": "https://assets.tcgdex.net/en/me/me03/124",
+    "p": 120.75,
+    "pr": 138.86,
+    "ph": 156.97
+  }
+]
