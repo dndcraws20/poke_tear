@@ -218,6 +218,11 @@ html = r'''<!doctype html>
       <div class="cards" id="cards"></div>
       <div class="actions">
         <button class="primary" id="btnOpen">OPEN PACK</button>
+        <button class="ghost" id="btnRandomPoor">🎲 SCRAPPY RANDOM PACK</button>
+        <button class="ghost" id="btnRandomOkay">🎲 SOLID RANDOM PACK</button>
+        <button class="ghost" id="btnRandomGood">🎲 PREMIUM RANDOM PACK</button>
+        <button class="ghost" id="btnPokemonShow" hidden>🎪 VISIT POKÉMON SHOW</button>
+        <small style="display:block;font-size:11px;opacity:.8">Random packs: Scrappy has weaker luck and +8% fake risk; Solid has 1.25× luck and +3% fake risk; Premium has 2.25× luck with no added fake risk. The set is revealed when opened. Your chosen store’s perks still apply.</small>
         <button class="ghost" id="btnKiss">💋 KISS THE PACK</button>
         <button class="ghost" id="btnShake">🫨 SHAKE THE PACK</button>
         <button class="ghost" id="btnBox">BUY 6-PACK BOX</button>
@@ -378,6 +383,12 @@ html = r'''<!doctype html>
       collector: { name: 'Collector’s Club', icon: '🎟️', priceMult: 1.05, fakeChance: 0, luckMult: 1.4, psaRerolls: 0, desc: '5% more expensive • 1.4× chase luck • always real' },
       temu: { name: 'Temu', icon: '📦', priceMult: .90, fakeChance: .10, luckMult: 1, psaRerolls: 0, desc: '10% cheaper • 10% chance of a fake pack' },
       black: { name: 'Black Market', icon: '🕶️', priceMult: .70, fakeChance: .30, luckMult: 1, psaRerolls: 0, desc: '30% cheaper • 30% chance of a fake pack' },
+      show: { name: 'Pokémon Show', icon: '🎪', priceMult: 2.5, fakeChance: 0, luckMult: 5, psaRerolls: 2, desc: '2.5× price • 5× chase luck • two PSA rerolls • always real' },
+    };
+    const RANDOM_PACKS = {
+      poor: { name: 'Scrappy', price: 5, luck: .65, fake: .08, sets: ['me05', 'me04', 'swsh1'] },
+      okay: { name: 'Solid', price: 13, luck: 1.25, fake: .03, sets: ['me04', 'swsh1', 'sv10', 'me02'] },
+      good: { name: 'Premium', price: 30, luck: 2.25, fake: 0, sets: ['sv10', 'me02', 'sv03.5', 'sm1'] },
     };
     const PRICE_DATE = '__DATE__';
 
@@ -501,6 +512,7 @@ html = r'''<!doctype html>
       { k: 'crash', ico: '📉', name: 'Market Crash', desc: 'Cards in the next pack are worth 40% less.' },
       { k: 'restock', ico: '🍀', name: 'Lucky Restock', desc: 'The next pack gets 2× chase-card luck.' },
       { k: 'counterfeit', ico: '🚨', name: 'Counterfeit Wave', desc: 'The next pack has 20 percentage points more fake risk.' },
+      { k: 'show', ico: '🎪', name: 'Pokémon Show', desc: 'A pop-up store is here! Its next pack costs 2.5× as much, but has 5× chase luck, two PSA rerolls, and no fake risk. Tap VISIT POKÉMON SHOW.' },
     ];
     const RANDOM_EVENT_CHANCE = .25;
     const SET_REWARDS = { me05: 500, me04: 750, swsh1: 1800, sv10: 1000, me02: 1500, 'sv03.5': 2500, sm1: 3500, 'sm7.5': 5000, base1: 25000 };
@@ -1316,7 +1328,7 @@ html = r'''<!doctype html>
       }, 250);
     }
 
-    const packCost = (storeId = selectedStore, useEvent = true) => paidMode() ? +(meta().price * store(storeId).priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('merchantseal') ? .88 : 1) * (hasRelic('smugglermap') ? .8 : 1) * (hasRelic('idol') ? 1.15 : 1) * (useEvent && S.event && S.event.k === 'sale' ? .75 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2) : 0;
+    const packCost = (storeId = selectedStore, useEvent = true, basePrice = meta().price) => paidMode() ? +(basePrice * store(storeId).priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('merchantseal') ? .88 : 1) * (hasRelic('smugglermap') ? .8 : 1) * (hasRelic('idol') ? 1.15 : 1) * (useEvent && S.event && S.event.k === 'sale' ? .75 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1)).toFixed(2) : 0;
     const boxDiscount = () => Math.min(.5, UPGRADES[10].mult[S.up.boxdeal] + (hasRelic('boxcutter') ? .05 : 0) + (hasRelic('merchantseal') ? .08 : 0));
     const boxCost = () => +(packCost(selectedStore, false) * BOX_PACKS * (1 - boxDiscount())).toFixed(2);
     const mysteryDiscount = () => Math.min(.5, boxDiscount() + .05);
@@ -1334,8 +1346,8 @@ html = r'''<!doctype html>
     const shakeLuckMult = () => UPGRADES[13].mult[S.up.shakepower];
     const shakeCooldownSeconds = () => UPGRADES[14].mult[S.up.shakecool];
 
-    function rollHitRarity(storeId = selectedStore) {
-      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * (hasRelic('luckycoin') ? 1.5 : 1) * (hasRelic('starcore') ? 1.35 : 1) * (hasRelic('cursedclover') ? 2 : 1) * (S.event && S.event.k === 'restock' ? 2 : 1) * store(storeId).luckMult * (S.kissBoost ? KISS_LUCK_MULT : 1) * (S.shakeBoost ? shakeLuckMult() : 1) * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
+    function rollHitRarity(storeId = selectedStore, extraLuck = 1) {
+      const entries = Object.entries(HIT_W).filter(([r]) => BY[r] && BY[r].length).map(([r, w]) => [r, CHASE.has(r) ? w * luckMult() * extraLuck * (hasRelic('luckycoin') ? 1.5 : 1) * (hasRelic('starcore') ? 1.35 : 1) * (hasRelic('cursedclover') ? 2 : 1) * (S.event && S.event.k === 'restock' ? 2 : 1) * store(storeId).luckMult * (S.kissBoost ? KISS_LUCK_MULT : 1) * (S.shakeBoost ? shakeLuckMult() : 1) * (S.mode === 'hard' ? HARD_CHASE_MULT : 1) : w]);
       const total = entries.reduce((a, e) => a + e[1], 0);
       let x = Math.random() * total;
       for (const [r, w] of entries) { x -= w; if (x <= 0) return r; }
@@ -1404,7 +1416,7 @@ html = r'''<!doctype html>
       if (clearedQuota) $('title').textContent = '✅ QUOTA CLEARED!';
     }
 
-    function pullPack(storeId = selectedStore, fake = false) {
+    function pullPack(storeId = selectedStore, fake = false, extraLuck = 1) {
       const used = new Set();
       const take = (pool, slot) => { let c, n = 0; do { c = rand(pool); } while (used.has(c.id) && n++ < 50); used.add(c.id); return { c, slot, v: 0 }; };
       const base = [...BY['Common'], ...BY['Uncommon'], ...BY['Rare']];
@@ -1414,10 +1426,10 @@ html = r'''<!doctype html>
       for (let i = 0; i < 3; i++) pull.push(take(BY['Uncommon'], 'base'));
       for (let i = 0; i < UPGRADES[12].mult[S.up.extras]; i++) pull.push(take([...BY['Common'], ...BY['Uncommon']], 'base'));
       if (!firstEdition) for (let i = 0; i < 2 + S.up.rev; i++) pull.push(take(base, 'rev'));
-      pull.push(take(BY[rollHitRarity(storeId)], 'hit'));
+      pull.push(take(BY[rollHitRarity(storeId, extraLuck)], 'hit'));
       if (!firstEdition && Math.random() < DOUBLE_HIT_CHANCE + UPGRADES[6].mult[S.up.bonus]) {
         const replaceable = pull.map((p, i) => p.slot !== 'hit' ? i : -1).filter(i => i >= 0);
-        pull[rand(replaceable)] = take(BY[rollHitRarity(storeId)], 'hit');
+        pull[rand(replaceable)] = take(BY[rollHitRarity(storeId, extraLuck)], 'hit');
       }
       for (let i = pull.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -1472,18 +1484,26 @@ html = r'''<!doctype html>
       cards.innerHTML = '';
     }
 
-    async function openPack() {
-      if (packAnimating) return;
-      const fromBox = currentBoxPacks() > 0;
+    async function openPack(randomTier = null, showPack = false) {
+      if (packAnimating || !S || S.ended) return;
+      const tier = randomTier && RANDOM_PACKS[randomTier];
+      if (randomTier && !tier) return;
+      if (showPack && S.event?.k !== 'show') return;
+      const fromBox = !tier && !showPack && currentBoxPacks() > 0;
       const boxQueue = (S.boxStores && S.boxStores[selectedSet]) || [];
-      const storeId = fromBox ? (boxQueue.shift() || selectedStore) : selectedStore;
-      const cost = fromBox ? 0 : packCost(storeId);
+      const storeId = showPack ? 'show' : fromBox ? (boxQueue[0] || selectedStore) : selectedStore;
+      const cost = fromBox ? 0 : packCost(storeId, true, tier ? tier.price : meta().price);
       if (paidMode() && S.bank < cost) return;
-      if (fromBox) S.boxes[selectedSet]--;
-      const fakeChance = Math.max(0, Math.min(1, store(storeId).fakeChance + (hasRelic('crown') ? .15 : 0) + (hasRelic('smugglermap') ? .20 : 0) + (S.event && S.event.k === 'counterfeit' ? .20 : 0) - (hasRelic('guardianeye') ? .10 : 0)));
+      if (tier) {
+        const setId = rand(tier.sets);
+        activateSet(setId);
+        S.set = setId;
+      }
+      if (fromBox) { boxQueue.shift(); S.boxes[selectedSet]--; }
+      const fakeChance = showPack ? 0 : Math.max(0, Math.min(1, store(storeId).fakeChance + (tier ? tier.fake : 0) + (hasRelic('crown') ? .15 : 0) + (hasRelic('smugglermap') ? .20 : 0) + (S.event && S.event.k === 'counterfeit' ? .20 : 0) - (hasRelic('guardianeye') ? .10 : 0)));
       const fake = Math.random() < fakeChance;
-      const usedEvent = S.event;
-      const pull = pullPack(storeId, fake);
+      const usedEvent = S.event && (S.event.k !== 'show' || showPack) ? S.event : null;
+      const pull = pullPack(storeId, fake, tier ? tier.luck : 1);
       recordPackMuseum(pull, selectedSet, fake);
       if (S.shakeBoost) pull.forEach(p => p.shaken = true);
       S.kissBoost = false;
@@ -1494,10 +1514,10 @@ html = r'''<!doctype html>
       S.peak = Math.max(S.peak, S.bank);
       const hit = pull.reduce((a, p) => p.v > a.v ? p : a, pull[0]);
       if (!S.best || hit.v > S.best.v) S.best = { id: hit.c.id, n: hit.c.n, r: hit.c.r, v: hit.v, img: hit.c.img };
-      S.last = { pull, cost, total, store: storeId, fake, eventUsed: usedEvent };
+      S.last = { pull, cost, total, store: storeId, fake, eventUsed: usedEvent, randomTier: tier ? tier.name : null };
       S.last.fromBox = fromBox;
-      S.event = null;
-      if (Math.random() < RANDOM_EVENT_CHANCE) S.event = rand(RANDOM_EVENTS);
+      if (usedEvent) S.event = null;
+      if (!S.event && Math.random() < RANDOM_EVENT_CHANCE) S.event = rand(RANDOM_EVENTS);
       const missionRewards = [
         ...missionStep('packs'),
         ...(pull.some(p => p.v >= 20) ? missionStep('big') : []),
@@ -1572,7 +1592,7 @@ html = r'''<!doctype html>
       const purchaseStore = store((S.last && S.last.store) || selectedStore);
       const fakeWarning = S.last && S.last.fake ? '<div style="color:#ff6969;font-weight:1000">⚠️ FAKE PACK — EVERY CARD IS WORTH $0</div>' : '';
       $('summary').innerHTML = paidMode()
-        ? `${purchaseStore.icon} ${purchaseStore.name} • ${S.last && S.last.fromBox ? 'Box pack' : `Pack ${money(cost)}`} → cards sold ${money(total)} ${fakeWarning}<div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${money(delta)}</div><small style="opacity:.7">hit: ${hit.c.n} (${hit.c.r})</small>`
+        ? `${purchaseStore.icon} ${purchaseStore.name} • ${S.last && S.last.randomTier ? `${S.last.randomTier} random ${meta().name} pack` : S.last && S.last.fromBox ? 'Box pack' : `Pack ${money(cost)}`} → cards sold ${money(total)} ${fakeWarning}<div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${money(delta)}</div><small style="opacity:.7">hit: ${hit.c.n} (${hit.c.r})</small>`
         : `Pack value ${money(total)} <small style="opacity:.7;display:block">hit: ${hit.c.n} (${hit.c.r})</small>`;
       if (S.last && S.last.mission && S.last.mission.length) $('summary').innerHTML += `<div style="margin-top:8px;color:#ffe066;font-weight:900">MISSION COMPLETE<br>${S.last.mission.join('<br>')}</div>`;
       $('title').textContent = delta >= 20 ? '💎 BIG HIT!' : '🔥 PACK OPENED!';
@@ -1595,6 +1615,15 @@ html = r'''<!doctype html>
       $('btnOpen').textContent = paid ? `BUY & OPEN • ${money(packCost())}` : 'OPEN PACK';
       if (paid && currentBoxPacks()) $('btnOpen').textContent = `OPEN BOX PACK • ${currentBoxPacks()} LEFT`;
       $('btnOpen').disabled = paid && !currentBoxPacks() && S.bank < packCost();
+      for (const [key, tier] of Object.entries(RANDOM_PACKS)) {
+        const button = $('btnRandom' + key[0].toUpperCase() + key.slice(1));
+        const price = packCost(selectedStore, true, tier.price);
+        button.textContent = `🎲 ${tier.name.toUpperCase()} RANDOM • ${paid ? money(price) : 'FREE'}`;
+        button.disabled = paid && S.bank < price;
+      }
+      $('btnPokemonShow').hidden = S.event?.k !== 'show';
+      $('btnPokemonShow').textContent = `🎪 POKÉMON SHOW • ${paid ? money(packCost('show')) : 'FREE'} • 5× LUCK`;
+      $('btnPokemonShow').disabled = paid && S.bank < packCost('show');
       $('btnBox').hidden = !paid;
       $('btnBox').textContent = `BUY 6-PACK BOX • ${money(boxCost())} (SAVE ${Math.round(boxDiscount() * 100)}%)`;
       $('btnBox').disabled = paid && S.bank < boxCost();
@@ -1607,7 +1636,7 @@ html = r'''<!doctype html>
       $('btnMysteryBox').disabled = paid && S.bank < mysteryBoxCost();
       $('btnRevealMystery').hidden = !paid || !S.mysteryBoxes.length;
       $('btnRevealMystery').textContent = `🎁 REVEAL MYSTERY BOX • ${S.mysteryBoxes.length} SEALED`;
-      if (paid && !totalBoxPacks() && !S.mysteryBoxes.length && S.bank < minPackCost() && !(ACTIVE_BATTLE && !ACTIVE_BATTLE.finished)) setTimeout(bust, 1200);
+      if (paid && !totalBoxPacks() && !S.mysteryBoxes.length && S.bank < Math.min(minPackCost(), ...Object.values(RANDOM_PACKS).map(t => packCost('black', true, t.price))) && !(ACTIVE_BATTLE && !ACTIVE_BATTLE.finished)) setTimeout(bust, 1200);
     }
 
     function buyBox() {
@@ -1814,7 +1843,7 @@ html = r'''<!doctype html>
       $(target).innerHTML = Object.entries(SET_META).map(([id, s]) => `<button class="set-choice" data-set="${id}"><img src="${s.art}" alt=""><b>${s.name}</b><small>${s.code} • ${money(s.price)} • ${SET_DATA[id].length} cards</small></button>`).join('');
     };
     const storeButtons = target => {
-      $(target).innerHTML = Object.entries(STORES).map(([id, s]) => `<button class="store-choice" data-store="${id}"><b>${s.icon} ${s.name}</b><small>${s.desc}</small></button>`).join('');
+      $(target).innerHTML = Object.entries(STORES).filter(([id]) => id !== 'show').map(([id, s]) => `<button class="store-choice" data-store="${id}"><b>${s.icon} ${s.name}</b><small>${s.desc}</small></button>`).join('');
     };
     setButtons('setPicker'); setButtons('gameSetPicker');
     storeButtons('storePicker'); storeButtons('gameStorePicker');
@@ -1830,7 +1859,11 @@ html = r'''<!doctype html>
     $('btnHard').onclick = () => startNewGame('hard');
     $('btnSandbox').onclick = () => startNewGame('sandbox');
     $('btnContinue').onclick = () => { const s = load(); if (s) start(s.mode || 'normal', s); };
-    $('btnOpen').onclick = openPack;
+    $('btnOpen').onclick = () => openPack();
+    $('btnRandomPoor').onclick = () => openPack('poor');
+    $('btnRandomOkay').onclick = () => openPack('okay');
+    $('btnRandomGood').onclick = () => openPack('good');
+    $('btnPokemonShow').onclick = () => openPack(null, true);
     $('btnKiss').onclick = kissPack;
     $('btnShake').onclick = shakePack;
     $('btnBox').onclick = buyBox;
