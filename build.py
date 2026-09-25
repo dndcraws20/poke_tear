@@ -39,6 +39,14 @@ html = r'''<!doctype html>
     .store-choice.on { border-color: #65e6ff; box-shadow: 0 0 18px #22d3ee55; }
     .store-choice b, .store-choice small { display: block; }
     .store-choice small { margin-top: 4px; opacity: .72; line-height: 1.25; font-weight: 500; }
+    .mystery-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+    .mystery-item { background: #1c1529; border: 1px solid #654d83; border-radius: 16px; padding: 12px; text-align: left; display: flex; align-items: center; gap: 12px; }
+    .mystery-item img { width: 112px; height: 168px; object-fit: contain; border-radius: 8px; flex: none; }
+    .mystery-item .body { min-width: 0; }
+    .mystery-item b, .mystery-item small { display: block; }
+    .mystery-item small { margin: 5px 0; opacity: .8; line-height: 1.35; }
+    .mystery-item button { padding: 10px 12px; margin: 7px 0 0; font-size: 13px; width: 100%; }
+    @media (max-width: 700px) { .mystery-grid { grid-template-columns: 1fr; } .mystery-item img { width: 96px; height: 145px; } }
     button, .btn { display: inline-block; border-radius: 14px; text-decoration: none; font-weight: 900; cursor: pointer; border: 0; font-family: inherit; font-size: 16px; padding: 14px 22px; margin: 6px 4px; color: #180b00; background: #ffe066; -webkit-tap-highlight-color: transparent; }
     button:disabled { opacity: .35; cursor: not-allowed; }
     .primary { padding: 18px 36px; background: linear-gradient(#ffe66b, #ff9800); font-size: 20px; box-shadow: 0 7px #985500; }
@@ -218,17 +226,11 @@ html = r'''<!doctype html>
       <div class="cards" id="cards"></div>
       <div class="actions">
         <button class="primary" id="btnOpen">OPEN PACK</button>
-        <button class="ghost" id="btnRandomPoor">🎲 SCRAPPY RANDOM PACK</button>
-        <button class="ghost" id="btnRandomOkay">🎲 SOLID RANDOM PACK</button>
-        <button class="ghost" id="btnRandomGood">🎲 PREMIUM RANDOM PACK</button>
+        <button class="ghost" id="btnMysteryShop">🎲 MYSTERY PACK SHOP</button>
         <button class="ghost" id="btnPokemonShow" hidden>🎪 VISIT POKÉMON SHOW</button>
-        <small style="display:block;font-size:11px;opacity:.8">Random packs: Scrappy has weaker luck and +8% fake risk; Solid has 1.25× luck and +3% fake risk; Premium has 2.25× luck with no added fake risk. The set is revealed when opened. Your chosen store’s perks still apply.</small>
         <button class="ghost" id="btnKiss">💋 KISS THE PACK</button>
         <button class="ghost" id="btnShake">🫨 SHAKE THE PACK</button>
         <button class="ghost" id="btnBox">BUY 6-PACK BOX</button>
-        <button class="ghost" id="btnMysteryBox">🎁 BUY MYSTERY BOX</button>
-        <button class="ghost" id="btnRevealMystery" hidden>🎁 REVEAL MYSTERY BOX</button>
-        <small id="mysteryHint" style="display:block;font-size:11px;opacity:.8">Mystery: six packs from one secret set • Chaos Rising 50% · Sword &amp; Shield 25% · Destined Rivals 15% · Phantasmal Flames 8% · 151 2%</small>
         <button class="ghost" id="btnBinder">📚 BINDER</button>
         <button class="ghost" id="btnBattle">⚔️ BATTLES</button>
         <button class="ghost" id="btnAlbums">🗂️ SET ALBUMS</button>
@@ -255,6 +257,16 @@ html = r'''<!doctype html>
       <p class="sub" style="font-size:13px">Bankroll: <b id="shopBank"></b></p>
       <div id="shopList"></div>
       <p class="note">Upgrades last for the whole run. Pick a strategy: chase the big hits, or farm bulk.</p>
+    </div>
+  </div>
+
+  <div class="overlay" id="mysteryShop">
+    <div class="sheet" style="width:min(900px,100%)">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🎲 Mystery Pack Shop</h2><button class="ghost" id="btnMysteryClose" style="margin:0;padding:8px 14px">✕</button></div>
+      <p class="sub" style="font-size:13px">Bankroll: <b id="mysteryBank"></b> • Set revealed after the pack opens. Your chosen store's perks and fake risk still apply.</p>
+      <div class="mystery-grid" id="randomPackList"></div>
+      <div class="mystery-item"><img src="mystery-box.webp" alt="Sealed six-pack mystery box"><div class="body"><b>🎁 Six-Pack Mystery Box</b><small>One hidden set, six packs, each with 3× chase luck. Chaos Rising 50% · Sword &amp; Shield 25% · Destined Rivals 15% · Phantasmal Flames 8% · 151 2%. The set is saved when bought and revealed when you choose.</small><button id="btnMysteryBox">BUY MYSTERY BOX</button><button class="ghost" id="btnRevealMystery" hidden>REVEAL SEALED BOX</button></div></div>
+      <p class="sub" id="mysteryStatus" style="font-size:13px"></p>
     </div>
   </div>
 
@@ -388,9 +400,10 @@ html = r'''<!doctype html>
       show: { name: 'Pokémon Show', icon: '🎪', priceMult: 2.5, fakeChance: 0, luckMult: 5, psaRerolls: 2, desc: '2.5× price • 5× chase luck • two PSA rerolls • always real' },
     };
     const RANDOM_PACKS = {
-      poor: { name: 'Scrappy', price: 5, luck: .65, fake: .08, sets: ['me05', 'me04', 'swsh1'] },
-      okay: { name: 'Solid', price: 13, luck: 1.25, fake: .03, sets: ['me04', 'swsh1', 'sv10', 'me02'] },
-      good: { name: 'Premium', price: 30, luck: 2.25, fake: 0, sets: ['sv10', 'me02', 'sv03.5', 'sm1', 'me03', '30th'] },
+      poor: { name: 'Scrappy', price: 25, luck: 1.4, fake: .05, art: 'random-scrappy.webp', sets: ['me05', 'me04', 'swsh1'] },
+      okay: { name: 'Solid', price: 65, luck: 2.2, fake: .02, art: 'random-solid.webp', sets: ['me04', 'swsh1', 'sv10', 'me02'] },
+      good: { name: 'Premium', price: 150, luck: 4, fake: 0, art: 'random-premium.webp', sets: ['sv10', 'me02', 'sv03.5', 'sm1', 'me03', '30th'] },
+      elite: { name: 'Elite', price: 400, luck: 7, fake: 0, extraHit: .25, art: 'random-elite.webp', sets: ['sv03.5', 'sm1', 'sm7.5', '30th'] },
     };
     const PRICE_DATE = '__DATE__';
 
@@ -1334,7 +1347,7 @@ html = r'''<!doctype html>
     const boxDiscount = () => Math.min(.5, UPGRADES[10].mult[S.up.boxdeal] + (hasRelic('boxcutter') ? .05 : 0) + (hasRelic('merchantseal') ? .08 : 0));
     const boxCost = () => +(packCost(selectedStore, false) * BOX_PACKS * (1 - boxDiscount())).toFixed(2);
     const mysteryDiscount = () => Math.min(.5, boxDiscount() + .05);
-    const mysteryBoxCost = () => paidMode() ? +(SET_META.me04.price * store().priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('merchantseal') ? .88 : 1) * (hasRelic('smugglermap') ? .8 : 1) * (hasRelic('idol') ? 1.15 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1) * BOX_PACKS * (1 - mysteryDiscount())).toFixed(2) : 0;
+    const mysteryBoxCost = () => paidMode() ? +(SET_META.me04.price * 5 * store().priceMult * UPGRADES[3].mult[S.up.whole] * (hasRelic('coupon') ? .95 : 1) * (hasRelic('merchantseal') ? .88 : 1) * (hasRelic('smugglermap') ? .8 : 1) * (hasRelic('idol') ? 1.15 : 1) * (S.mode === 'hard' ? HARD_PACK_MULT : 1) * BOX_PACKS * (1 - mysteryDiscount())).toFixed(2) : 0;
     function rollMysterySet() {
       let roll = Math.random() * MYSTERY_SETS.reduce((sum, choice) => sum + choice.weight, 0);
       for (const choice of MYSTERY_SETS) { roll -= choice.weight; if (roll < 0) return choice.id; }
@@ -1418,7 +1431,7 @@ html = r'''<!doctype html>
       if (clearedQuota) $('title').textContent = '✅ QUOTA CLEARED!';
     }
 
-    function pullPack(storeId = selectedStore, fake = false, extraLuck = 1) {
+    function pullPack(storeId = selectedStore, fake = false, extraLuck = 1, extraHit = 0) {
       const used = new Set();
       const take = (pool, slot) => { let c, n = 0; do { c = rand(pool); } while (used.has(c.id) && n++ < 50); used.add(c.id); return { c, slot, v: 0 }; };
       const base = [...(BY['Common'] || []), ...(BY['Uncommon'] || []), ...(BY['Rare'] || [])];
@@ -1439,7 +1452,7 @@ html = r'''<!doctype html>
         pull.push(take(BY[rollHitRarity(storeId, extraLuck)], 'hit'));
       }
       for (let i = 0; i < UPGRADES[12].mult[S.up.extras]; i++) pull.push(take(celebration ? BY['Common'] : [...BY['Common'], ...BY['Uncommon']], celebration ? 'rev' : 'base'));
-      if (!firstEdition && Math.random() < DOUBLE_HIT_CHANCE + UPGRADES[6].mult[S.up.bonus]) {
+      if (!firstEdition && Math.random() < Math.min(1, DOUBLE_HIT_CHANCE + UPGRADES[6].mult[S.up.bonus] + extraHit)) {
         const replaceable = pull.map((p, i) => p.slot !== 'hit' ? i : -1).filter(i => i >= 0);
         pull[rand(replaceable)] = take(BY[rollHitRarity(storeId, extraLuck)], 'hit');
       }
@@ -1452,12 +1465,12 @@ html = r'''<!doctype html>
     }
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-    async function playPackOpening(pull) {
+    async function playPackOpening(pull, mysteryArt = null) {
       const overlay = $('packOpening'), pack = $('openingPack'), rip = $('packRip'), cards = $('flyingCards');
-      const art = meta().art;
+      const art = mysteryArt || meta().art;
       $('openingPackImage').src = art;
       $('openingPackTop').src = art;
-      $('openingTitle').textContent = `OPENING ${meta().name.toUpperCase()}…`;
+      $('openingTitle').textContent = mysteryArt ? 'OPENING MYSTERY PACK…' : `OPENING ${meta().name.toUpperCase()}…`;
       cards.innerHTML = '';
       pack.classList.remove('opened');
       rip.classList.remove('tear');
@@ -1503,9 +1516,11 @@ html = r'''<!doctype html>
       if (showPack && S.event?.k !== 'show') return;
       const fromBox = !tier && !showPack && currentBoxPacks() > 0;
       const boxQueue = (S.boxStores && S.boxStores[selectedSet]) || [];
-      const storeId = showPack ? 'show' : fromBox ? (boxQueue[0] || selectedStore) : selectedStore;
+      const boxEntry = fromBox ? boxQueue[0] : null;
+      const storeId = showPack ? 'show' : fromBox ? (typeof boxEntry === 'object' ? boxEntry?.store : boxEntry) || selectedStore : selectedStore;
       const cost = fromBox ? 0 : packCost(storeId, true, tier ? tier.price : meta().price);
       if (paidMode() && S.bank < cost) return;
+      $('mysteryShop').classList.remove('on');
       if (tier) {
         const setId = rand(tier.sets);
         activateSet(setId);
@@ -1515,7 +1530,7 @@ html = r'''<!doctype html>
       const fakeChance = showPack ? 0 : Math.max(0, Math.min(1, store(storeId).fakeChance + (tier ? tier.fake : 0) + (hasRelic('crown') ? .15 : 0) + (hasRelic('smugglermap') ? .20 : 0) + (S.event && S.event.k === 'counterfeit' ? .20 : 0) - (hasRelic('guardianeye') ? .10 : 0)));
       const fake = Math.random() < fakeChance;
       const usedEvent = S.event && (S.event.k !== 'show' || showPack) ? S.event : null;
-      const pull = pullPack(storeId, fake, tier ? tier.luck : 1);
+      const pull = pullPack(storeId, fake, tier ? tier.luck : fromBox && typeof boxEntry === 'object' ? boxEntry.luck || 1 : 1, tier ? tier.extraHit || 0 : 0);
       recordPackMuseum(pull, selectedSet, fake);
       if (S.shakeBoost) pull.forEach(p => p.shaken = true);
       S.kissBoost = false;
@@ -1539,7 +1554,7 @@ html = r'''<!doctype html>
       save();
       packAnimating = true;
       $('btnOpen').disabled = true;
-      try { await playPackOpening(pull); }
+      try { await playPackOpening(pull, tier ? tier.art : null); }
       finally { packAnimating = false; }
       render(pull, cost, total);
       if (usedEvent) $('summary').innerHTML += `<div style="margin-top:8px;color:#67e8f9;font-weight:900">${usedEvent.ico} ${usedEvent.name} affected this pack.</div>`;
@@ -1627,12 +1642,7 @@ html = r'''<!doctype html>
       $('btnOpen').textContent = paid ? `BUY & OPEN • ${money(packCost())}` : 'OPEN PACK';
       if (paid && currentBoxPacks()) $('btnOpen').textContent = `OPEN BOX PACK • ${currentBoxPacks()} LEFT`;
       $('btnOpen').disabled = paid && !currentBoxPacks() && S.bank < packCost();
-      for (const [key, tier] of Object.entries(RANDOM_PACKS)) {
-        const button = $('btnRandom' + key[0].toUpperCase() + key.slice(1));
-        const price = packCost(selectedStore, true, tier.price);
-        button.textContent = `🎲 ${tier.name.toUpperCase()} RANDOM • ${paid ? money(price) : 'FREE'}`;
-        button.disabled = paid && S.bank < price;
-      }
+      $('btnMysteryShop').textContent = '🎲 MYSTERY PACK SHOP';
       $('btnPokemonShow').hidden = S.event?.k !== 'show';
       $('btnPokemonShow').textContent = `🎪 POKÉMON SHOW • ${paid ? money(packCost('show')) : 'FREE'} • 5× LUCK`;
       $('btnPokemonShow').disabled = paid && S.bank < packCost('show');
@@ -1642,13 +1652,30 @@ html = r'''<!doctype html>
       updateKissButton();
       updateShakeButton();
       updateQuotaHud();
+      if ($('mysteryShop').classList.contains('on')) renderMysteryShop();
+      if (paid && !totalBoxPacks() && !S.mysteryBoxes.length && S.bank < Math.min(minPackCost(), ...Object.values(RANDOM_PACKS).map(t => packCost('black', true, t.price))) && !(ACTIVE_BATTLE && !ACTIVE_BATTLE.finished)) setTimeout(bust, 1200);
+    }
+
+    function renderMysteryShop() {
+      const paid = paidMode();
+      $('mysteryBank').textContent = paid ? money(S.bank) : 'SANDBOX • FREE';
+      $('randomPackList').innerHTML = Object.entries(RANDOM_PACKS).map(([key, tier]) => {
+        const cost = packCost(selectedStore, true, tier.price);
+        const pool = tier.sets.map(id => SET_META[id].name).join(', ');
+        return `<div class="mystery-item"><img src="${tier.art}" alt="${tier.name} sealed mystery booster"><div class="body"><b>${tier.name} Random Pack</b><small>${pool}</small><small>${tier.luck}× chase luck${tier.extraHit ? ' • +25% double-hit chance' : ''} • ${tier.fake ? `+${Math.round(tier.fake * 100)}% fake risk` : 'no added fake risk'} • store effects apply</small><button data-random="${key}" ${paid && S.bank < cost ? 'disabled' : ''}>${paid ? `BUY & OPEN • ${money(cost)}` : 'OPEN FREE'}</button></div></div>`;
+      }).join('');
+      $('randomPackList').querySelectorAll('[data-random]').forEach(b => b.onclick = () => openPack(b.dataset.random));
       $('btnMysteryBox').hidden = !paid;
-      $('mysteryHint').hidden = !paid;
-      $('btnMysteryBox').textContent = `🎁 BUY MYSTERY BOX • ${money(mysteryBoxCost())}`;
+      $('btnMysteryBox').textContent = `BUY SIX-PACK BOX • ${money(mysteryBoxCost())}`;
       $('btnMysteryBox').disabled = paid && S.bank < mysteryBoxCost();
       $('btnRevealMystery').hidden = !paid || !S.mysteryBoxes.length;
-      $('btnRevealMystery').textContent = `🎁 REVEAL MYSTERY BOX • ${S.mysteryBoxes.length} SEALED`;
-      if (paid && !totalBoxPacks() && !S.mysteryBoxes.length && S.bank < Math.min(minPackCost(), ...Object.values(RANDOM_PACKS).map(t => packCost('black', true, t.price))) && !(ACTIVE_BATTLE && !ACTIVE_BATTLE.finished)) setTimeout(bust, 1200);
+      $('btnRevealMystery').textContent = `REVEAL SEALED BOX • ${S.mysteryBoxes.length} LEFT`;
+    }
+    function openMysteryShop() {
+      if (!S || S.ended) return;
+      $('mysteryStatus').textContent = '';
+      $('mysteryShop').classList.add('on');
+      renderMysteryShop();
     }
 
     function buyBox() {
@@ -1674,8 +1701,9 @@ html = r'''<!doctype html>
       S.spent = +(S.spent + cost).toFixed(2);
       S.mysteryBoxes.push({ set: hiddenSet, store: selectedStore });
       save(); hud();
+      $('mysteryStatus').textContent = 'Box purchased and saved. Reveal it whenever you are ready.';
       $('title').textContent = '🎁 MYSTERY BOX PURCHASED!';
-      $('summary').innerHTML = `Six packs from one secret set are sealed inside. Tap <b>REVEAL MYSTERY BOX</b> to find out what you got. Possible sets: Chaos Rising (50%), Sword & Shield (25%), Destined Rivals (15%), Phantasmal Flames (8%), or 151 (2%). The box costs at least 15% less than six Chaos Rising packs from this store; store perks and fake-pack risk apply when the packs are opened.`;
+      $('summary').innerHTML = `Six packs from one secret set are sealed inside, each with 3× chase luck. Tap <b>REVEAL MYSTERY BOX</b> in the Mystery Pack Shop to find out what you got. Possible sets: Chaos Rising (50%), Sword & Shield (25%), Destined Rivals (15%), Phantasmal Flames (8%), or 151 (2%). Store perks and fake-pack risk apply when the packs are opened.`;
     }
 
     function revealMysteryBox() {
@@ -1683,11 +1711,12 @@ html = r'''<!doctype html>
       const sealed = S.mysteryBoxes.shift();
       const setId = SET_META[sealed.set] ? sealed.set : 'me04';
       const storeId = STORES[sealed.store] ? sealed.store : 'walmart';
+      $('mysteryShop').classList.remove('on');
       activateSet(setId);
       S.set = selectedSet;
       S.last = null;
       S.boxes[setId] = (S.boxes[setId] || 0) + BOX_PACKS;
-      S.boxStores[setId] = [...(S.boxStores[setId] || []), ...Array(BOX_PACKS).fill(storeId)];
+      S.boxStores[setId] = [...(S.boxStores[setId] || []), ...Array.from({ length: BOX_PACKS }, () => ({ store: storeId, luck: 3 }))];
       save();
       $('cards').innerHTML = '';
       $('title').textContent = `🎉 ${meta().name.toUpperCase()}!`;
@@ -1872,9 +1901,9 @@ html = r'''<!doctype html>
     $('btnSandbox').onclick = () => startNewGame('sandbox');
     $('btnContinue').onclick = () => { const s = load(); if (s) start(s.mode || 'normal', s); };
     $('btnOpen').onclick = () => openPack();
-    $('btnRandomPoor').onclick = () => openPack('poor');
-    $('btnRandomOkay').onclick = () => openPack('okay');
-    $('btnRandomGood').onclick = () => openPack('good');
+    $('btnMysteryShop').onclick = openMysteryShop;
+    $('btnMysteryClose').onclick = () => $('mysteryShop').classList.remove('on');
+    $('mysteryShop').onclick = e => { if (e.target === $('mysteryShop')) $('mysteryShop').classList.remove('on'); };
     $('btnPokemonShow').onclick = () => openPack(null, true);
     $('btnKiss').onclick = kissPack;
     $('btnShake').onclick = shakePack;
