@@ -1,0 +1,1451 @@
+[
+  {
+    "id": "30th-001",
+    "n": "Exeggcute",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/001",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "30th-002",
+    "n": "Alolan Exeggutor",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/002",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "30th-003",
+    "n": "Volbeat",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/003",
+    "p": 0.21,
+    "pr": 0.24,
+    "ph": 0.27
+  },
+  {
+    "id": "30th-004",
+    "n": "Illumise",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/004",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "30th-005",
+    "n": "Tropius",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/005",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "30th-006",
+    "n": "Cherubi",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/006",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-007",
+    "n": "Cherrim",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/007",
+    "p": 0.15,
+    "pr": 0.17,
+    "ph": 0.2
+  },
+  {
+    "id": "30th-008",
+    "n": "Vivillon",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/008",
+    "p": 0.19,
+    "pr": 0.22,
+    "ph": 0.25
+  },
+  {
+    "id": "30th-009",
+    "n": "Vulpix",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/009",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-010",
+    "n": "Ninetales",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/010",
+    "p": 0.16,
+    "pr": 0.18,
+    "ph": 0.21
+  },
+  {
+    "id": "30th-011",
+    "n": "Moltres",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/011",
+    "p": 0.2,
+    "pr": 0.23,
+    "ph": 0.26
+  },
+  {
+    "id": "30th-012",
+    "n": "Ho-Oh",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/012",
+    "p": 1.05,
+    "pr": 1.21,
+    "ph": 1.37
+  },
+  {
+    "id": "30th-013",
+    "n": "Victini",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/013",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "30th-014",
+    "n": "Reshiram",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/014",
+    "p": 1.61,
+    "pr": 1.85,
+    "ph": 2.09
+  },
+  {
+    "id": "30th-015",
+    "n": "Fuecoco ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/015",
+    "p": 3.04,
+    "pr": 3.5,
+    "ph": 3.95
+  },
+  {
+    "id": "30th-016",
+    "n": "Slowpoke",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/016",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "30th-017",
+    "n": "Lapras",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/017",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-018",
+    "n": "Articuno",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/018",
+    "p": 0.15,
+    "pr": 0.17,
+    "ph": 0.2
+  },
+  {
+    "id": "30th-019",
+    "n": "Kyogre",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/019",
+    "p": 1.47,
+    "pr": 1.69,
+    "ph": 1.91
+  },
+  {
+    "id": "30th-020",
+    "n": "Palkia",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/020",
+    "p": 1.75,
+    "pr": 2.01,
+    "ph": 2.27
+  },
+  {
+    "id": "30th-021",
+    "n": "Greninja ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/021",
+    "p": 3.42,
+    "pr": 3.93,
+    "ph": 4.45
+  },
+  {
+    "id": "30th-022",
+    "n": "Wishiwashi",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/022",
+    "p": 0.2,
+    "pr": 0.23,
+    "ph": 0.26
+  },
+  {
+    "id": "30th-023",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/023",
+    "p": 2.4,
+    "pr": 2.76,
+    "ph": 3.12
+  },
+  {
+    "id": "30th-024",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/024",
+    "p": 3.04,
+    "pr": 3.5,
+    "ph": 3.95
+  },
+  {
+    "id": "30th-025",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/025",
+    "p": 3.68,
+    "pr": 4.23,
+    "ph": 4.78
+  },
+  {
+    "id": "30th-026",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/026",
+    "p": 2.56,
+    "pr": 2.94,
+    "ph": 3.33
+  },
+  {
+    "id": "30th-027",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/027",
+    "p": 3.2,
+    "pr": 3.68,
+    "ph": 4.16
+  },
+  {
+    "id": "30th-028",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/028",
+    "p": 3.84,
+    "pr": 4.42,
+    "ph": 4.99
+  },
+  {
+    "id": "30th-029",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/029",
+    "p": 2.72,
+    "pr": 3.13,
+    "ph": 3.54
+  },
+  {
+    "id": "30th-030",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/030",
+    "p": 3.36,
+    "pr": 3.86,
+    "ph": 4.37
+  },
+  {
+    "id": "30th-031",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/031",
+    "p": 4,
+    "pr": 4.6,
+    "ph": 5.2
+  },
+  {
+    "id": "30th-032",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/032",
+    "p": 2.88,
+    "pr": 3.31,
+    "ph": 3.74
+  },
+  {
+    "id": "30th-033",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/033",
+    "p": 3.52,
+    "pr": 4.05,
+    "ph": 4.58
+  },
+  {
+    "id": "30th-034",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/034",
+    "p": 2.4,
+    "pr": 2.76,
+    "ph": 3.12
+  },
+  {
+    "id": "30th-035",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/035",
+    "p": 3.04,
+    "pr": 3.5,
+    "ph": 3.95
+  },
+  {
+    "id": "30th-036",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/036",
+    "p": 3.68,
+    "pr": 4.23,
+    "ph": 4.78
+  },
+  {
+    "id": "30th-037",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/037",
+    "p": 2.56,
+    "pr": 2.94,
+    "ph": 3.33
+  },
+  {
+    "id": "30th-038",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/038",
+    "p": 3.2,
+    "pr": 3.68,
+    "ph": 4.16
+  },
+  {
+    "id": "30th-039",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/039",
+    "p": 3.84,
+    "pr": 4.42,
+    "ph": 4.99
+  },
+  {
+    "id": "30th-040",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/040",
+    "p": 2.72,
+    "pr": 3.13,
+    "ph": 3.54
+  },
+  {
+    "id": "30th-041",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/041",
+    "p": 3.36,
+    "pr": 3.86,
+    "ph": 4.37
+  },
+  {
+    "id": "30th-042",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/042",
+    "p": 4,
+    "pr": 4.6,
+    "ph": 5.2
+  },
+  {
+    "id": "30th-043",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/043",
+    "p": 2.88,
+    "pr": 3.31,
+    "ph": 3.74
+  },
+  {
+    "id": "30th-044",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/044",
+    "p": 3.52,
+    "pr": 4.05,
+    "ph": 4.58
+  },
+  {
+    "id": "30th-045",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/045",
+    "p": 2.4,
+    "pr": 2.76,
+    "ph": 3.12
+  },
+  {
+    "id": "30th-046",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/046",
+    "p": 3.04,
+    "pr": 3.5,
+    "ph": 3.95
+  },
+  {
+    "id": "30th-047",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/047",
+    "p": 3.68,
+    "pr": 4.23,
+    "ph": 4.78
+  },
+  {
+    "id": "30th-048",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/048",
+    "p": 2.56,
+    "pr": 2.94,
+    "ph": 3.33
+  },
+  {
+    "id": "30th-049",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/049",
+    "p": 3.2,
+    "pr": 3.68,
+    "ph": 4.16
+  },
+  {
+    "id": "30th-050",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/050",
+    "p": 3.84,
+    "pr": 4.42,
+    "ph": 4.99
+  },
+  {
+    "id": "30th-051",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/051",
+    "p": 2.72,
+    "pr": 3.13,
+    "ph": 3.54
+  },
+  {
+    "id": "30th-052",
+    "n": "Pikachu",
+    "r": "Pikachu Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/052",
+    "p": 3.36,
+    "pr": 3.86,
+    "ph": 4.37
+  },
+  {
+    "id": "30th-053",
+    "n": "Pikachu ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/053",
+    "p": 4.75,
+    "pr": 5.46,
+    "ph": 6.17
+  },
+  {
+    "id": "30th-054",
+    "n": "Pikachu ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/054",
+    "p": 3.42,
+    "pr": 3.93,
+    "ph": 4.45
+  },
+  {
+    "id": "30th-055",
+    "n": "Zapdos",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/055",
+    "p": 0.2,
+    "pr": 0.23,
+    "ph": 0.26
+  },
+  {
+    "id": "30th-056",
+    "n": "Zekrom",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/056",
+    "p": 1.05,
+    "pr": 1.21,
+    "ph": 1.37
+  },
+  {
+    "id": "30th-057",
+    "n": "Zeraora",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/057",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "30th-058",
+    "n": "Toxel",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/058",
+    "p": 0.21,
+    "pr": 0.24,
+    "ph": 0.27
+  },
+  {
+    "id": "30th-059",
+    "n": "Toxtricity",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/059",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "30th-060",
+    "n": "Toxtricity",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/060",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "30th-061",
+    "n": "Morpeko",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/061",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-062",
+    "n": "Miraidon",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/062",
+    "p": 1.19,
+    "pr": 1.37,
+    "ph": 1.55
+  },
+  {
+    "id": "30th-063",
+    "n": "Mewtwo",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/063",
+    "p": 1.47,
+    "pr": 1.69,
+    "ph": 1.91
+  },
+  {
+    "id": "30th-064",
+    "n": "Mewtwo ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/064",
+    "p": 4.75,
+    "pr": 5.46,
+    "ph": 6.17
+  },
+  {
+    "id": "30th-065",
+    "n": "Mew",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/065",
+    "p": 1.26,
+    "pr": 1.45,
+    "ph": 1.64
+  },
+  {
+    "id": "30th-066",
+    "n": "Mew ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/066",
+    "p": 4.18,
+    "pr": 4.81,
+    "ph": 5.43
+  },
+  {
+    "id": "30th-067",
+    "n": "Marill",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/067",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "30th-068",
+    "n": "Azumarill",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/068",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "30th-069",
+    "n": "Espeon",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/069",
+    "p": 0.21,
+    "pr": 0.24,
+    "ph": 0.27
+  },
+  {
+    "id": "30th-070",
+    "n": "Espeon ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/070",
+    "p": 3.04,
+    "pr": 3.5,
+    "ph": 3.95
+  },
+  {
+    "id": "30th-071",
+    "n": "Sylveon ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/071",
+    "p": 3.8,
+    "pr": 4.37,
+    "ph": 4.94
+  },
+  {
+    "id": "30th-072",
+    "n": "Unown",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/072",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-073",
+    "n": "Drifloon",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/073",
+    "p": 0.15,
+    "pr": 0.17,
+    "ph": 0.2
+  },
+  {
+    "id": "30th-074",
+    "n": "Cresselia",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/074",
+    "p": 0.19,
+    "pr": 0.22,
+    "ph": 0.25
+  },
+  {
+    "id": "30th-075",
+    "n": "Chandelure",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/075",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-076",
+    "n": "Xerneas",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/076",
+    "p": 1.26,
+    "pr": 1.45,
+    "ph": 1.64
+  },
+  {
+    "id": "30th-077",
+    "n": "Comfey",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/077",
+    "p": 0.2,
+    "pr": 0.23,
+    "ph": 0.26
+  },
+  {
+    "id": "30th-078",
+    "n": "Cosmog",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/078",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "30th-079",
+    "n": "Cosmoem",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/079",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "30th-080",
+    "n": "Lunala",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/080",
+    "p": 1.61,
+    "pr": 1.85,
+    "ph": 2.09
+  },
+  {
+    "id": "30th-081",
+    "n": "Gimmighoul",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/081",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "30th-082",
+    "n": "Groudon",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/082",
+    "p": 1.4,
+    "pr": 1.61,
+    "ph": 1.82
+  },
+  {
+    "id": "30th-083",
+    "n": "Lucario",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/083",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-084",
+    "n": "Seismitoad",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/084",
+    "p": 0.15,
+    "pr": 0.17,
+    "ph": 0.2
+  },
+  {
+    "id": "30th-085",
+    "n": "Lycanroc",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/085",
+    "p": 0.19,
+    "pr": 0.22,
+    "ph": 0.25
+  },
+  {
+    "id": "30th-086",
+    "n": "Koraidon",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/086",
+    "p": 1.75,
+    "pr": 2.01,
+    "ph": 2.27
+  },
+  {
+    "id": "30th-087",
+    "n": "Nidoran♀",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/087",
+    "p": 0.16,
+    "pr": 0.18,
+    "ph": 0.21
+  },
+  {
+    "id": "30th-088",
+    "n": "Nidorina",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/088",
+    "p": 0.2,
+    "pr": 0.23,
+    "ph": 0.26
+  },
+  {
+    "id": "30th-089",
+    "n": "Alolan Meowth",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/089",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "30th-090",
+    "n": "Gengar ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/090",
+    "p": 3.61,
+    "pr": 4.15,
+    "ph": 4.69
+  },
+  {
+    "id": "30th-091",
+    "n": "Umbreon",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/091",
+    "p": 0.21,
+    "pr": 0.24,
+    "ph": 0.27
+  },
+  {
+    "id": "30th-092",
+    "n": "Umbreon ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/092",
+    "p": 3.04,
+    "pr": 3.5,
+    "ph": 3.95
+  },
+  {
+    "id": "30th-093",
+    "n": "Murkrow",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/093",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "30th-094",
+    "n": "Scraggy",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/094",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-095",
+    "n": "Zorua",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/095",
+    "p": 0.15,
+    "pr": 0.17,
+    "ph": 0.2
+  },
+  {
+    "id": "30th-096",
+    "n": "Zoroark",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/096",
+    "p": 0.19,
+    "pr": 0.22,
+    "ph": 0.25
+  },
+  {
+    "id": "30th-097",
+    "n": "Deino",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/097",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-098",
+    "n": "Zweilous",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/098",
+    "p": 0.16,
+    "pr": 0.18,
+    "ph": 0.21
+  },
+  {
+    "id": "30th-099",
+    "n": "Hydreigon",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/099",
+    "p": 0.2,
+    "pr": 0.23,
+    "ph": 0.26
+  },
+  {
+    "id": "30th-100",
+    "n": "Yveltal",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/100",
+    "p": 1.05,
+    "pr": 1.21,
+    "ph": 1.37
+  },
+  {
+    "id": "30th-101",
+    "n": "Galarian Meowth",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/101",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "30th-102",
+    "n": "Jirachi ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/102",
+    "p": 4.37,
+    "pr": 5.03,
+    "ph": 5.68
+  },
+  {
+    "id": "30th-103",
+    "n": "Dialga",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/103",
+    "p": 1.12,
+    "pr": 1.29,
+    "ph": 1.46
+  },
+  {
+    "id": "30th-104",
+    "n": "Ferrothorn",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/104",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "30th-105",
+    "n": "Solgaleo",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/105",
+    "p": 1.68,
+    "pr": 1.93,
+    "ph": 2.18
+  },
+  {
+    "id": "30th-106",
+    "n": "Zacian",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/106",
+    "p": 1.19,
+    "pr": 1.37,
+    "ph": 1.55
+  },
+  {
+    "id": "30th-107",
+    "n": "Zamazenta",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/107",
+    "p": 1.47,
+    "pr": 1.69,
+    "ph": 1.91
+  },
+  {
+    "id": "30th-108",
+    "n": "Gholdengo",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/108",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-109",
+    "n": "Salamence ex",
+    "r": "Double rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/109",
+    "p": 3.42,
+    "pr": 3.93,
+    "ph": 4.45
+  },
+  {
+    "id": "30th-110",
+    "n": "Jangmo-o",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/110",
+    "p": 0.2,
+    "pr": 0.23,
+    "ph": 0.26
+  },
+  {
+    "id": "30th-111",
+    "n": "Hakamo-o",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/111",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "30th-112",
+    "n": "Kommo-o",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/112",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "30th-113",
+    "n": "Meowth",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/113",
+    "p": 0.21,
+    "pr": 0.24,
+    "ph": 0.27
+  },
+  {
+    "id": "30th-114",
+    "n": "Kangaskhan",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/114",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "30th-115",
+    "n": "Ditto",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/115",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "30th-116",
+    "n": "Eevee",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/116",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-117",
+    "n": "Eevee",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/117",
+    "p": 0.15,
+    "pr": 0.17,
+    "ph": 0.2
+  },
+  {
+    "id": "30th-118",
+    "n": "Eevee",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/118",
+    "p": 0.19,
+    "pr": 0.22,
+    "ph": 0.25
+  },
+  {
+    "id": "30th-119",
+    "n": "Snorlax",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/119",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-120",
+    "n": "Igglybuff",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/120",
+    "p": 0.16,
+    "pr": 0.18,
+    "ph": 0.21
+  },
+  {
+    "id": "30th-121",
+    "n": "Lugia",
+    "r": "Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/121",
+    "p": 1.54,
+    "pr": 1.77,
+    "ph": 2
+  },
+  {
+    "id": "30th-122",
+    "n": "Hisuian Zorua",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/122",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "30th-123",
+    "n": "Hisuian Zoroark",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/123",
+    "p": 0.17,
+    "pr": 0.2,
+    "ph": 0.22
+  },
+  {
+    "id": "30th-124",
+    "n": "Minior",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/124",
+    "p": 0.21,
+    "pr": 0.24,
+    "ph": 0.27
+  },
+  {
+    "id": "30th-125",
+    "n": "Maushold",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/125",
+    "p": 0.14,
+    "pr": 0.16,
+    "ph": 0.18
+  },
+  {
+    "id": "30th-126",
+    "n": "Poké Pad",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/126",
+    "p": 0.18,
+    "pr": 0.21,
+    "ph": 0.23
+  },
+  {
+    "id": "30th-127",
+    "n": "Switch",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/127",
+    "p": 0.22,
+    "pr": 0.25,
+    "ph": 0.29
+  },
+  {
+    "id": "30th-128",
+    "n": "Ultra Ball",
+    "r": "Common",
+    "img": "https://assets.tcgdex.net/en/me/30th/128",
+    "p": 0.15,
+    "pr": 0.17,
+    "ph": 0.2
+  },
+  {
+    "id": "30th-129",
+    "n": "Alolan Exeggutor",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/129",
+    "p": 8.4,
+    "pr": 9.66,
+    "ph": 10.92
+  },
+  {
+    "id": "30th-130",
+    "n": "Moltres",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/130",
+    "p": 10,
+    "pr": 11.5,
+    "ph": 13
+  },
+  {
+    "id": "30th-131",
+    "n": "Lapras",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/131",
+    "p": 7.2,
+    "pr": 8.28,
+    "ph": 9.36
+  },
+  {
+    "id": "30th-132",
+    "n": "Articuno",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/132",
+    "p": 8.8,
+    "pr": 10.12,
+    "ph": 11.44
+  },
+  {
+    "id": "30th-133",
+    "n": "Zapdos",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/133",
+    "p": 6,
+    "pr": 6.9,
+    "ph": 7.8
+  },
+  {
+    "id": "30th-134",
+    "n": "Toxtricity",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/134",
+    "p": 7.6,
+    "pr": 8.74,
+    "ph": 9.88
+  },
+  {
+    "id": "30th-135",
+    "n": "Morpeko",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/135",
+    "p": 9.2,
+    "pr": 10.58,
+    "ph": 11.96
+  },
+  {
+    "id": "30th-136",
+    "n": "Drifloon",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/136",
+    "p": 6.4,
+    "pr": 7.36,
+    "ph": 8.32
+  },
+  {
+    "id": "30th-137",
+    "n": "Chandelure",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/137",
+    "p": 8,
+    "pr": 9.2,
+    "ph": 10.4
+  },
+  {
+    "id": "30th-138",
+    "n": "Lycanroc",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/138",
+    "p": 9.6,
+    "pr": 11.04,
+    "ph": 12.48
+  },
+  {
+    "id": "30th-139",
+    "n": "Alolan Meowth",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/139",
+    "p": 6.8,
+    "pr": 7.82,
+    "ph": 8.84
+  },
+  {
+    "id": "30th-140",
+    "n": "Scraggy",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/140",
+    "p": 8.4,
+    "pr": 9.66,
+    "ph": 10.92
+  },
+  {
+    "id": "30th-141",
+    "n": "Galarian Meowth",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/141",
+    "p": 10,
+    "pr": 11.5,
+    "ph": 13
+  },
+  {
+    "id": "30th-142",
+    "n": "Gholdengo",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/142",
+    "p": 7.2,
+    "pr": 8.28,
+    "ph": 9.36
+  },
+  {
+    "id": "30th-143",
+    "n": "Kommo-o",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/143",
+    "p": 8.8,
+    "pr": 10.12,
+    "ph": 11.44
+  },
+  {
+    "id": "30th-144",
+    "n": "Meowth",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/144",
+    "p": 6,
+    "pr": 6.9,
+    "ph": 7.8
+  },
+  {
+    "id": "30th-145",
+    "n": "Hisuian Zorua",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/145",
+    "p": 7.6,
+    "pr": 8.74,
+    "ph": 9.88
+  },
+  {
+    "id": "30th-146",
+    "n": "Maushold",
+    "r": "Illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/146",
+    "p": 9.2,
+    "pr": 10.58,
+    "ph": 11.96
+  },
+  {
+    "id": "30th-147",
+    "n": "Fuecoco ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/147",
+    "p": 38.4,
+    "pr": 44.16,
+    "ph": 49.92
+  },
+  {
+    "id": "30th-148",
+    "n": "Greninja ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/148",
+    "p": 48,
+    "pr": 55.2,
+    "ph": 62.4
+  },
+  {
+    "id": "30th-149",
+    "n": "Pikachu ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/149",
+    "p": 57.6,
+    "pr": 66.24,
+    "ph": 74.88
+  },
+  {
+    "id": "30th-150",
+    "n": "Pikachu ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/150",
+    "p": 40.8,
+    "pr": 46.92,
+    "ph": 53.04
+  },
+  {
+    "id": "30th-151",
+    "n": "Mewtwo ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/151",
+    "p": 50.4,
+    "pr": 57.96,
+    "ph": 65.52
+  },
+  {
+    "id": "30th-152",
+    "n": "Mew ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/152",
+    "p": 60,
+    "pr": 69,
+    "ph": 78
+  },
+  {
+    "id": "30th-153",
+    "n": "Sylveon ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/153",
+    "p": 43.2,
+    "pr": 49.68,
+    "ph": 56.16
+  },
+  {
+    "id": "30th-154",
+    "n": "Gengar ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/154",
+    "p": 52.8,
+    "pr": 60.72,
+    "ph": 68.64
+  },
+  {
+    "id": "30th-155",
+    "n": "Jirachi ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/155",
+    "p": 36,
+    "pr": 41.4,
+    "ph": 46.8
+  },
+  {
+    "id": "30th-156",
+    "n": "Salamence ex",
+    "r": "Special illustration rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/156",
+    "p": 45.6,
+    "pr": 52.44,
+    "ph": 59.28
+  },
+  {
+    "id": "30th-157",
+    "n": "Mewtwo ex",
+    "r": "Futuristic Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/157",
+    "p": 109.25,
+    "pr": 125.64,
+    "ph": 142.03
+  },
+  {
+    "id": "30th-158",
+    "n": "Mew ex",
+    "r": "Futuristic Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/158",
+    "p": 76,
+    "pr": 87.4,
+    "ph": 98.8
+  },
+  {
+    "id": "30th-B",
+    "n": "Mew",
+    "r": "RGB Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/B",
+    "p": 28,
+    "pr": 32.2,
+    "ph": 36.4
+  },
+  {
+    "id": "30th-G",
+    "n": "Mew",
+    "r": "RGB Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/G",
+    "p": 33.6,
+    "pr": 38.64,
+    "ph": 43.68
+  },
+  {
+    "id": "30th-R",
+    "n": "Mew",
+    "r": "RGB Rare",
+    "img": "https://assets.tcgdex.net/en/me/30th/R",
+    "p": 23.8,
+    "pr": 27.37,
+    "ph": 30.94
+  }
+]

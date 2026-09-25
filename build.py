@@ -1,9 +1,9 @@
 import json, os
 here = os.path.dirname(os.path.abspath(__file__))
 sets = {}
-for set_id in ("me04", "me05", "swsh1", "sv10", "me02", "sv03.5", "sm1", "sm7.5", "base1"):
+for set_id in ("30th", "me04", "me05", "me03", "swsh1", "sv10", "me02", "sv03.5", "sm1", "sm7.5", "base1"):
     cards = json.load(open(os.path.join(here, f"{set_id}-cards.json"), encoding="utf-8"))
-    series_id = "".join(ch for ch in set_id if ch.isalpha())
+    series_id = "me" if set_id == "30th" else "".join(ch for ch in set_id if ch.isalpha())
     pre = f"https://assets.tcgdex.net/en/{series_id}/{set_id}/"
     sets[set_id] = [
         {"id": c["id"], "n": c["n"], "r": c["r"], "img": c["img"][len(pre):] if c.get("img", "").startswith(pre) else c.get("img", ""), "p": c["p"], "pr": c["pr"], "ph": c["ph"]}
@@ -364,11 +364,13 @@ html = r'''<!doctype html>
   </div>
 
   <script>
-    // TCGplayer market prices: p = normal, pr = reverse holo, ph = holofoil. Source: TCGdex.
+    // p = normal, pr = reverse holo, ph = holofoil. Recent 30th and ME03 values are in-game estimates; other sets use imported market data.
     const SET_DATA = __DATA__;
     const SET_META = {
+      '30th': { name: '30th Celebration', series: 'Mega Evolution', code: '30C', official: 128, art: 'https://cdn.shopify.com/s/files/1/0865/2816/4189/files/Pokemon_TCG_30th_Celebration_Booster_Pack-English_480x480.webp?v=1780494124', price: 18, valueMult: 1.2, estimated: true },
       me04: { name: 'Chaos Rising', series: 'Mega Evolution', code: 'ME04', official: 86, art: 'chaos-rising-pack.png', price: 9.99, valueMult: 1.2 },
       me05: { name: 'Pitch Black', series: 'Mega Evolution', code: 'ME05', official: 84, art: 'pack.jpg', price: 4.99, valueMult: 1 },
+      me03: { name: 'Perfect Order', series: 'Mega Evolution', code: 'ME03', official: 88, art: 'https://www.tcgreus.nl/cdn/shop/files/Pokemon_TCG_-_Perfect_Order_Booster_Pack_Zygarde_ex.png?v=1769676500', price: 8.99, valueMult: 1.2, estimated: true },
       swsh1: { name: 'Sword & Shield', series: 'Sword & Shield', code: 'SWSH1', official: 202, art: 'sword-shield-pack.jpg', price: 12, valueMult: 1.35 },
       sv10: { name: 'Destined Rivals', series: 'Scarlet & Violet', code: 'SV10', official: 182, art: 'destined-rivals-pack.jpg', price: 15, valueMult: 1.3 },
       me02: { name: 'Phantasmal Flames', series: 'Mega Evolution', code: 'ME02', official: 94, art: 'phantasmal-flames-pack.png', price: 22.5, valueMult: 1.6 },
@@ -388,7 +390,7 @@ html = r'''<!doctype html>
     const RANDOM_PACKS = {
       poor: { name: 'Scrappy', price: 5, luck: .65, fake: .08, sets: ['me05', 'me04', 'swsh1'] },
       okay: { name: 'Solid', price: 13, luck: 1.25, fake: .03, sets: ['me04', 'swsh1', 'sv10', 'me02'] },
-      good: { name: 'Premium', price: 30, luck: 2.25, fake: 0, sets: ['sv10', 'me02', 'sv03.5', 'sm1'] },
+      good: { name: 'Premium', price: 30, luck: 2.25, fake: 0, sets: ['sv10', 'me02', 'sv03.5', 'sm1', 'me03', '30th'] },
     };
     const PRICE_DATE = '__DATE__';
 
@@ -438,15 +440,15 @@ html = r'''<!doctype html>
     ];
 
     // rank: 0 common · 1 uncommon · 2 rare/double rare · 3 ultra/illustration · 4 special illustration/hyper
-    const RANK = r => { r = r.toLowerCase(); if (r === 'common') return 0; if (r === 'uncommon') return 1; if (r.includes('holo rare') || r.includes('special') || r.includes('secret') || r.includes('hyper')) return 4; if (r.includes('ultra') || r.includes('illustration')) return 3; return 2; };
+    const RANK = r => { r = r.toLowerCase(); if (r === 'common') return 0; if (r === 'uncommon') return 1; if (r.includes('holo rare') || r.includes('special') || r.includes('secret') || r.includes('hyper') || r.includes('futuristic') || r.includes('rgb')) return 4; if (r.includes('ultra') || r.includes('illustration') || r.includes('pikachu rare')) return 3; return 2; };
     let selectedSet = 'me05';
     let selectedStore = 'walmart';
     let SET = [];
     let BY = {};
 
     // Hit-slot base weights (roughly real pull rates). Luck multiplies the chase tiers.
-    const HIT_W = { 'Rare': 55, 'Holo Rare': .8, 'Double rare': 22, 'Illustration rare': 10, 'Ultra Rare': 5, 'Secret Rare': 1, 'Special illustration rare': 2, 'Mega Hyper Rare': 0.4, 'Hyper rare': 0.4 };
-    const CHASE = new Set(['Holo Rare', 'Illustration rare', 'Ultra Rare', 'Secret Rare', 'Special illustration rare', 'Mega Hyper Rare', 'Hyper rare']);
+    const HIT_W = { 'Rare': 55, 'Holo Rare': .8, 'Double rare': 22, 'Illustration rare': 10, 'Ultra Rare': 5, 'Secret Rare': 1, 'Special illustration rare': 2, 'Mega Hyper Rare': 0.4, 'Hyper rare': 0.4, 'Futuristic Rare': .2, 'RGB Rare': .3 };
+    const CHASE = new Set(['Holo Rare', 'Illustration rare', 'Ultra Rare', 'Secret Rare', 'Special illustration rare', 'Mega Hyper Rare', 'Hyper rare', 'Futuristic Rare', 'RGB Rare', 'Pikachu Rare']);
 
     const UPGRADES = [
       { k: 'luck',  ico: '🍀', name: 'Lucky Charm', desc: 'Boosts the odds of the hit slot being an Illustration / Ultra / Special / Hyper rare.', tiers: [15, 40, 100], fx: ['1.6×', '2.6×', '4.5×'], mult: [1, 1.6, 2.6, 4.5] },
@@ -515,7 +517,7 @@ html = r'''<!doctype html>
       { k: 'show', ico: '🎪', name: 'Pokémon Show', desc: 'A pop-up store is here! Its next pack costs 2.5× as much, but has 5× chase luck, two PSA rerolls, and no fake risk. Tap VISIT POKÉMON SHOW.' },
     ];
     const RANDOM_EVENT_CHANCE = .25;
-    const SET_REWARDS = { me05: 500, me04: 750, swsh1: 1800, sv10: 1000, me02: 1500, 'sv03.5': 2500, sm1: 3500, 'sm7.5': 5000, base1: 25000 };
+    const SET_REWARDS = { '30th': 2400, me05: 500, me04: 750, me03: 900, swsh1: 1800, sv10: 1000, me02: 1500, 'sv03.5': 2500, sm1: 3500, 'sm7.5': 5000, base1: 25000 };
     const AUCTION_BUYERS = [
       { name: 'Mia the Collector', ico: '🧢' }, { name: 'Dexter Deals', ico: '🤓' }, { name: 'Team Rocket Ron', ico: '🥷' }, { name: 'Professor Penny', ico: '🧑‍🔬' }, { name: 'Last-Chance Larry', ico: '😈' },
     ];
@@ -666,7 +668,7 @@ html = r'''<!doctype html>
     const hasRelic = k => !!(S && Array.isArray(S.relics) && S.relics.includes(k));
     const quotaSeconds = () => (S.mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) + UPGRADES[7].mult[S.up.clock] + (hasRelic('quotawatch') ? 5 : 0);
     const CARD_IMAGE_FIXES = { 'sv03.5-163': 'https://images.pokemontcg.io/sv3pt5/163_hires.png' };
-    const cardUrl = c => { if (CARD_IMAGE_FIXES[c.id]) return CARD_IMAGE_FIXES[c.id]; if (/^https?:\/\//.test(c.img || '')) return c.img; const id = c.id.split('-')[0], series = (id.match(/^[a-z]+/) || [''])[0]; return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
+    const cardUrl = c => { if (CARD_IMAGE_FIXES[c.id]) return CARD_IMAGE_FIXES[c.id]; if (/^https?:\/\//.test(c.img || '')) return c.img; const id = c.id.split('-')[0], series = id === '30th' ? 'me' : (id.match(/^[a-z]+/) || [''])[0]; return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
     function activateSet(id) {
       selectedSet = SET_DATA[id] ? id : 'me05';
       SET = SET_DATA[selectedSet]; BY = {};
@@ -1419,14 +1421,24 @@ html = r'''<!doctype html>
     function pullPack(storeId = selectedStore, fake = false, extraLuck = 1) {
       const used = new Set();
       const take = (pool, slot) => { let c, n = 0; do { c = rand(pool); } while (used.has(c.id) && n++ < 50); used.add(c.id); return { c, slot, v: 0 }; };
-      const base = [...BY['Common'], ...BY['Uncommon'], ...BY['Rare']];
+      const base = [...(BY['Common'] || []), ...(BY['Uncommon'] || []), ...(BY['Rare'] || [])];
       const pull = [];
       const firstEdition = selectedSet === 'base1';
-      for (let i = 0; i < (firstEdition ? 7 : 4); i++) pull.push(take(BY['Common'], 'base'));
-      for (let i = 0; i < 3; i++) pull.push(take(BY['Uncommon'], 'base'));
-      for (let i = 0; i < UPGRADES[12].mult[S.up.extras]; i++) pull.push(take([...BY['Common'], ...BY['Uncommon']], 'base'));
-      if (!firstEdition) for (let i = 0; i < 2 + S.up.rev; i++) pull.push(take(base, 'rev'));
-      pull.push(take(BY[rollHitRarity(storeId, extraLuck)], 'hit'));
+      const celebration = selectedSet === '30th';
+      if (celebration) {
+        // Official five-card foil format: one of the 30 Pikachu rares in every pack.
+        for (let i = 0; i < 2; i++) pull.push(take(BY['Common'], 'rev'));
+        pull.push(take([...BY['Common'], ...BY['Rare'], ...BY['Double rare']], 'rev'));
+        pull.push(take(BY[rollHitRarity(storeId, extraLuck)], 'hit'));
+        pull.push(take(BY['Pikachu Rare'], 'hit'));
+        for (let i = 0; i < S.up.rev; i++) pull.push(take(BY['Common'], 'rev'));
+      } else {
+        for (let i = 0; i < (firstEdition ? 7 : 4); i++) pull.push(take(BY['Common'], 'base'));
+        for (let i = 0; i < 3; i++) pull.push(take(BY['Uncommon'], 'base'));
+        if (!firstEdition) for (let i = 0; i < 2 + S.up.rev; i++) pull.push(take(base, 'rev'));
+        pull.push(take(BY[rollHitRarity(storeId, extraLuck)], 'hit'));
+      }
+      for (let i = 0; i < UPGRADES[12].mult[S.up.extras]; i++) pull.push(take(celebration ? BY['Common'] : [...BY['Common'], ...BY['Uncommon']], celebration ? 'rev' : 'base'));
       if (!firstEdition && Math.random() < DOUBLE_HIT_CHANCE + UPGRADES[6].mult[S.up.bonus]) {
         const replaceable = pull.map((p, i) => p.slot !== 'hit' ? i : -1).filter(i => i >= 0);
         pull[rand(replaceable)] = take(BY[rollHitRarity(storeId, extraLuck)], 'hit');
@@ -1840,7 +1852,7 @@ html = r'''<!doctype html>
     function home() { show('home'); $('btnContinue').hidden = !load(); }
 
     const setButtons = target => {
-      $(target).innerHTML = Object.entries(SET_META).map(([id, s]) => `<button class="set-choice" data-set="${id}"><img src="${s.art}" alt=""><b>${s.name}</b><small>${s.code} • ${money(s.price)} • ${SET_DATA[id].length} cards</small></button>`).join('');
+      $(target).innerHTML = Object.entries(SET_META).map(([id, s]) => `<button class="set-choice" data-set="${id}"><img src="${s.art}" alt=""><b>${s.name}</b><small>${s.code} • ${money(s.price)} • ${SET_DATA[id].length} cards${id === '30th' ? ' • 5-card foil packs' : ''}${s.estimated ? ' • estimated card values' : ''}</small></button>`).join('');
     };
     const storeButtons = target => {
       $(target).innerHTML = Object.entries(STORES).filter(([id]) => id !== 'show').map(([id, s]) => `<button class="store-choice" data-store="${id}"><b>${s.icon} ${s.name}</b><small>${s.desc}</small></button>`).join('');
