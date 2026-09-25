@@ -1,7 +1,7 @@
 import json, os
 here = os.path.dirname(os.path.abspath(__file__))
 sets = {}
-for set_id in ("30th", "me04", "me05", "me03", "swsh1", "sv10", "me02", "sv03.5", "sm1", "sm7.5", "base1"):
+for set_id in ("30th", "me04", "me05", "me03", "me02.5", "me01", "swsh1", "sv10", "me02", "sv03.5", "sm1", "sm7.5", "base1"):
     cards = json.load(open(os.path.join(here, f"{set_id}-cards.json"), encoding="utf-8"))
     series_id = "me" if set_id == "30th" else "".join(ch for ch in set_id if ch.isalpha())
     pre = f"https://assets.tcgdex.net/en/{series_id}/{set_id}/"
@@ -376,13 +376,15 @@ html = r'''<!doctype html>
   </div>
 
   <script>
-    // p = normal, pr = reverse holo, ph = holofoil. Recent 30th and ME03 values are in-game estimates; other sets use imported market data.
+    // p = normal, pr = reverse holo, ph = holofoil. Recent 30th, ME03, ME02.5, and ME01 values are in-game estimates; other sets use imported market data.
     const SET_DATA = __DATA__;
     const SET_META = {
       '30th': { name: '30th Celebration', series: 'Mega Evolution', code: '30C', official: 128, art: 'https://cdn.shopify.com/s/files/1/0865/2816/4189/files/Pokemon_TCG_30th_Celebration_Booster_Pack-English_480x480.webp?v=1780494124', price: 18, valueMult: 1.2, estimated: true },
       me04: { name: 'Chaos Rising', series: 'Mega Evolution', code: 'ME04', official: 86, art: 'chaos-rising-pack.png', price: 9.99, valueMult: 1.2 },
       me05: { name: 'Pitch Black', series: 'Mega Evolution', code: 'ME05', official: 84, art: 'pack.jpg', price: 4.99, valueMult: 1 },
       me03: { name: 'Perfect Order', series: 'Mega Evolution', code: 'ME03', official: 88, art: 'https://www.tcgreus.nl/cdn/shop/files/Pokemon_TCG_-_Perfect_Order_Booster_Pack_Zygarde_ex.png?v=1769676500', price: 8.99, valueMult: 1.2, estimated: true },
+      'me02.5': { name: 'Ascended Heroes', series: 'Mega Evolution', code: 'ASC', official: 217, art: 'https://vendingwholesale.com/cdn/shop/files/pokemon-tcg-mega-evolution-ascended-heroes-booster-pack-dragonite-charizard-10-cards.jpg?v=1780067940&width=533', price: 22, valueMult: 1.65, estimated: true },
+      me01: { name: 'Mega Evolution', series: 'Mega Evolution', code: 'ME01', official: 132, art: 'https://rhydonmycards.com.au/cdn/shop/files/asdasdasdasdaszxczxc.png?v=1769515939&width=533', price: 8.5, valueMult: 1.2, estimated: true },
       swsh1: { name: 'Sword & Shield', series: 'Sword & Shield', code: 'SWSH1', official: 202, art: 'sword-shield-pack.jpg', price: 12, valueMult: 1.35 },
       sv10: { name: 'Destined Rivals', series: 'Scarlet & Violet', code: 'SV10', official: 182, art: 'destined-rivals-pack.jpg', price: 15, valueMult: 1.3 },
       me02: { name: 'Phantasmal Flames', series: 'Mega Evolution', code: 'ME02', official: 94, art: 'phantasmal-flames-pack.png', price: 22.5, valueMult: 1.6 },
@@ -401,8 +403,8 @@ html = r'''<!doctype html>
     };
     const RANDOM_PACKS = {
       poor: { name: 'Scrappy', price: 25, luck: 1.4, fake: .05, art: 'random-scrappy.webp', sets: ['me05', 'me04', 'swsh1'] },
-      okay: { name: 'Solid', price: 65, luck: 2.2, fake: .02, art: 'random-solid.webp', sets: ['me04', 'swsh1', 'sv10', 'me02'] },
-      good: { name: 'Premium', price: 150, luck: 4, fake: 0, art: 'random-premium.webp', sets: ['sv10', 'me02', 'sv03.5', 'sm1', 'me03', '30th'] },
+      okay: { name: 'Solid', price: 65, luck: 2.2, fake: .02, art: 'random-solid.webp', sets: ['me04', 'me01', 'swsh1', 'sv10', 'me02'] },
+      good: { name: 'Premium', price: 150, luck: 4, fake: 0, art: 'random-premium.webp', sets: ['sv10', 'me02', 'me02.5', 'sv03.5', 'sm1', 'me03', '30th'] },
       elite: { name: 'Elite', price: 400, luck: 7, fake: 0, extraHit: .25, art: 'random-elite.webp', sets: ['sv03.5', 'sm1', 'sm7.5', '30th'] },
     };
     const PRICE_DATE = '__DATE__';
@@ -453,15 +455,15 @@ html = r'''<!doctype html>
     ];
 
     // rank: 0 common · 1 uncommon · 2 rare/double rare · 3 ultra/illustration · 4 special illustration/hyper
-    const RANK = r => { r = r.toLowerCase(); if (r === 'common') return 0; if (r === 'uncommon') return 1; if (r.includes('holo rare') || r.includes('special') || r.includes('secret') || r.includes('hyper') || r.includes('futuristic') || r.includes('rgb')) return 4; if (r.includes('ultra') || r.includes('illustration') || r.includes('pikachu rare')) return 3; return 2; };
+    const RANK = r => { r = r.toLowerCase(); if (r === 'common') return 0; if (r === 'uncommon') return 1; if (r.includes('holo rare') || r.includes('special') || r.includes('secret') || r.includes('hyper') || r.includes('futuristic') || r.includes('rgb') || r.includes('mega attack')) return 4; if (r.includes('ultra') || r.includes('illustration') || r.includes('pikachu rare')) return 3; return 2; };
     let selectedSet = 'me05';
     let selectedStore = 'walmart';
     let SET = [];
     let BY = {};
 
     // Hit-slot base weights (roughly real pull rates). Luck multiplies the chase tiers.
-    const HIT_W = { 'Rare': 55, 'Holo Rare': .8, 'Double rare': 22, 'Illustration rare': 10, 'Ultra Rare': 5, 'Secret Rare': 1, 'Special illustration rare': 2, 'Mega Hyper Rare': 0.4, 'Hyper rare': 0.4, 'Futuristic Rare': .2, 'RGB Rare': .3 };
-    const CHASE = new Set(['Holo Rare', 'Illustration rare', 'Ultra Rare', 'Secret Rare', 'Special illustration rare', 'Mega Hyper Rare', 'Hyper rare', 'Futuristic Rare', 'RGB Rare', 'Pikachu Rare']);
+    const HIT_W = { 'Rare': 55, 'Holo Rare': .8, 'Double rare': 22, 'Illustration rare': 10, 'Ultra Rare': 5, 'Secret Rare': 1, 'Special illustration rare': 2, 'Mega Hyper Rare': 0.4, 'Mega Attack Rare': .8, 'Hyper rare': 0.4, 'Futuristic Rare': .2, 'RGB Rare': .3 };
+    const CHASE = new Set(['Holo Rare', 'Illustration rare', 'Ultra Rare', 'Secret Rare', 'Special illustration rare', 'Mega Hyper Rare', 'Mega Attack Rare', 'Hyper rare', 'Futuristic Rare', 'RGB Rare', 'Pikachu Rare']);
 
     const UPGRADES = [
       { k: 'luck',  ico: '🍀', name: 'Lucky Charm', desc: 'Boosts the odds of the hit slot being an Illustration / Ultra / Special / Hyper rare.', tiers: [15, 40, 100], fx: ['1.6×', '2.6×', '4.5×'], mult: [1, 1.6, 2.6, 4.5] },
@@ -530,7 +532,7 @@ html = r'''<!doctype html>
       { k: 'show', ico: '🎪', name: 'Pokémon Show', desc: 'A pop-up store is here! Its next pack costs 2.5× as much, but has 5× chase luck, two PSA rerolls, and no fake risk. Tap VISIT POKÉMON SHOW.' },
     ];
     const RANDOM_EVENT_CHANCE = .25;
-    const SET_REWARDS = { '30th': 2400, me05: 500, me04: 750, me03: 900, swsh1: 1800, sv10: 1000, me02: 1500, 'sv03.5': 2500, sm1: 3500, 'sm7.5': 5000, base1: 25000 };
+    const SET_REWARDS = { '30th': 2400, me05: 500, me04: 750, me03: 900, 'me02.5': 2100, me01: 900, swsh1: 1800, sv10: 1000, me02: 1500, 'sv03.5': 2500, sm1: 3500, 'sm7.5': 5000, base1: 25000 };
     const AUCTION_BUYERS = [
       { name: 'Mia the Collector', ico: '🧢' }, { name: 'Dexter Deals', ico: '🤓' }, { name: 'Team Rocket Ron', ico: '🥷' }, { name: 'Professor Penny', ico: '🧑‍🔬' }, { name: 'Last-Chance Larry', ico: '😈' },
     ];
