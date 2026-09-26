@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /leaderboards/{mode}/scores/{userId} {
+      allow read: if mode in ['normal', 'hard', 'chill'];
+      allow create, update: if mode in ['normal', 'hard', 'chill']
+        && request.auth != null && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['name', 'score', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 20
+        && request.resource.data.score is int
+        && request.resource.data.score > 0
+        && request.resource.data.score <= (mode == 'chill' ? 1000000000000 : 1000000)
+        && request.resource.data.updatedAt == request.time
+        && (!exists(/databases/$(database)/documents/leaderboards/$(mode)/scores/$(userId))
+          || request.resource.data.score > resource.data.score);
+      allow delete: if false;
+    }
+  }
+}

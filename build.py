@@ -61,6 +61,9 @@ html = r'''<!doctype html>
     .leader-row { display: flex; align-items: center; gap: 12px; padding: 12px; margin: 8px 0; border-radius: 12px; background: #20162d; text-align: left; }
     .leader-row b { flex: 1; min-width: 0; overflow-wrap: anywhere; }
     .leader-row small { opacity: .75; }
+    .leader-tabs { display: flex; gap: 5px; margin-top: 12px; }
+    .leader-tabs button { flex: 1; padding: 11px 5px; margin: 0; background: #332744; color: #fff; font-size: 14px; }
+    .leader-tabs button.on { background: #ffe066; color: #180b00; }
     .hud { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #120c1c; border: 1px solid #3d2a57; border-radius: 14px; padding: 10px 14px; margin-bottom: 10px; position: sticky; top: 8px; z-index: 5; box-shadow: 0 8px 20px #0009; text-align: left; }
     .hud .bank { font-size: 24px; font-weight: 900; color: #8dffb0; }
     .hud .bank.low { color: #ff6b6b; }
@@ -191,7 +194,6 @@ html = r'''<!doctype html>
       <div class="set-picker" id="setPicker"></div>
       <h2>Choose a store</h2>
       <div class="store-picker" id="storePicker"></div>
-      <p class="sub">Your leaderboard name</p><input class="player-name" id="playerName" maxlength="20" placeholder="Trainer name" autocomplete="nickname" aria-label="Leaderboard name">
       <div class="modes">
         <button class="mode" id="btnNormal"><b>💸 Normal</b><small>Start with <span id="startBank"></span>. Packs cost real money, cards sell at live market value. Buy upgrades, don't go broke.</small></button>
         <button class="mode" id="btnChill"><b>😌 Chill</b><small>No quota or timer. Packs and upgrades still cost money, and the run ends if you go broke.</small></button>
@@ -362,8 +364,11 @@ html = r'''<!doctype html>
   <div class="overlay" id="leaderboard">
     <div class="sheet">
       <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">🏅 Top Five Trainers</h2><button class="ghost" id="btnLeaderboardClose" style="margin:0;padding:8px 14px">✕</button></div>
-      <p class="sub">Highest quotas cleared in Normal or Hard mode. Scores are saved in this browser.</p>
+      <p class="sub">Shared with everyone who plays. One best score per account on each board.</p>
+      <div class="leader-tabs"><button data-leader-mode="normal">Normal</button><button data-leader-mode="hard">Hard</button><button data-leader-mode="chill">Chill</button></div>
+      <p class="sub" id="leaderboardStatus" role="status"></p>
       <div id="leaderboardList"></div>
+      <div class="summary" style="max-width:none;text-align:left;margin-top:12px"><b id="leaderboardSubmitTitle">Post your score</b><p class="sub" id="leaderboardScore"></p><input class="player-name" id="leaderboardName" maxlength="20" placeholder="Trainer name" autocomplete="nickname" aria-label="Leaderboard name"><button id="btnLeaderboardSubmit">POST MY SCORE</button><p class="sub" id="leaderboardAccount"></p></div>
     </div>
   </div>
 
@@ -391,6 +396,8 @@ html = r'''<!doctype html>
     </div>
   </div>
 
+  <script src="leaderboard-config.js"></script>
+  <script type="module" src="leaderboard-service.js"></script>
   <script>
     // p = normal, pr = reverse holo, ph = holofoil. Recent 30th, ME03, ME02.5, and ME01 values are in-game estimates; other sets use imported market data.
     const SET_DATA = __DATA__;
@@ -445,7 +452,6 @@ html = r'''<!doctype html>
     ];
     const SAVE_KEY = 'poke-tear-run-v2';
     const QUOTA_RECORD_KEY = 'poke-tear-quota-record-v1';
-    const LEADERBOARD_KEY = 'poke-tear-leaderboard-v1';
     const PLAYER_NAME_KEY = 'poke-tear-player-name-v1';
     const BINDER_KEY = 'poke-tear-binder-v1';
     const BATTLE_DECK_KEY = 'poke-tear-battle-deck-v1';
@@ -745,39 +751,58 @@ html = r'''<!doctype html>
     function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
     function quotaRecord() { try { return +(localStorage.getItem(QUOTA_RECORD_KEY) || 0); } catch (e) { return 0; } }
     function saveQuotaRecord(n) { try { localStorage.setItem(QUOTA_RECORD_KEY, String(Math.max(n, quotaRecord()))); } catch (e) {} }
-    function playerName() { return ($('playerName').value.trim().replace(/\s+/g, ' ').slice(0, 20) || 'Trainer'); }
-    function leaderboardScores() {
+    let leaderMode = 'normal';
+    function scoreForBoard(mode) {
+      if (!S || S.mode !== mode || (mode !== 'chill' && !S.ended)) return null;
+      return mode === 'chill' ? Math.round(S.peak * 100) : S.quota ? S.quota.cleared : null;
+    }
+    async function refreshLeaderboard() {
+      const mode = leaderMode;
+      document.querySelectorAll('[data-leader-mode]').forEach(b => b.classList.toggle('on', b.dataset.leaderMode === leaderMode));
+      const score = scoreForBoard(leaderMode), eligible = score !== null && score > 0;
+      $('leaderboardSubmitTitle').textContent = leaderMode === 'chill' ? 'Post your peak bankroll' : `Post your ${leaderMode} quota score`;
+      $('leaderboardScore').textContent = eligible ? `Your score: ${leaderMode === 'chill' ? money(score / 100) : `${score} quotas cleared`}` : leaderMode === 'chill' ? 'Start a Chill run to post your highest bankroll whenever you choose.' : `Finish a ${leaderMode} run and clear a quota to post your score.`;
+      $('btnLeaderboardSubmit').disabled = !eligible || !window.sharedLeaderboard;
+      const api = window.sharedLeaderboard;
+      $('leaderboardAccount').textContent = api && api.user() ? `Signed in as ${api.user().displayName || api.user().email || 'Trainer'}` : 'Posting asks you to sign in with Google so your account has one best score per board.';
+      const list = $('leaderboardList'); list.replaceChildren();
+      if (!api) { $('leaderboardStatus').textContent = window.sharedLeaderboardError || 'Connecting to the shared leaderboard…'; return; }
+      $('leaderboardStatus').textContent = 'Loading scores…';
       try {
-        const saved = JSON.parse(localStorage.getItem(LEADERBOARD_KEY));
-        if (Array.isArray(saved)) return saved.filter(x => x && typeof x.name === 'string' && Number.isFinite(x.cleared) && x.cleared > 0).slice(0, 5);
-      } catch (e) {}
-      // Keep the earlier personal quota record visible after this update.
-      const oldBest = Math.max(0, quotaRecord() - 1);
-      return oldBest ? [{ id: 'legacy', name: 'Previous Best', cleared: oldBest, mode: 'normal' }] : [];
+        const scores = await api.list(mode);
+        if (mode !== leaderMode) return;
+        if (!scores.length) { const empty = document.createElement('p'); empty.className = 'sub'; empty.textContent = 'No scores yet. Be the first trainer on this board!'; list.append(empty); }
+        scores.forEach((entry, i) => {
+          const row = document.createElement('div'), place = document.createElement('span'), name = document.createElement('b'), detail = document.createElement('small');
+          row.className = 'leader-row'; place.textContent = `${i + 1}.`; name.textContent = entry.name;
+          detail.textContent = mode === 'chill' ? money(entry.score / 100) : `${entry.score} quotas`;
+          row.append(place, name, detail); list.append(row);
+        });
+        $('leaderboardStatus').textContent = '';
+      } catch (e) { if (mode === leaderMode) $('leaderboardStatus').textContent = 'Could not load scores. Check your connection and try again.'; }
     }
-    function recordLeaderboard() {
-      if (!S || !S.quota || !['normal', 'hard'].includes(S.mode) || !S.quota.cleared) return;
-      const scores = leaderboardScores();
-      const id = S.leaderboardId || (S.leaderboardId = `${Date.now()}-${Math.random()}`);
-      const existing = scores.find(x => x.id === id);
-      if (existing && existing.cleared >= S.quota.cleared) return;
-      const next = scores.filter(x => x.id !== id);
-      next.push({ id, name: (S.playerName || 'Trainer').slice(0, 20), cleared: S.quota.cleared, mode: S.mode });
-      next.sort((a, b) => b.cleared - a.cleared);
-      try { localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(next.slice(0, 5))); } catch (e) {}
+    function showLeaderboard(mode = S && S.mode !== 'sandbox' ? S.mode : 'normal') {
+      leaderMode = ['normal', 'hard', 'chill'].includes(mode) ? mode : 'normal';
+      $('leaderboard').classList.add('on'); refreshLeaderboard();
     }
-    function showLeaderboard() {
-      const list = $('leaderboardList');
-      list.replaceChildren();
-      const scores = leaderboardScores();
-      if (!scores.length) { const empty = document.createElement('p'); empty.className = 'sub'; empty.textContent = 'No scores yet. Clear a quota in Normal or Hard mode to take the first spot!'; list.append(empty); }
-      scores.forEach((entry, i) => {
-        const row = document.createElement('div'), place = document.createElement('span'), name = document.createElement('b'), detail = document.createElement('small');
-        row.className = 'leader-row'; place.textContent = `${i + 1}.`; name.textContent = entry.name;
-        detail.textContent = `${entry.cleared} cleared • ${entry.mode === 'hard' ? 'Hard' : 'Normal'}`;
-        row.append(place, name, detail); list.append(row);
-      });
-      $('leaderboard').classList.add('on');
+    async function submitLeaderboard() {
+      const score = scoreForBoard(leaderMode), api = window.sharedLeaderboard;
+      if (!api || !score || score < 1) return;
+      const name = $('leaderboardName').value.trim().replace(/\s+/g, ' ').slice(0, 20);
+      if (!name) { $('leaderboardStatus').textContent = 'Type your trainer name first.'; $('leaderboardName').focus(); return; }
+      $('btnLeaderboardSubmit').disabled = true;
+      $('leaderboardStatus').textContent = 'Signing in and checking your best score…';
+      try {
+        await api.signIn();
+        const result = await api.submit(leaderMode, name, score);
+        if (result === 'lower') { $('leaderboardStatus').textContent = 'Your earlier score is higher. It stays on the leaderboard; this one was not posted.'; }
+        else if (result === 'equal') { $('leaderboardStatus').textContent = 'You already have this score. Your leaderboard entry stays the same.'; }
+        else { $('leaderboardStatus').textContent = 'Your new best score is posted for everyone to see!'; }
+        try { localStorage.setItem(PLAYER_NAME_KEY, name); } catch (e) {}
+        const status = $('leaderboardStatus').textContent;
+        await refreshLeaderboard(); $('leaderboardStatus').textContent = status;
+      } catch (e) { $('leaderboardStatus').textContent = 'Score was not posted. Sign in and try again.'; }
+      finally { $('btnLeaderboardSubmit').disabled = false; }
     }
 
     const museumUniqueCards = p => Object.values(p.setSeen || {}).reduce((sum, ids) => sum + ids.length, 0);
@@ -1367,7 +1392,6 @@ html = r'''<!doctype html>
     function advanceQuota() {
       S.quota.cleared++;
       S.quota.number++;
-      recordLeaderboard();
       PROFILE.stats.bestQuota = Math.max(PROFILE.stats.bestQuota, S.quota.cleared); saveProfile(); checkAchievements();
       S.quota.target = +(quotaStart() * Math.pow(quotaMult(), S.quota.number - 1)).toFixed(2);
       S.quota.endsAt = Date.now() + quotaSeconds() * 1000;
@@ -1782,7 +1806,6 @@ html = r'''<!doctype html>
     function bust(reason = '💀 BUSTED') {
       clearInterval(quotaTimer);
       if (S.quota) saveQuotaRecord(S.quota.number);
-      recordLeaderboard();
       S.ended = true;
       show('over');
       $('overTitle').textContent = reason;
@@ -1896,14 +1919,6 @@ html = r'''<!doctype html>
     function start(mode, resume) {
       if (resume) activateSet(resume.set || 'me05');
       S = resume || newState(mode);
-      if (!resume) {
-        S.playerName = playerName();
-        S.leaderboardId = `${Date.now()}-${Math.random()}`;
-        try { localStorage.setItem(PLAYER_NAME_KEY, S.playerName); } catch (e) {}
-      } else {
-        S.playerName = S.playerName || 'Trainer';
-        S.leaderboardId = S.leaderboardId || `${Date.now()}-${Math.random()}`;
-      }
       activateStore(S.store || selectedStore || 'walmart');
       S.up = { ...Object.fromEntries(UPGRADES.map(u => [u.k, 0])), ...(S.up || {}) };
       S.relics = Array.isArray(S.relics) ? S.relics.map(k => k === 'detector' ? 'crown' : k === 'medal' ? 'idol' : k).filter((k, i, all) => RELICS.some(r => r.k === k) && all.indexOf(k) === i).slice(0, 3) : [];
@@ -1958,7 +1973,7 @@ html = r'''<!doctype html>
     activateSet(selectedSet);
     activateStore(selectedStore);
     $('startBank').textContent = money(START_BANK);
-    try { $('playerName').value = localStorage.getItem(PLAYER_NAME_KEY) || ''; } catch (e) {}
+    try { $('leaderboardName').value = localStorage.getItem(PLAYER_NAME_KEY) || ''; } catch (e) {}
     $('priceDate').textContent = PRICE_DATE;
     $('btnNormal').onclick = () => startNewGame('normal');
     $('btnChill').onclick = () => startNewGame('chill');
@@ -1988,9 +2003,12 @@ html = r'''<!doctype html>
     $('btnMuseumHome').onclick = showMuseum;
     $('btnAlbumsHome').onclick = showSetAlbums;
     $('btnAuctionHome').onclick = showAuctionHouse;
-    $('btnLeaderboardHome').onclick = showLeaderboard;
-    $('btnLeaderboard').onclick = showLeaderboard;
-    $('btnLeaderboardOver').onclick = showLeaderboard;
+    $('btnLeaderboardHome').onclick = () => showLeaderboard();
+    $('btnLeaderboard').onclick = () => showLeaderboard();
+    $('btnLeaderboardOver').onclick = () => showLeaderboard();
+    document.querySelectorAll('[data-leader-mode]').forEach(b => b.onclick = () => { leaderMode = b.dataset.leaderMode; refreshLeaderboard(); });
+    $('btnLeaderboardSubmit').onclick = submitLeaderboard;
+    window.addEventListener('sharedLeaderboardReady', () => { if ($('leaderboard').classList.contains('on')) refreshLeaderboard(); });
     $('btnLeaderboardClose').onclick = () => $('leaderboard').classList.remove('on');
     $('leaderboard').onclick = e => { if (e.target === $('leaderboard')) $('leaderboard').classList.remove('on'); };
     $('btnBattle').onclick = showBattle;
