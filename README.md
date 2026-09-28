@@ -1,6 +1,6 @@
 # poke_tear — Pokémon Pack Opener
 
-Single-file pack-opening game with a set picker for 30th Celebration (30C), Perfect Order (ME03), Ascended Heroes (ASC), Mega Evolution (ME01), Mega Evolution — Chaos Rising (ME04), Pitch Black (ME05), Sword & Shield Base (SWSH1), Phantasmal Flames (ME02), Scarlet & Violet — Destined Rivals (SV10), Scarlet & Violet — 151 (SV03.5), Sun & Moon (SM1), Sun & Moon—Dragon Majesty (SM7.5), and the original 1999 Base Set First Edition (BASE1).
+Single-file pack-opening game with a set picker for 30th Celebration (30C), Perfect Order (ME03), Ascended Heroes (ASC), Mega Evolution (ME01), Mega Evolution — Chaos Rising (ME04), Pitch Black (ME05), Sword & Shield Base (SWSH1), Phantasmal Flames (ME02), Scarlet & Violet — Destined Rivals (SV10), Black Bolt (BLK), White Flare (WHT), Scarlet & Violet — 151 (SV03.5), Sun & Moon (SM1), Sun & Moon—Dragon Majesty (SM7.5), and the original 1999 Base Set First Edition (BASE1).
 
 - **Main-screen controls** — music on/off, music type, Achievements, and Museum stay visible at the top of the active game screen.
 - **Animated pack opening** — the selected booster flies onto the screen, its foil top tears away, and every card bursts out into a responsive 2-column mobile or 5-column desktop layout before the results appear.
@@ -8,6 +8,7 @@ Single-file pack-opening game with a set picker for 30th Celebration (30C), Perf
 - **Sword & Shield Base** — a $12 pack containing all 216 real cards from the original Sword & Shield set, including Pokémon V, VMAX, Ultra Rare, and Secret Rare cards. Its balanced 1.35× value boost places it between Chaos Rising and the more expensive premium packs, and completing its large Set Album awards $1,800.
 - **30th Celebration and Perfect Order** — 161 and 124 real set cards from the TCGdex card database. Perfect Order is $8.99 for a normal ten-card pack. 30th Celebration is $18 for a five-card foil pack with a guaranteed Pikachu rare; its 30 Pikachu variations, Futuristic Rares, and RGB Rares are supported. Their card values are explicitly marked as in-game estimates because complete verified market prices were unavailable when added. Their pack prices are game balance choices.
 - **Mega Evolution and Ascended Heroes** — 188 and 295 real set cards from TCGdex, with official numbered set sizes of 132 and 217. Packs cost $8.50 and $22 respectively. Mega Attack Rare cards appear as chase pulls in Ascended Heroes. Card values are marked as in-game estimates; pack prices are game balance choices. Both sets join the existing collection, Binder, battles, albums, and mystery-pack pools without changing saved runs.
+- **Black Bolt and White Flare** — separate ten-card packs, $18 each, with all 172 and 173 cards from TCGdex, authentic booster artwork, Black White Rare chase cards, and a $1,700 Set Album reward each. The officially numbered portion is 86 cards per set. Card values use TCGplayer market data where available; pack prices are game balance choices.
 - **Top-five leaderboard** — enter a trainer name on the home screen; Normal and Hard runs record quotas cleared as you progress. The five best runs are saved in this browser and visible from home, gameplay, and results. An older personal quota record appears as Previous Best until new scores replace it. This static GitHub Pages game does not sync scores across devices.
 - **Sandbox** — free rips, every card shows its market value.
 - **Chill** — no quota or timer, but packs and upgrades still cost money and the run ends if you cannot afford another pack.
@@ -58,6 +59,7 @@ Mirror: https://preview.sasta.ai/pack-opener/
 | `me01-cards.json` | 188 Mega Evolution cards with TCGdex names, rarities, image paths, and estimated in-game values. |
 | `me05-cards.json` | All 120 Pitch Black cards with rarity + TCGplayer/cardmarket prices (from TCGdex). |
 | `sv10-cards.json` | All 244 Destined Rivals cards with rarity + TCGplayer/cardmarket prices (from TCGdex). |
+| `sv10.5b-cards.json` / `sv10.5w-cards.json` | Complete Black Bolt and White Flare card lists with TCGdex rarities, images, and market values. |
 | `me02-cards.json` | All 130 Phantasmal Flames cards with rarity + TCGplayer/cardmarket prices (from TCGdex). |
 | `sv03.5-cards.json` | All 207 Scarlet & Violet—151 cards with rarity + TCGplayer/cardmarket prices (from TCGdex). |
 | `sm1-cards.json` | All 172 Sun & Moon cards with rarity + TCGplayer/cardmarket prices (from TCGdex). |
