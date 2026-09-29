@@ -1,9 +1,9 @@
-import json, os
+import json, os, re
 here = os.path.dirname(os.path.abspath(__file__))
 sets = {}
 for set_id in ("30th", "me04", "me05", "me03", "me02.5", "me01", "swsh1", "sv10", "sv10.5b", "sv10.5w", "me02", "sv03.5", "sm1", "sm7.5", "base1"):
     cards = json.load(open(os.path.join(here, f"{set_id}-cards.json"), encoding="utf-8"))
-    series_id = "me" if set_id == "30th" else "".join(ch for ch in set_id if ch.isalpha())
+    series_id = "me" if set_id == "30th" else re.match(r"[a-z]+", set_id).group()
     pre = f"https://assets.tcgdex.net/en/{series_id}/{set_id}/"
     sets[set_id] = [
         {"id": c["id"], "n": c["n"], "r": c["r"], "img": c["img"][len(pre):] if c.get("img", "").startswith(pre) else c.get("img", ""), "p": c["p"], "pr": c["pr"], "ph": c["ph"]}
@@ -709,7 +709,7 @@ html = r'''<!doctype html>
     const hasRelic = k => !!(S && Array.isArray(S.relics) && S.relics.includes(k));
     const quotaSeconds = () => (S.mode === 'hard' ? HARD_QUOTA_SECONDS : QUOTA_SECONDS) + UPGRADES[7].mult[S.up.clock] + (hasRelic('quotawatch') ? 5 : 0);
     const CARD_IMAGE_FIXES = { 'sv03.5-163': 'https://images.pokemontcg.io/sv3pt5/163_hires.png' };
-    const cardUrl = c => { if (CARD_IMAGE_FIXES[c.id]) return CARD_IMAGE_FIXES[c.id]; if (/^https?:\/\//.test(c.img || '')) return c.img; const id = c.id.split('-')[0], series = id === '30th' ? 'me' : (id.match(/^[a-z]+/) || [''])[0]; return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
+    const cardUrl = c => { if (CARD_IMAGE_FIXES[c.id]) return CARD_IMAGE_FIXES[c.id]; if (/^https?:\/\//.test(c.img || '')) return /^https:\/\/assets\.tcgdex\.net\/.*\/\d+$/.test(c.img) ? `${c.img}/high.webp` : c.img; const id = c.id.split('-')[0], series = id === '30th' ? 'me' : (id.match(/^[a-z]+/) || [''])[0]; return `https://assets.tcgdex.net/en/${series}/${id}/${c.img}/high.webp`; };
     function activateSet(id) {
       selectedSet = SET_DATA[id] ? id : 'me05';
       SET = SET_DATA[selectedSet]; BY = {};
