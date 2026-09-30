@@ -203,6 +203,7 @@
       <button class="ghost" id="btnLeaderboardHome">🏅 Leaderboard</button>
       <p class="sub record-home" id="homeRecords"></p>
       <button class="ghost music-toggle">🔇 Music: Off</button>
+      <button class="ghost sfx-toggle">🔔 SFX: On</button>
       <button class="ghost track-toggle">🎼 Track: Electronic</button>
       <p class="note">Prices: TCGplayer market (USD), updated <span id="priceDate"></span>.</p>
     </section>
@@ -214,6 +215,7 @@
       </div>
       <div class="main-tools" aria-label="Music and collection controls">
         <button class="ghost music-toggle">🔇 MUSIC: OFF</button>
+        <button class="ghost sfx-toggle">🔔 SFX: ON</button>
         <button class="ghost track-toggle">🎼 ELECTRONIC</button>
         <button class="ghost" id="btnAchievements">🏆 ACHIEVEMENTS</button>
         <button class="ghost" id="btnMuseum">🏛️ MUSEUM</button>
@@ -693,6 +695,55 @@
       await audioCtx.resume();
       musicOn = true; musicStep = 0; nextMusicStep = audioCtx.currentTime + .05;
       pumpMusic(); musicTimer = setInterval(pumpMusic, 50); updateMusicButtons();
+    }
+
+    // ---- Sound effects (synthesised, independent of the music toggle) ----
+    const SFX_KEY = 'poke-tear-sfx';
+    let sfxCtx = null, sfxNoiseBuf = null, sfxOn = true;
+    try { sfxOn = localStorage.getItem(SFX_KEY) !== 'off'; } catch (e) {}
+    function updateSfxButtons() { document.querySelectorAll('.sfx-toggle').forEach(b => b.textContent = sfxOn ? '🔔 SFX: ON' : '🔕 SFX: OFF'); }
+    function toggleSfx() { sfxOn = !sfxOn; try { localStorage.setItem(SFX_KEY, sfxOn ? 'on' : 'off'); } catch (e) {} updateSfxButtons(); if (sfxOn) playSfx('spark'); }
+    function sfxContext() {
+      if (!sfxOn) return null;
+      try {
+        if (!sfxCtx) { sfxCtx = new (window.AudioContext || window.webkitAudioContext)(); const len = sfxCtx.sampleRate; sfxNoiseBuf = sfxCtx.createBuffer(1, len, len); const d = sfxNoiseBuf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; }
+        if (sfxCtx.state === 'suspended') sfxCtx.resume();
+        return sfxCtx;
+      } catch (e) { return null; }
+    }
+    function sfxTone(ctx, freq, t, dur, type, gain, endFreq) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t); if (endFreq) o.frequency.exponentialRampToValueAtTime(endFreq, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + dur + 0.05);
+    }
+    function sfxNoise(ctx, t, dur, gain, f0, f1, q) {
+      const src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = sfxNoiseBuf; src.loop = true; bp.type = 'bandpass'; bp.Q.value = q || 1.2;
+      bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + dur * 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(bp).connect(g).connect(ctx.destination); src.start(t); src.stop(t + dur + 0.05);
+    }
+    function playSfx(kind) {
+      const ctx = sfxContext(); if (!ctx) return;
+      const t = ctx.currentTime + 0.02;
+      if (kind === 'fire') {
+        // whoosh up, thump, then a blazing arpeggio + shimmer
+        sfxNoise(ctx, t, 0.9, 0.22, 180, 3200, 0.9);
+        sfxTone(ctx, 150, t + 0.85, 0.42, 'sine', 0.55, 38);
+        sfxNoise(ctx, t + 0.85, 0.18, 0.2, 2400, 500, 0.7);
+        [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => sfxTone(ctx, f, t + 0.95 + i * 0.07, 0.6, 'triangle', 0.16));
+        [1046.5, 1318.5, 1568].forEach((f, i) => sfxTone(ctx, f, t + 1.3 + i * 0.012, 1.4, 'sine', 0.08));
+        sfxTone(ctx, 261.63, t + 0.95, 1.5, 'sawtooth', 0.05);
+      } else if (kind === 'spark') {
+        sfxNoise(ctx, t, 0.35, 0.12, 900, 4000, 1.5);
+        [783.99, 1046.5, 1318.5].forEach((f, i) => sfxTone(ctx, f, t + 0.08 + i * 0.06, 0.45, 'triangle', 0.12));
+      } else if (kind === 'record') {
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => sfxTone(ctx, f, t + i * 0.13, 0.5, 'square', 0.07));
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => sfxTone(ctx, f, t + 0.55, 1.8, 'triangle', 0.09));
+        sfxTone(ctx, 130.81, t + 0.55, 1.8, 'sawtooth', 0.06);
+        sfxNoise(ctx, t + 0.5, 1.2, 0.12, 3000, 6000, 1);
+      }
     }
 
     const meta = () => SET_META[selectedSet];
@@ -1734,7 +1785,7 @@
         : `Pack value ${money(total)} <small style="opacity:.7;display:block">hit: ${hit.c.n} (${hit.c.r})</small>`;
       if (S.last && S.last.mission && S.last.mission.length) $('summary').innerHTML += `<div style="margin-top:8px;color:#ffe066;font-weight:900">MISSION COMPLETE<br>${S.last.mission.join('<br>')}</div>`;
       $('title').textContent = delta >= 20 ? '💎 BIG HIT!' : '🔥 PACK OPENED!';
-      if (window.bgfx) { const topRank = Math.max(...pull.map(p => RANK(p.c.r))); if (delta >= 20 || topRank >= 4) window.bgfx.flare('#ff1a1a', '#ffda00', 4500, 3); else if (topRank >= 3) window.bgfx.flare('#ff6a00', '#ffda00', 2500, 2); }
+      if (window.bgfx) { const topRank = Math.max(...pull.map(p => RANK(p.c.r))); if (delta >= 20 || topRank >= 4) { window.bgfx.flare('#ff1a1a', '#ffda00', 4500, 3); playSfx('fire'); } else if (topRank >= 3) { window.bgfx.flare('#ff6a00', '#ffda00', 2500, 2); playSfx('spark'); } }
       $('hud').classList.remove('flash'); void $('hud').offsetWidth; $('hud').classList.add('flash');
       hud();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1861,7 +1912,7 @@
       const beatsRecord = top === null || (top && score > top.score);
       const makesBoard = beatsRecord || all.length < 5 || score > Math.min(...all.map(e => e.score));
       if (top === undefined && !window.sharedLeaderboard) return;
-      if (beatsRecord) { $('overTitle').textContent = `🏆 NEW RECORD • ${fmtScore(mode, score)}`; if (window.bgfx) window.bgfx.flare('#ffda00', '#ffffff', 7000, 2.5); }
+      if (beatsRecord) { $('overTitle').textContent = `🏆 NEW RECORD • ${fmtScore(mode, score)}`; if (window.bgfx) window.bgfx.flare('#ffda00', '#ffffff', 7000, 2.5); playSfx('record'); }
       if (beatsRecord || makesBoard) setTimeout(() => showLeaderboard(mode, beatsRecord ? `🏆 NEW HIGH SCORE! ${fmtScore(mode, score)} beats ${top ? top.name + "'s " + fmtScore(mode, top.score) : 'an empty board'}. Put your name on it!` : `You made the top five with ${fmtScore(mode, score)}. Post your name!`), 600);
     }
 
@@ -2087,6 +2138,7 @@
     $('btnTradeContinue').onclick = closeTrade;
     $('cardTrade').onclick = e => { if (e.target === $('cardTrade') && ACTIVE_TRADE && !ACTIVE_TRADE.resolved) declineTrade(); };
     document.querySelectorAll('.music-toggle').forEach(b => b.onclick = toggleMusic);
+    document.querySelectorAll('.sfx-toggle').forEach(b => b.onclick = toggleSfx); updateSfxButtons();
     document.querySelectorAll('.track-toggle').forEach(b => b.onclick = toggleTrack);
     $('btnShop').onclick = shop;
     $('btnShopClose').onclick = () => $('shop').classList.remove('on');
