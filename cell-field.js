@@ -38,7 +38,7 @@
       this.cfg = Object.assign({}, DEFAULTS, cfg || {});
       this.ctx = canvas.getContext('2d');
       this.seeds = []; this.width = 0; this.height = 0; this.dpr = 1;
-      this.frameId = 0; this.lastT = 0; this.acc = 0; this.tintSeq = 0; this.disposed = false;
+      this.frameId = 0; this.lastT = 0; this.acc = 0; this.tintSeq = 0; this.disposed = false; this.running = false;
       this.px = -1; this.py = -1; this.tx = -1; this.ty = -1; this.grip = 0; this.gripTarget = 0;
       // palette state: current colours ease toward the target, which is base, danger or a flare
       this.baseA = parseHex(this.cfg.colorA); this.baseB = parseHex(this.cfg.colorB);
@@ -84,14 +84,15 @@
       if (first || !this.seeds.length) this.build();
     }
 
-    start() {
-      this.setSize(window.innerWidth, window.innerHeight);
-      if (this.reduced) { this.drawStatic(); return this; }
-      this.lastT = performance.now();
-      const loop = () => { this.frameId = requestAnimationFrame(loop); this.tick(); };
+    start() { this.setSize(window.innerWidth, window.innerHeight); this.resume(); return this; }
+    resume() {
+      if (this.disposed || this.running) return;
+      if (this.reduced) { this.drawStatic(); return; }
+      this.running = true; this.lastT = performance.now(); this.acc = 0;
+      const loop = () => { if (!this.running) return; this.frameId = requestAnimationFrame(loop); this.tick(); };
       loop();
-      return this;
     }
+    pause() { this.running = false; cancelAnimationFrame(this.frameId); }
 
     // Public palette controls -------------------------------------------------
     setPalette(a, b) { this.baseA = parseHex(a); this.baseB = parseHex(b); }
@@ -180,7 +181,7 @@
     }
 
     dispose() {
-      this.disposed = true; cancelAnimationFrame(this.frameId);
+      this.disposed = true; this.pause();
       window.removeEventListener('pointermove', this.onMove); window.removeEventListener('pointerdown', this.onMove);
       window.removeEventListener('pointerleave', this.onLeave); window.removeEventListener('blur', this.onLeave);
       window.removeEventListener('resize', this.onResize); document.removeEventListener('visibilitychange', this.onVisibility);
