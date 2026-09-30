@@ -14,6 +14,8 @@ Single-file pack-opening game with a set picker for 30th Celebration (30C), Perf
 - **Mega Evolution and Ascended Heroes** — 188 and 295 real set cards from TCGdex, with official numbered set sizes of 132 and 217. Packs cost $8.50 and $22 respectively. Mega Attack Rare cards appear as chase pulls in Ascended Heroes. Card values are marked as in-game estimates; pack prices are game balance choices. Both sets join the existing collection, Binder, battles, albums, and mystery-pack pools without changing saved runs.
 - **Black Bolt and White Flare** — separate ten-card packs, $18 each, with all 172 and 173 cards from TCGdex, authentic booster artwork, Black White Rare chase cards, and a $1,700 Set Album reward each. The officially numbered portion is 86 cards per set. Card values use TCGplayer market data where available; pack prices are game balance choices.
 - **Shared top-five leaderboards** — separate Normal and Hard boards rank finished runs by quotas cleared; Chill ranks peak bankroll and can be posted any time during a run. Posting is optional: type a trainer name (no account needed). Each name keeps only its best score per board. Scores are stored in a small SQLite database on the SASTA VPS (`https://preview.sasta.ai/pack-opener-api`), so everyone sees the same boards on every device. Old browser-only scores stay in local storage but are not moved to the shared boards.
+- **Record to beat** — the game screen shows a live **RECORD TO BEAT** banner for your mode, fed by the shared leaderboard, and the home screen lists the current record holder for Normal, Hard and Chill. The banner glows green the moment your run passes the record. When a run ends above the record (or inside the top five) the leaderboard opens by itself with a prompt to put your name on it, so every player is always competing against the standing high score.
+- **Living Cell Field background** — `cell-field.js` (a vanilla port of the Originkit Cell Field component) draws a soft, pointer-reactive Voronoi dot field behind the whole game. It flares red-and-gold for a few seconds when a chase card or a $20+ pack lands, turns gold on a new record, tints red while the quota clock is under ten seconds, caps itself at 30 fps, pauses in background tabs, and renders a still frame for users who prefer reduced motion.
 - **Sandbox** — free rips, every card shows its market value.
 - **Chill** — no quota or timer, but packs and upgrades still cost money and the run ends if you cannot afford another pack.
 - **Sandbox upgrades** — the full upgrade shop is available for free in Sandbox mode.
@@ -56,6 +58,8 @@ Mirror: https://preview.sasta.ai/pack-opener/
 |---|---|
 | `index.html` | The whole game (generated, do not hand-edit). |
 | `build.py` | Generator. Edits to the game go here; run `python build.py` to rebuild `index.html`. |
+| `cell-field.js` | Animated Voronoi dot background with `flare()` / `setDanger()` hooks used by the game. |
+| `leaderboard-config.js`, `leaderboard-service.js` | Shared leaderboard API address and client. |
 | `me04-cards.json` | All 122 Chaos Rising cards with rarity + TCGplayer/cardmarket prices (from TCGdex). |
 | `30th-cards.json` | 161 30th Celebration cards with TCGdex names, rarities, image paths, and estimated in-game values. |
 | `me03-cards.json` | 124 Perfect Order cards with TCGdex names, rarities, image paths, and estimated in-game values. |
@@ -88,7 +92,7 @@ Re-fetch each card from `https://api.tcgdex.net/v2/en/cards/SET-NNN` (fields `ra
 ## Deploy
 
 ```
-scp index.html pack.jpg chaos-rising-pack.png destined-rivals-pack.jpg phantasmal-flames-pack.png pokemon-151-pack.png sun-moon-pack.png dragon-majesty-pack.jpg first-edition-pack.jpg root@<vps>:/var/www/pack-opener/
+scp index.html cell-field.js leaderboard-config.js leaderboard-service.js pack.jpg chaos-rising-pack.png destined-rivals-pack.jpg phantasmal-flames-pack.png pokemon-151-pack.png sun-moon-pack.png dragon-majesty-pack.jpg first-edition-pack.jpg root@<vps>:/var/www/pack-opener/
 ```
 
 Card art is hotlinked from `assets.tcgdex.net` and `images.pokemontcg.io`; the nginx location block for `/pack-opener/` must allow both hosts in its CSP.
