@@ -78,14 +78,7 @@ Mirror: https://preview.sasta.ai/pack-opener/
 | `sm1-cards.json` | All 172 Sun & Moon cards with rarity + TCGplayer/cardmarket prices (from TCGdex). |
 | `sm7.5-cards.json` | All 78 Dragon Majesty cards with rarity + TCGplayer/cardmarket prices. |
 | `base1-cards.json` | All 102 original Base Set cards with First Edition variant values (from TCGdex). |
-| `chaos-rising-pack.png` | Chaos Rising booster pack art. |
-| `destined-rivals-pack.jpg` | Destined Rivals booster pack art. |
-| `phantasmal-flames-pack.png` | Phantasmal Flames booster pack art. |
-| `pokemon-151-pack.png` | Scarlet & Violet—151 booster pack art. |
-| `sun-moon-pack.png` | Authentic-style Lunala Sun & Moon booster pack artwork used by the game. |
-| `dragon-majesty-pack.jpg` | Dragon Majesty Salamence booster pack artwork used by the game. |
-| `first-edition-pack.jpg` | Classic Charizard Base Set First Edition booster pack artwork used by the game. |
-| `pack.jpg` | Pitch Black booster pack art. |
+| `packs/*.webp` | One clean booster-pack render per set (transparent background, tight crop, 1000 px tall), cleaned with `tools/cleanpack.py` from the Bulbagarden Archives renders. |
 | `random-*.webp`, `mystery-box.webp` | Original photo-style sealed mystery pack and box artwork used in the Mystery Pack Shop. |
 
 `build.py` writes `index.html` next to itself.
@@ -97,7 +90,7 @@ Re-fetch each card from `https://api.tcgdex.net/v2/en/cards/SET-NNN` (fields `ra
 ## Deploy
 
 ```
-scp -r index.html cell-field.js wave-field.js pack3d.js vendor leaderboard-config.js leaderboard-service.js pack.jpg chaos-rising-pack.png destined-rivals-pack.jpg phantasmal-flames-pack.png pokemon-151-pack.png sun-moon-pack.png dragon-majesty-pack.jpg first-edition-pack.jpg root@<vps>:/var/www/pack-opener/
+scp -r index.html cell-field.js wave-field.js pack3d.js vendor packs leaderboard-config.js leaderboard-service.js random-*.webp mystery-box.webp root@<vps>:/var/www/pack-opener/
 ```
 
-Card art is hotlinked from `assets.tcgdex.net` and `images.pokemontcg.io`; the nginx location block for `/pack-opener/` must allow both hosts in its CSP.
+Card art is hotlinked from `assets.tcgdex.net`; pack art is served from `packs/`. The nginx location block for `/pack-opener/` allows `https:` images in its CSP.

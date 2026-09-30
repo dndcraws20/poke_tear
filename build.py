@@ -224,7 +224,7 @@ html = r'''<!doctype html>
   <div class="pack-opening" id="packOpening" aria-hidden="true">
     <div class="opening-stage">
       <div class="opening-title" id="openingTitle">OPENING PACK…</div>
-      <div class="opening-pack" id="openingPack"><img id="openingPackImage" src="pack.jpg" alt=""><div class="pack-rip" id="packRip"><img id="openingPackTop" src="pack.jpg" alt=""></div></div>
+      <div class="opening-pack" id="openingPack"><img id="openingPackImage" src="packs/me05.webp" alt=""><div class="pack-rip" id="packRip"><img id="openingPackTop" src="packs/me05.webp" alt=""></div></div>
       <div class="flying-cards" id="flyingCards"></div>
     </div>
   </div>
@@ -233,7 +233,7 @@ html = r'''<!doctype html>
     <section id="home" class="screen on">
       <h1>🎴 Pokémon Pack Opener</h1>
       <p class="sub" id="setTitle"></p>
-      <div class="pack3d-host" id="packHost"><img class="pack" id="packArt" src="pack.jpg" alt="Selected Pokémon set"></div>
+      <div class="pack3d-host" id="packHost"><img class="pack" id="packArt" src="packs/me05.webp" alt="Selected Pokémon set"></div>
       <div class="set-picker" id="setPicker"></div>
       <h2>Choose a store</h2>
       <div class="store-picker" id="storePicker"></div>
@@ -453,21 +453,21 @@ html = r'''<!doctype html>
     // p = normal, pr = reverse holo, ph = holofoil. Recent 30th, ME03, ME02.5, and ME01 values are in-game estimates; other sets use imported market data.
     const SET_DATA = __DATA__;
     const SET_META = {
-      '30th': { name: '30th Celebration', series: 'Mega Evolution', code: '30C', official: 128, art: 'https://cdn.shopify.com/s/files/1/0865/2816/4189/files/Pokemon_TCG_30th_Celebration_Booster_Pack-English_480x480.webp?v=1780494124', price: 18, valueMult: 1.2, estimated: true },
-      me04: { name: 'Chaos Rising', series: 'Mega Evolution', code: 'ME04', official: 86, art: 'chaos-rising-pack.png', price: 9.99, valueMult: 1.2 },
-      me05: { name: 'Pitch Black', series: 'Mega Evolution', code: 'ME05', official: 84, art: 'pack.jpg', price: 4.99, valueMult: 1 },
-      me03: { name: 'Perfect Order', series: 'Mega Evolution', code: 'ME03', official: 88, art: 'https://www.tcgreus.nl/cdn/shop/files/Pokemon_TCG_-_Perfect_Order_Booster_Pack_Zygarde_ex.png?v=1769676500', price: 8.99, valueMult: 1.2, estimated: true },
-      'me02.5': { name: 'Ascended Heroes', series: 'Mega Evolution', code: 'ASC', official: 217, art: 'https://vendingwholesale.com/cdn/shop/files/pokemon-tcg-mega-evolution-ascended-heroes-booster-pack-dragonite-charizard-10-cards.jpg?v=1780067940&width=533', price: 22, valueMult: 1.65, estimated: true },
-      me01: { name: 'Mega Evolution', series: 'Mega Evolution', code: 'ME01', official: 132, art: 'https://rhydonmycards.com.au/cdn/shop/files/asdasdasdasdaszxczxc.png?v=1769515939&width=533', price: 8.5, valueMult: 1.2, estimated: true },
-      swsh1: { name: 'Sword & Shield', series: 'Sword & Shield', code: 'SWSH1', official: 202, art: 'sword-shield-pack.jpg', price: 12, valueMult: 1.35 },
-      sv10: { name: 'Destined Rivals', series: 'Scarlet & Violet', code: 'SV10', official: 182, art: 'destined-rivals-pack.jpg', price: 15, valueMult: 1.3 },
-      'sv10.5b': { name: 'Black Bolt', series: 'Scarlet & Violet', code: 'BLK', official: 86, art: 'black-bolt-pack.webp', price: 18, valueMult: 1.5 },
-      'sv10.5w': { name: 'White Flare', series: 'Scarlet & Violet', code: 'WHT', official: 86, art: 'white-flare-pack.webp', price: 18, valueMult: 1.5 },
-      me02: { name: 'Phantasmal Flames', series: 'Mega Evolution', code: 'ME02', official: 94, art: 'phantasmal-flames-pack.png', price: 22.5, valueMult: 1.6 },
-      'sv03.5': { name: '151', series: 'Scarlet & Violet', code: 'SV03.5', official: 165, art: 'pokemon-151-pack.png', price: 35, valueMult: 2 },
-      sm1: { name: 'Sun & Moon', series: 'Sun & Moon', code: 'SM1', official: 149, art: 'sun-moon-pack.png', price: 50, valueMult: 1.25 },
-      'sm7.5': { name: 'Dragon Majesty', series: 'Sun & Moon', code: 'SM7.5', official: 70, art: 'dragon-majesty-pack.jpg', price: 100, valueMult: 2.4 },
-      base1: { name: 'Base Set First Edition', series: '1999 Original', code: 'BASE1', official: 102, art: 'first-edition-pack.jpg', price: 10000, valueMult: 3 },
+      '30th': { name: '30th Celebration', series: 'Mega Evolution', code: '30C', official: 128, art: 'packs/30th.webp', price: 18, valueMult: 1.2, estimated: true },
+      me04: { name: 'Chaos Rising', series: 'Mega Evolution', code: 'ME04', official: 86, art: 'packs/me04.webp', price: 9.99, valueMult: 1.2 },
+      me05: { name: 'Pitch Black', series: 'Mega Evolution', code: 'ME05', official: 84, art: 'packs/me05.webp', price: 4.99, valueMult: 1 },
+      me03: { name: 'Perfect Order', series: 'Mega Evolution', code: 'ME03', official: 88, art: 'packs/me03.webp', price: 8.99, valueMult: 1.2, estimated: true },
+      'me02.5': { name: 'Ascended Heroes', series: 'Mega Evolution', code: 'ASC', official: 217, art: 'packs/me02.5.webp', price: 22, valueMult: 1.65, estimated: true },
+      me01: { name: 'Mega Evolution', series: 'Mega Evolution', code: 'ME01', official: 132, art: 'packs/me01.webp', price: 8.5, valueMult: 1.2, estimated: true },
+      swsh1: { name: 'Sword & Shield', series: 'Sword & Shield', code: 'SWSH1', official: 202, art: 'packs/swsh1.webp', price: 12, valueMult: 1.35 },
+      sv10: { name: 'Destined Rivals', series: 'Scarlet & Violet', code: 'SV10', official: 182, art: 'packs/sv10.webp', price: 15, valueMult: 1.3 },
+      'sv10.5b': { name: 'Black Bolt', series: 'Scarlet & Violet', code: 'BLK', official: 86, art: 'packs/sv10.5b.webp', price: 18, valueMult: 1.5 },
+      'sv10.5w': { name: 'White Flare', series: 'Scarlet & Violet', code: 'WHT', official: 86, art: 'packs/sv10.5w.webp', price: 18, valueMult: 1.5 },
+      me02: { name: 'Phantasmal Flames', series: 'Mega Evolution', code: 'ME02', official: 94, art: 'packs/me02.webp', price: 22.5, valueMult: 1.6 },
+      'sv03.5': { name: '151', series: 'Scarlet & Violet', code: 'SV03.5', official: 165, art: 'packs/sv03.5.webp', price: 35, valueMult: 2 },
+      sm1: { name: 'Sun & Moon', series: 'Sun & Moon', code: 'SM1', official: 149, art: 'packs/sm1.webp', price: 50, valueMult: 1.25 },
+      'sm7.5': { name: 'Dragon Majesty', series: 'Sun & Moon', code: 'SM7.5', official: 70, art: 'packs/sm7.5.webp', price: 100, valueMult: 2.4 },
+      base1: { name: 'Base Set First Edition', series: '1999 Original', code: 'BASE1', official: 102, art: 'packs/base1.webp', price: 10000, valueMult: 3 },
     };
     const STORES = {
       pokemon: { name: 'Pokémon Store', icon: '✨', priceMult: 1.10, fakeChance: 0, luckMult: 2, psaRerolls: 1, desc: '10% more expensive • 2× luck • better PSA grades • always real' },

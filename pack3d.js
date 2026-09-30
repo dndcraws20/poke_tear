@@ -38,7 +38,8 @@
       let z = 0;
       if (v > CRIMP && v < 1 - CRIMP) {
         const vv = (v - CRIMP) / (1 - 2 * CRIMP);
-        z = h * BULGE * Math.pow(Math.sin(Math.PI * u), 0.55) * Math.pow(Math.sin(Math.PI * vv), 0.5);
+        // clamp: u/vv can land a hair outside 0..1 from float error, and pow(negative, frac) is NaN
+        z = h * BULGE * Math.pow(Math.max(0, Math.sin(Math.PI * u)), 0.55) * Math.pow(Math.max(0, Math.sin(Math.PI * vv)), 0.5);
       } else {
         // sealed crimp: tiny ripple so the foil edge catches light
         z = h * 0.004 * Math.sin(u * Math.PI * 22);
@@ -123,12 +124,12 @@
       this.aspect = w / h;
       const front = new THREE.Mesh(pillowGeometry(w, h, true), new THREE.MeshPhysicalMaterial({
         map: tex, roughness: 0.38, metalness: 0.22, clearcoat: 1, clearcoatRoughness: 0.18, envMapIntensity: 1.1,
-        clippingPlanes: [this.clipPlane], side: THREE.FrontSide,
+        clippingPlanes: [this.clipPlane], side: THREE.FrontSide, alphaTest: 0.5, transparent: true,
       }));
       // back: same pillow turned around, so it bulges the other way and shows the art darkened (foil backside)
       const back = new THREE.Mesh(pillowGeometry(w, h, true), new THREE.MeshPhysicalMaterial({
         map: tex, color: 0x8f86a8, roughness: 0.5, metalness: 0.3, clearcoat: 0.8, clearcoatRoughness: 0.3, envMapIntensity: 0.9,
-        clippingPlanes: [this.clipPlane], side: THREE.FrontSide,
+        clippingPlanes: [this.clipPlane], side: THREE.FrontSide, alphaTest: 0.5, transparent: true,
       }));
       back.rotation.y = Math.PI;
       this.pack = new THREE.Group(); this.pack.add(front, back); this.group.add(this.pack);
