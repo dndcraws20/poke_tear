@@ -182,6 +182,36 @@ html = r'''<!doctype html>
     .flash { animation: flash .8s; }
     @media (min-width: 700px) { .cards { grid-template-columns: repeat(5, 1fr); } .binder-cards { grid-template-columns: repeat(2, 1fr); } .battle-grid { grid-template-columns: repeat(4, 1fr); } .battle-modes { grid-template-columns: repeat(4, 1fr); } .overlay { align-items: center; } .sheet { border-radius: 20px; } .flying-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); inset: 16% 5% 5%; gap: 10px; } .flying-card { width: min(14vw, 125px); max-height: 34vh; } }
     @media (prefers-reduced-motion: reduce) { .opening-pack, .pack-rip.tear { animation-duration: .01ms; } }
+
+    /* ---- Floating glass theme: the UI drifts over the wave field instead of sitting in boxes ---- */
+    :root { --glass: rgba(24, 14, 40, .38); --glass-strong: rgba(24, 14, 40, .62); --glass-edge: rgba(255, 255, 255, .13); --glass-shadow: 0 10px 30px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .08); }
+    .hud, .summary, .quota, .record, .stat, .mode, .set-choice, .store-choice, .mystery-item, .up, .leader-row, .card, .sheet {
+      background: var(--glass); border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow);
+      -webkit-backdrop-filter: blur(14px) saturate(1.35); backdrop-filter: blur(14px) saturate(1.35);
+    }
+    .hud { box-shadow: 0 16px 40px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .1); }
+    .quota { border-color: rgba(255, 213, 74, .55); }
+    .record.beating { border-color: #8dffb0; box-shadow: 0 0 22px #22c55e66, var(--glass-shadow); }
+    .card { background: var(--glass-strong); }
+    .card.r2 { border-color: #7fb8ff; }
+    .card.r3 { border-color: #ffd54a; box-shadow: 0 0 22px #ffb30088, var(--glass-shadow); }
+    .sheet { background: var(--glass-strong); -webkit-backdrop-filter: blur(22px) saturate(1.3); backdrop-filter: blur(22px) saturate(1.3); }
+    .overlay { background: rgba(3, 1, 8, .45); }
+    .ghost { background: rgba(70, 48, 105, .42); border: 1px solid var(--glass-edge); box-shadow: 0 8px 22px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .1); -webkit-backdrop-filter: blur(10px) saturate(1.3); backdrop-filter: blur(10px) saturate(1.3); text-shadow: 0 1px 8px rgba(0, 0, 0, .6); transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+    .ghost:hover:not(:disabled) { background: rgba(94, 66, 140, .55); box-shadow: 0 14px 30px rgba(0, 0, 0, .45), 0 0 18px rgba(167, 139, 250, .35), inset 0 1px 0 rgba(255, 255, 255, .14); }
+    .primary { box-shadow: 0 7px #985500, 0 0 34px rgba(255, 170, 0, .45), 0 18px 40px rgba(0, 0, 0, .45); }
+    .primary:active:not(:disabled) { box-shadow: 0 2px #985500, 0 0 24px rgba(255, 170, 0, .35); }
+    .store-choice.on { border-color: #65e6ff; box-shadow: 0 0 18px #22d3ee55, var(--glass-shadow); }
+    .set-choice.on { box-shadow: 0 0 20px rgba(255, 213, 74, .45), var(--glass-shadow); }
+    .actions { background: none; }
+    /* slow idle drift, staggered so the buttons bob at different phases */
+    @keyframes drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+    .actions .ghost, .main-tools .ghost, .mode, .set-choice, .store-choice, #home > .ghost { animation: drift 5.5s ease-in-out infinite; }
+    .actions .ghost:nth-child(2n), .mode:nth-child(2n), .set-choice:nth-child(2n), .store-choice:nth-child(2n), .main-tools .ghost:nth-child(2n) { animation-delay: -1.6s; animation-duration: 6.2s; }
+    .actions .ghost:nth-child(3n), .mode:nth-child(3n), .set-choice:nth-child(3n), .store-choice:nth-child(3n), .main-tools .ghost:nth-child(3n) { animation-delay: -3.1s; animation-duration: 5.1s; }
+    .actions .ghost:nth-child(4n+1), .set-choice:nth-child(4n+1), .store-choice:nth-child(4n+1) { animation-delay: -4.4s; }
+    .actions .ghost:hover, .mode:hover, .set-choice:hover, .store-choice:hover { animation-play-state: paused; transform: translateY(-3px); }
+    @media (prefers-reduced-motion: reduce) { .actions .ghost, .main-tools .ghost, .mode, .set-choice, .store-choice, #home > .ghost { animation: none; } }
   </style>
 </head>
 <body>
