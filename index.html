@@ -11,7 +11,6 @@
     .wrap { max-width: 1000px; margin: auto; padding: 14px 14px 60px; text-align: center; position: relative; z-index: 1; }
     .bgscene { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .7s ease; }
     .bgscene.on { opacity: 1; }
-    #bgflower.on { opacity: .85; }
     .pack-opening > .bgscene { position: absolute; }
     h1 { font-size: 30px; margin: 6px 0; }
     h2 { font-size: 22px; margin: 6px 0; }
@@ -174,7 +173,6 @@
 </head>
 <body>
   <canvas id="bgfx" class="bgscene on" aria-hidden="true"></canvas>
-  <canvas id="bgflower" class="bgscene" aria-hidden="true"></canvas>
   <canvas id="bgwave" class="bgscene" aria-hidden="true"></canvas>
   <div class="pack-opening" id="packOpening" aria-hidden="true">
     <div class="opening-stage">
@@ -399,7 +397,6 @@
   </div>
 
   <script src="cell-field.js"></script>
-  <script src="flower-expansion.js"></script>
   <script src="wave-field.js"></script>
   <script src="leaderboard-config.js"></script>
   <script type="module" src="leaderboard-service.js"></script>
@@ -2160,15 +2157,16 @@
     $('btnRestart').onclick = () => startNewGame(S && ['hard', 'chill'].includes(S.mode) ? S.mode : 'normal');
     $('btnOverHome').onclick = home;
     // ---- Background manager: which motion background each section uses ----
-    // Scenes: 'cells' = Cell Field dots, 'flower' = Flower Expansion kaleidoscope, 'wave' = Scroll Wave Field.
+    // Scenes: 'wave' = Scroll Wave Field (default), 'cells' = Cell Field dots (fallback).
     // Keys are screen ids, overlay ids, or 'opening' (the pack-opening animation). Edit this map to move scenes around.
-    const BG_SCENES = { home: 'cells', game: 'cells', over: 'flower', opening: 'flower', battle: 'flower', binder: 'wave', museum: 'wave', setAlbums: 'wave', leaderboard: 'wave' };
-    const BG_OVERLAYS = ['battle', 'binder', 'museum', 'setAlbums', 'leaderboard'];
+    // One calm scene everywhere: the Scroll Wave Field (purple + gold, pointer lifts the surface). 'cells' is the no-WebGL fallback.
+    const BG_SCENES = { home: 'wave', game: 'wave', over: 'wave', opening: 'wave', battle: 'wave' };
+    const BG_OVERLAYS = ['battle'];
     const BG = {
-      scenes: { cells: null, flower: null, wave: null }, active: null, activeName: 'cells', key: '',
+      scenes: { cells: null, wave: null }, active: null, activeName: 'cells', key: '',
       init() {
-        try { if (window.CellField) this.scenes.cells = new CellField($('bgfx'), { colorA: '#7c3aed', colorB: '#ff9800', alpha: 0.55 }).start(); } catch (e) {}
-        this.active = this.scenes.cells;
+        try { if (window.CellField) this.scenes.cells = new CellField($('bgfx'), { colorA: '#7c3aed', colorB: '#ff9800', alpha: 0.55 }); } catch (e) {}
+        this.active = null;
         try { new MutationObserver(() => this.apply()).observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] }); } catch (e) {}
         this.apply();
       },
@@ -2181,8 +2179,7 @@
       make(name) {
         if (this.scenes[name] !== null) return this.scenes[name];
         try {
-          if (name === 'flower' && window.FlowerExpansion) { const fx = new FlowerExpansion($('bgflower'), {}); this.scenes.flower = fx.ok ? fx : false; }
-          else if (name === 'wave' && window.WaveField) { const fx = new WaveField($('bgwave'), {}); this.scenes.wave = fx.ok ? fx : false; }
+          if (name === 'wave' && window.WaveField) { const fx = new WaveField($('bgwave'), {}); this.scenes.wave = fx.ok ? fx : false; }
           else this.scenes[name] = false;
         } catch (e) { this.scenes[name] = false; }
         return this.scenes[name];
@@ -2192,7 +2189,7 @@
         if (key === this.key) return; this.key = key;
         let name = wanted; if (!this.make(name)) name = 'cells'; // WebGL missing -> fall back to the dots
         const host = section === 'opening' ? $('packOpening') : document.body;
-        const els = { cells: $('bgfx'), flower: $('bgflower'), wave: $('bgwave') };
+        const els = { cells: $('bgfx'), wave: $('bgwave') };
         Object.entries(els).forEach(([n, el]) => { const on = n === name; if (on && el.parentNode !== host) host.insertBefore(el, host.firstChild); if (!on && el.parentNode !== document.body) document.body.insertBefore(el, document.body.firstChild); el.classList.toggle('on', on); });
         const prev = this.active, next = this.scenes[name] || null;
         this.active = next; this.activeName = name;
