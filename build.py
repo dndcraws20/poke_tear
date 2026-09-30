@@ -21,7 +21,8 @@ html = r'''<!doctype html>
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     body { margin: 0; background: radial-gradient(circle at top, #2b1050, #08050d 65%); color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; min-height: 100vh; }
-    .wrap { max-width: 1000px; margin: auto; padding: 14px 14px 60px; text-align: center; }
+    .wrap { max-width: 1000px; margin: auto; padding: 14px 14px 60px; text-align: center; position: relative; z-index: 1; }
+    #bgfx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
     h1 { font-size: 30px; margin: 6px 0; }
     h2 { font-size: 22px; margin: 6px 0; }
     .sub { opacity: .78; margin: 6px 0; }
@@ -182,6 +183,7 @@ html = r'''<!doctype html>
   </style>
 </head>
 <body>
+  <canvas id="bgfx" aria-hidden="true"></canvas>
   <div class="pack-opening" id="packOpening" aria-hidden="true">
     <div class="opening-stage">
       <div class="opening-title" id="openingTitle">OPENING PACK…</div>
@@ -402,6 +404,7 @@ html = r'''<!doctype html>
     </div>
   </div>
 
+  <script src="cell-field.js"></script>
   <script src="leaderboard-config.js"></script>
   <script type="module" src="leaderboard-service.js"></script>
   <script>
@@ -1421,12 +1424,13 @@ html = r'''<!doctype html>
     function updateQuotaHud() {
       const active = quotaMode() && S.quota;
       $('quotaBox').hidden = !active;
-      if (!active) return;
+      if (!active) { if (window.bgfx) window.bgfx.setDanger(false); return; }
       const left = Math.max(0, S.quota.endsAt - (battleQuotaPausedAt || Date.now()));
       const seconds = Math.ceil(left / 1000);
       $('quotaLabel').textContent = `QUOTA ${S.quota.number} • ${money(S.quota.target)}`;
       $('quotaTime').textContent = `${battleQuotaPausedAt ? '⏸ ' : ''}0:${String(seconds).padStart(2, '0')}`;
       $('quotaTime').classList.toggle('danger', seconds <= 10);
+      if (window.bgfx) window.bgfx.setDanger(seconds <= 10);
       $('quotaFill').style.width = Math.min(100, S.bank / S.quota.target * 100) + '%';
       $('quotaProgress').textContent = `${money(S.bank)} / ${money(S.quota.target)} • ${S.quota.cleared} cleared • highest quota ${Math.max(S.quota.number, quotaRecord())}`;
     }
@@ -1743,6 +1747,7 @@ html = r'''<!doctype html>
         : `Pack value ${money(total)} <small style="opacity:.7;display:block">hit: ${hit.c.n} (${hit.c.r})</small>`;
       if (S.last && S.last.mission && S.last.mission.length) $('summary').innerHTML += `<div style="margin-top:8px;color:#ffe066;font-weight:900">MISSION COMPLETE<br>${S.last.mission.join('<br>')}</div>`;
       $('title').textContent = delta >= 20 ? '💎 BIG HIT!' : '🔥 PACK OPENED!';
+      if (window.bgfx) { const topRank = Math.max(...pull.map(p => RANK(p.c.r))); if (delta >= 20 || topRank >= 4) window.bgfx.flare('#ff1a1a', '#ffda00', 4500, 3); else if (topRank >= 3) window.bgfx.flare('#ff6a00', '#ffda00', 2500, 2); }
       $('hud').classList.remove('flash'); void $('hud').offsetWidth; $('hud').classList.add('flash');
       hud();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1847,6 +1852,7 @@ html = r'''<!doctype html>
 
     function bust(reason = '💀 BUSTED') {
       clearInterval(quotaTimer);
+      if (window.bgfx) window.bgfx.setDanger(false);
       if (S.quota) saveQuotaRecord(S.quota.number);
       S.ended = true;
       show('over');
@@ -1868,7 +1874,7 @@ html = r'''<!doctype html>
       const beatsRecord = top === null || (top && score > top.score);
       const makesBoard = beatsRecord || all.length < 5 || score > Math.min(...all.map(e => e.score));
       if (top === undefined && !window.sharedLeaderboard) return;
-      if (beatsRecord) $('overTitle').textContent = `🏆 NEW RECORD • ${fmtScore(mode, score)}`;
+      if (beatsRecord) { $('overTitle').textContent = `🏆 NEW RECORD • ${fmtScore(mode, score)}`; if (window.bgfx) window.bgfx.flare('#ffda00', '#ffffff', 7000, 2.5); }
       if (beatsRecord || makesBoard) setTimeout(() => showLeaderboard(mode, beatsRecord ? `🏆 NEW HIGH SCORE! ${fmtScore(mode, score)} beats ${top ? top.name + "'s " + fmtScore(mode, top.score) : 'an empty board'}. Put your name on it!` : `You made the top five with ${fmtScore(mode, score)}. Post your name!`), 600);
     }
 
@@ -2107,6 +2113,7 @@ html = r'''<!doctype html>
     $('missions').onclick = e => { if (e.target === $('missions')) $('missions').classList.remove('on'); };
     $('btnRestart').onclick = () => startNewGame(S && ['hard', 'chill'].includes(S.mode) ? S.mode : 'normal');
     $('btnOverHome').onclick = home;
+    try { if (window.CellField) window.bgfx = new CellField($('bgfx'), { colorA: '#7c3aed', colorB: '#ff9800', alpha: 0.55 }).start(); } catch (e) {}
     home();
   </script>
 </body>
