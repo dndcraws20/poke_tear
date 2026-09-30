@@ -76,6 +76,10 @@ html = r'''<!doctype html>
     .quota-track { height: 10px; margin-top: 8px; background: #08050d; border-radius: 999px; overflow: hidden; }
     .quota-fill { height: 100%; width: 0; background: linear-gradient(90deg, #ff9800, #ffe66b, #8dffb0); transition: width .25s; }
     .quota small { opacity: .72; display: block; margin-top: 6px; }
+    .record { background: #151020; border: 1px solid #654d83; border-radius: 14px; padding: 8px 14px; margin: 0 auto 10px; max-width: 620px; font-size: 14px; text-align: left; }
+    .record.beating { border-color: #8dffb0; box-shadow: 0 0 18px #22c55e66; }
+    .record-home { font-size: 13px; line-height: 1.6; max-width: 620px; }
+    .record-home span { white-space: nowrap; }
     .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-width: 900px; margin: 16px auto; }
     .card { position: relative; background: #151020; border: 1px solid #654d83; border-radius: 14px; padding: 8px; box-shadow: 0 12px 24px #0008; animation: pop .45s both; }
     .card.r2 { border-color: #7fb8ff; }
@@ -208,6 +212,7 @@ html = r'''<!doctype html>
       <button class="ghost" id="btnAlbumsHome">🗂️ Set Albums</button>
       <button class="ghost" id="btnAuctionHome">🔨 Auction House</button>
       <button class="ghost" id="btnLeaderboardHome">🏅 Leaderboard</button>
+      <p class="sub record-home" id="homeRecords"></p>
       <button class="ghost music-toggle">🔇 Music: Off</button>
       <button class="ghost track-toggle">🎼 Track: Electronic</button>
       <p class="note">Prices: TCGplayer market (USD), updated <span id="priceDate"></span>.</p>
@@ -229,6 +234,7 @@ html = r'''<!doctype html>
         <div class="quota-track"><div class="quota-fill" id="quotaFill"></div></div>
         <small id="quotaProgress"></small>
       </div>
+      <div class="record" id="recordBox" hidden></div>
       <h2 id="title">🔥 PACK OPENED!</h2>
       <div class="summary" id="summary"></div>
       <div class="cards" id="cards"></div>
@@ -754,6 +760,38 @@ html = r'''<!doctype html>
     function quotaRecord() { try { return +(localStorage.getItem(QUOTA_RECORD_KEY) || 0); } catch (e) { return 0; } }
     function saveQuotaRecord(n) { try { localStorage.setItem(QUOTA_RECORD_KEY, String(Math.max(n, quotaRecord()))); } catch (e) {} }
     let leaderMode = 'normal';
+    let leaderNote = '';
+    const RECORDS = {}; // mode -> top entry {name, score} | null (undefined = not loaded yet)
+    const BOARD_MODES = ['normal', 'hard', 'chill'];
+    const fmtScore = (mode, score) => mode === 'chill' ? money(score / 100) : `${score} quota${score === 1 ? '' : 's'}`;
+    const liveScore = mode => !S || S.mode !== mode ? 0 : mode === 'chill' ? Math.round(S.peak * 100) : S.quota ? S.quota.cleared : 0;
+    function recordText(mode) {
+      const r = RECORDS[mode];
+      if (r === undefined) return window.sharedLeaderboard ? 'loading…' : 'connecting…';
+      if (!r) return 'no record yet — set the first one!';
+      return `${r.name} • ${fmtScore(mode, r.score)}`;
+    }
+    async function fetchRecord(mode) {
+      const api = window.sharedLeaderboard;
+      if (!api || !BOARD_MODES.includes(mode)) return;
+      try { const scores = await api.list(mode); RECORDS[mode] = scores[0] || null; RECORDS[mode + ':all'] = scores; } catch (e) {}
+      renderRecord();
+    }
+    function renderRecord() {
+      const box = $('recordBox');
+      const mode = S && BOARD_MODES.includes(S.mode) ? S.mode : null;
+      if (!mode || !$('game').classList.contains('on')) box.hidden = true;
+      else {
+        const r = RECORDS[mode], mine = liveScore(mode);
+        const beating = r ? mine > r.score : (r === null && mine > 0);
+        box.hidden = false;
+        box.classList.toggle('beating', beating);
+        box.innerHTML = `🏅 <b>RECORD TO BEAT</b> (${mode}): ${recordText(mode)}` +
+          (beating ? ` • <b>YOU'RE #1 at ${fmtScore(mode, mine)} — post it ${mode === 'chill' ? 'any time' : 'when the run ends'}!</b>` : mine > 0 ? ` • you: ${fmtScore(mode, mine)}` : '');
+      }
+      $('homeRecords').innerHTML = '🏅 Records to beat — ' + BOARD_MODES.map(m => `<span><b>${m}</b>: ${recordText(m)}</span>`).join(' • ');
+    }
+    function fetchAllRecords() { BOARD_MODES.forEach(fetchRecord); }
     function scoreForBoard(mode) {
       if (!S || S.mode !== mode || (mode !== 'chill' && !S.ended)) return null;
       return mode === 'chill' ? Math.round(S.peak * 100) : S.quota ? S.quota.cleared : null;
@@ -780,11 +818,13 @@ html = r'''<!doctype html>
           detail.textContent = mode === 'chill' ? money(entry.score / 100) : `${entry.score} quotas`;
           row.append(place, name, detail); list.append(row);
         });
-        $('leaderboardStatus').textContent = '';
+        RECORDS[mode] = scores[0] || null; RECORDS[mode + ':all'] = scores; renderRecord();
+        $('leaderboardStatus').textContent = leaderNote || ''; leaderNote = '';
       } catch (e) { if (mode === leaderMode) $('leaderboardStatus').textContent = 'Could not load scores. Check your connection and try again.'; }
     }
-    function showLeaderboard(mode = S && S.mode !== 'sandbox' ? S.mode : 'normal') {
+    function showLeaderboard(mode = S && S.mode !== 'sandbox' ? S.mode : 'normal', note = '') {
       leaderMode = ['normal', 'hard', 'chill'].includes(mode) ? mode : 'normal';
+      leaderNote = note;
       $('leaderboard').classList.add('on'); refreshLeaderboard();
     }
     async function submitLeaderboard() {
@@ -1732,6 +1772,7 @@ html = r'''<!doctype html>
       updateKissButton();
       updateShakeButton();
       updateQuotaHud();
+      renderRecord();
       if ($('mysteryShop').classList.contains('on')) renderMysteryShop();
       if (paid && !totalBoxPacks() && !S.mysteryBoxes.length && S.bank < Math.min(minPackCost(), ...Object.values(RANDOM_PACKS).map(t => packCost('black', true, t.price))) && !(ACTIVE_BATTLE && !ACTIVE_BATTLE.finished)) setTimeout(bust, 1200);
     }
@@ -1814,8 +1855,21 @@ html = r'''<!doctype html>
         ['Packs opened', S.packs], ['Peak bankroll', money(S.peak)], ['Spent', money(S.spent)], ['Pulled', money(S.earned)],
         ['Quotas cleared', S.quota ? S.quota.cleared : 0], ['Highest quota', S.quota ? Math.max(S.quota.number, quotaRecord()) : quotaRecord()],
       ].map(([l, v]) => `<div class="stat"><b>${v}</b><small>${l}</small></div>`).join('');
+      promptHighScore();
       $('overBest').innerHTML = S.best ? `<p class="sub">Best pull</p><div class="card r${RANK(S.best.r)} best"><span class="val big">${money(S.best.v)}</span><img src="${cardUrl(S.best)}" alt=""><div class="name">${S.best.n}</div><div class="rarity">${S.best.r}</div></div>` : '';
       clearSave();
+    }
+
+    function promptHighScore() {
+      const mode = S && BOARD_MODES.includes(S.mode) ? S.mode : null;
+      const score = mode ? scoreForBoard(mode) : null;
+      if (!mode || !score || score < 1) return;
+      const top = RECORDS[mode], all = RECORDS[mode + ':all'] || [];
+      const beatsRecord = top === null || (top && score > top.score);
+      const makesBoard = beatsRecord || all.length < 5 || score > Math.min(...all.map(e => e.score));
+      if (top === undefined && !window.sharedLeaderboard) return;
+      if (beatsRecord) $('overTitle').textContent = `🏆 NEW RECORD • ${fmtScore(mode, score)}`;
+      if (beatsRecord || makesBoard) setTimeout(() => showLeaderboard(mode, beatsRecord ? `🏆 NEW HIGH SCORE! ${fmtScore(mode, score)} beats ${top ? top.name + "'s " + fmtScore(mode, top.score) : 'an empty board'}. Put your name on it!` : `You made the top five with ${fmtScore(mode, score)}. Post your name!`), 600);
     }
 
     function shop() {
@@ -1943,6 +1997,7 @@ html = r'''<!doctype html>
       $('title').textContent = mode === 'hard' ? '🔥 HARD MODE' : mode === 'normal' ? '💸 NORMAL MODE' : mode === 'chill' ? '😌 CHILL MODE' : '🧪 SANDBOX';
       $('summary').innerHTML = mode === 'hard' ? `You have <b>${money(S.bank)}</b>. Reach <b>${money(S.quota.target)}</b> in 30 seconds. Packs cost 25% more and chase cards are harder to pull.` : mode === 'normal' ? `You have <b>${money(S.bank)}</b>. Packs cost <b>${money(packCost())}</b>. Every card auto-sells at market value. Don't go broke.` : mode === 'chill' ? `No quota and no timer. You have <b>${money(S.bank)}</b>; keep buying packs and upgrades, but don't go broke.` : 'Free packs and free upgrades forever. Values shown for fun.';
       hud();
+      fetchRecord(S.mode);
       save(); startQuotaTimer();
       clearInterval(kissTimer); kissTimer = setInterval(() => { updateKissButton(); updateShakeButton(); }, 250);
       clearInterval(relicTimer); relicTimer = setInterval(updateRelicCountdown, 250);
@@ -1958,7 +2013,7 @@ html = r'''<!doctype html>
       saveBattleDeck();
       start(mode);
     }
-    function home() { show('home'); $('btnContinue').hidden = !load(); }
+    function home() { show('home'); $('btnContinue').hidden = !load(); renderRecord(); fetchAllRecords(); }
 
     const setButtons = target => {
       $(target).innerHTML = Object.entries(SET_META).map(([id, s]) => `<button class="set-choice" data-set="${id}"><img src="${s.art}" alt=""><b>${s.name}</b><small>${s.code} • ${money(s.price)} • ${SET_DATA[id].length} cards${id === '30th' ? ' • 5-card foil packs' : ''}${s.estimated ? ' • estimated card values' : ''}</small></button>`).join('');
@@ -2009,7 +2064,7 @@ html = r'''<!doctype html>
     $('btnLeaderboardOver').onclick = () => showLeaderboard();
     document.querySelectorAll('[data-leader-mode]').forEach(b => b.onclick = () => { leaderMode = b.dataset.leaderMode; refreshLeaderboard(); });
     $('btnLeaderboardSubmit').onclick = submitLeaderboard;
-    window.addEventListener('sharedLeaderboardReady', () => { if ($('leaderboard').classList.contains('on')) refreshLeaderboard(); });
+    window.addEventListener('sharedLeaderboardReady', () => { fetchAllRecords(); if ($('leaderboard').classList.contains('on')) refreshLeaderboard(); });
     $('btnLeaderboardClose').onclick = () => $('leaderboard').classList.remove('on');
     $('leaderboard').onclick = e => { if (e.target === $('leaderboard')) $('leaderboard').classList.remove('on'); };
     $('btnBattle').onclick = showBattle;
