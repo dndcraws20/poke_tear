@@ -22,7 +22,10 @@ html = r'''<!doctype html>
     [hidden] { display: none !important; }
     body { margin: 0; background: radial-gradient(circle at top, #2b1050, #08050d 65%); color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; min-height: 100vh; }
     .wrap { max-width: 1000px; margin: auto; padding: 14px 14px 60px; text-align: center; position: relative; z-index: 1; }
-    #bgfx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+    .bgscene { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .7s ease; }
+    .bgscene.on { opacity: 1; }
+    #bgflower.on { opacity: .85; }
+    .pack-opening > .bgscene { position: absolute; }
     h1 { font-size: 30px; margin: 6px 0; }
     h2 { font-size: 22px; margin: 6px 0; }
     .sub { opacity: .78; margin: 6px 0; }
@@ -104,7 +107,7 @@ html = r'''<!doctype html>
     .actions { position: sticky; bottom: 0; padding: 10px 0 12px; background: linear-gradient(transparent, #08050d 40%); }
     .pack-opening { position: fixed; inset: 0; z-index: 60; display: none; overflow: hidden; background: radial-gradient(circle at 50% 45%, #43205f 0, #13091f 48%, #050308 100%); }
     .pack-opening.on { display: block; }
-    .opening-stage { position: relative; width: 100%; height: 100%; padding: max(18px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom)); }
+    .opening-stage { position: relative; z-index: 1; width: 100%; height: 100%; padding: max(18px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom)); }
     .opening-title { position: absolute; left: 0; right: 0; top: max(24px, env(safe-area-inset-top)); color: #ffe066; font-size: clamp(19px, 5vw, 30px); font-weight: 1000; text-align: center; text-shadow: 0 3px 16px #000; }
     .opening-pack { position: absolute; left: 50%; top: 50%; width: min(48vw, 230px); transform: translate(-50%, -50%) scale(.65); filter: drop-shadow(0 24px 25px #000b); animation: packArrive .42s cubic-bezier(.2,.8,.2,1) forwards; }
     .opening-pack img { display: block; width: 100%; max-height: 52vh; object-fit: contain; }
@@ -183,7 +186,9 @@ html = r'''<!doctype html>
   </style>
 </head>
 <body>
-  <canvas id="bgfx" aria-hidden="true"></canvas>
+  <canvas id="bgfx" class="bgscene on" aria-hidden="true"></canvas>
+  <canvas id="bgflower" class="bgscene" aria-hidden="true"></canvas>
+  <canvas id="bgwave" class="bgscene" aria-hidden="true"></canvas>
   <div class="pack-opening" id="packOpening" aria-hidden="true">
     <div class="opening-stage">
       <div class="opening-title" id="openingTitle">OPENING PACK…</div>
@@ -407,6 +412,8 @@ html = r'''<!doctype html>
   </div>
 
   <script src="cell-field.js"></script>
+  <script src="flower-expansion.js"></script>
+  <script src="wave-field.js"></script>
   <script src="leaderboard-config.js"></script>
   <script type="module" src="leaderboard-service.js"></script>
   <script>
@@ -2165,7 +2172,50 @@ html = r'''<!doctype html>
     $('missions').onclick = e => { if (e.target === $('missions')) $('missions').classList.remove('on'); };
     $('btnRestart').onclick = () => startNewGame(S && ['hard', 'chill'].includes(S.mode) ? S.mode : 'normal');
     $('btnOverHome').onclick = home;
-    try { if (window.CellField) window.bgfx = new CellField($('bgfx'), { colorA: '#7c3aed', colorB: '#ff9800', alpha: 0.55 }).start(); } catch (e) {}
+    // ---- Background manager: which motion background each section uses ----
+    // Scenes: 'cells' = Cell Field dots, 'flower' = Flower Expansion kaleidoscope, 'wave' = Scroll Wave Field.
+    // Keys are screen ids, overlay ids, or 'opening' (the pack-opening animation). Edit this map to move scenes around.
+    const BG_SCENES = { home: 'cells', game: 'cells', over: 'flower', opening: 'flower', battle: 'flower', binder: 'wave', museum: 'wave', setAlbums: 'wave', leaderboard: 'wave' };
+    const BG_OVERLAYS = ['battle', 'binder', 'museum', 'setAlbums', 'leaderboard'];
+    const BG = {
+      scenes: { cells: null, flower: null, wave: null }, active: null, activeName: 'cells', key: '',
+      init() {
+        try { if (window.CellField) this.scenes.cells = new CellField($('bgfx'), { colorA: '#7c3aed', colorB: '#ff9800', alpha: 0.55 }).start(); } catch (e) {}
+        this.active = this.scenes.cells;
+        try { new MutationObserver(() => this.apply()).observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] }); } catch (e) {}
+        this.apply();
+      },
+      desired() {
+        if ($('packOpening').classList.contains('on')) return ['opening', BG_SCENES.opening];
+        for (const id of BG_OVERLAYS) { const el = $(id); if (el && el.classList.contains('on')) return [id, BG_SCENES[id]]; }
+        const sc = document.querySelector('.screen.on'); const id = sc ? sc.id : 'home';
+        return [id, BG_SCENES[id] || 'cells'];
+      },
+      make(name) {
+        if (this.scenes[name] !== null) return this.scenes[name];
+        try {
+          if (name === 'flower' && window.FlowerExpansion) { const fx = new FlowerExpansion($('bgflower'), {}); this.scenes.flower = fx.ok ? fx : false; }
+          else if (name === 'wave' && window.WaveField) { const fx = new WaveField($('bgwave'), {}); this.scenes.wave = fx.ok ? fx : false; }
+          else this.scenes[name] = false;
+        } catch (e) { this.scenes[name] = false; }
+        return this.scenes[name];
+      },
+      apply() {
+        const [section, wanted] = this.desired(); const key = section + ':' + wanted;
+        if (key === this.key) return; this.key = key;
+        let name = wanted; if (!this.make(name)) name = 'cells'; // WebGL missing -> fall back to the dots
+        const host = section === 'opening' ? $('packOpening') : document.body;
+        const els = { cells: $('bgfx'), flower: $('bgflower'), wave: $('bgwave') };
+        Object.entries(els).forEach(([n, el]) => { const on = n === name; if (on && el.parentNode !== host) host.insertBefore(el, host.firstChild); if (!on && el.parentNode !== document.body) document.body.insertBefore(el, document.body.firstChild); el.classList.toggle('on', on); });
+        const prev = this.active, next = this.scenes[name] || null;
+        this.active = next; this.activeName = name;
+        if (next) next.resume();
+        if (prev && prev !== next) setTimeout(() => { if (this.active !== prev) prev.pause(); }, 750);
+      },
+      flare(a, b, ms, mult) { if (this.active) this.active.flare(a, b, ms, mult); },
+      setDanger(on) { Object.values(this.scenes).forEach(fx => { if (fx) fx.setDanger(on); }); },
+    };
+    window.bgfx = BG; BG.init();
     home();
   </script>
 </body>

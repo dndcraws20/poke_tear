@@ -16,7 +16,8 @@ Single-file pack-opening game with a set picker for 30th Celebration (30C), Perf
 - **Shared top-five leaderboards** — separate Normal and Hard boards rank finished runs by quotas cleared; Chill ranks peak bankroll and can be posted any time during a run. Posting is optional: type a trainer name (no account needed). Each name keeps only its best score per board. Scores are stored in a small SQLite database on the SASTA VPS (`https://preview.sasta.ai/pack-opener-api`), so everyone sees the same boards on every device. Old browser-only scores stay in local storage but are not moved to the shared boards.
 - **Record to beat** — the game screen shows a live **RECORD TO BEAT** banner for your mode, fed by the shared leaderboard, and the home screen lists the current record holder for Normal, Hard and Chill. The banner glows green the moment your run passes the record. When a run ends above the record (or inside the top five) the leaderboard opens by itself with a prompt to put your name on it, so every player is always competing against the standing high score.
 - **Fire card sound effects** — synthesised live with Web Audio (no audio files): a whoosh, thump and blazing arpeggio when a Special/Hyper rare or $20+ pack lands, a lighter sparkle for Illustration/Ultra rares, and a fanfare on a new leaderboard record. Independent of the music toggle, with its own SFX On/Off button that is remembered per browser.
-- **Living Cell Field background** — `cell-field.js` (a vanilla port of the Originkit Cell Field component) draws a soft, pointer-reactive Voronoi dot field behind the whole game. It flares red-and-gold for a few seconds when a chase card or a $20+ pack lands, turns gold on a new record, tints red while the quota clock is under ten seconds, caps itself at 30 fps, pauses in background tabs, and renders a still frame for users who prefer reduced motion.
+- **Section backgrounds** — a small background manager in `build.py` (`BG_SCENES`) picks a motion background per section and cross-fades between them. Home and the game screen use the Cell Field; the pack-opening animation, the Busted / New Record screen and the Battle arena use the **Flower Expansion** kaleidoscope (`flower-expansion.js`); the Binder, Museum, Set Albums and Leaderboard use the **Scroll Wave Field** (`wave-field.js`), a 3D field of glowing points rolling toward you that lifts under the pointer. Both WebGL scenes are vanilla ports of Originkit components, fall back to the Cell Field if WebGL is unavailable, and answer the same flare and danger hooks.
+- **Living Cell Field background** — `cell-field.js` (a vanilla port of the Originkit Cell Field component) draws a soft, pointer-reactive Voronoi dot field behind the home and game screens. It flares red-and-gold for a few seconds when a chase card or a $20+ pack lands, turns gold on a new record, tints red while the quota clock is under ten seconds, caps itself at 30 fps, pauses in background tabs, and renders a still frame for users who prefer reduced motion.
 - **Sandbox** — free rips, every card shows its market value.
 - **Chill** — no quota or timer, but packs and upgrades still cost money and the run ends if you cannot afford another pack.
 - **Sandbox upgrades** — the full upgrade shop is available for free in Sandbox mode.
@@ -60,6 +61,8 @@ Mirror: https://preview.sasta.ai/pack-opener/
 | `index.html` | The whole game (generated, do not hand-edit). |
 | `build.py` | Generator. Edits to the game go here; run `python build.py` to rebuild `index.html`. |
 | `cell-field.js` | Animated Voronoi dot background with `flare()` / `setDanger()` hooks used by the game. |
+| `flower-expansion.js` | WebGL kaleidoscope background used for pack opening, the end screen and battles; same hooks. |
+| `wave-field.js` | WebGL 3D wave-of-points background used for the Binder, Museum, Set Albums and Leaderboard; same hooks. |
 | `leaderboard-config.js`, `leaderboard-service.js` | Shared leaderboard API address and client. |
 | `me04-cards.json` | All 122 Chaos Rising cards with rarity + TCGplayer/cardmarket prices (from TCGdex). |
 | `30th-cards.json` | 161 30th Celebration cards with TCGdex names, rarities, image paths, and estimated in-game values. |
@@ -93,7 +96,7 @@ Re-fetch each card from `https://api.tcgdex.net/v2/en/cards/SET-NNN` (fields `ra
 ## Deploy
 
 ```
-scp index.html cell-field.js leaderboard-config.js leaderboard-service.js pack.jpg chaos-rising-pack.png destined-rivals-pack.jpg phantasmal-flames-pack.png pokemon-151-pack.png sun-moon-pack.png dragon-majesty-pack.jpg first-edition-pack.jpg root@<vps>:/var/www/pack-opener/
+scp index.html cell-field.js flower-expansion.js wave-field.js leaderboard-config.js leaderboard-service.js pack.jpg chaos-rising-pack.png destined-rivals-pack.jpg phantasmal-flames-pack.png pokemon-151-pack.png sun-moon-pack.png dragon-majesty-pack.jpg first-edition-pack.jpg root@<vps>:/var/www/pack-opener/
 ```
 
 Card art is hotlinked from `assets.tcgdex.net` and `images.pokemontcg.io`; the nginx location block for `/pack-opener/` must allow both hosts in its CSP.
