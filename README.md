@@ -18,6 +18,7 @@ Single-file pack-opening game with a set picker for 30th Celebration (30C), Perf
 - **Fire card sound effects** — synthesised live with Web Audio (no audio files): a whoosh, thump and blazing arpeggio when a Special/Hyper rare or $20+ pack lands, a lighter sparkle for Illustration/Ultra rares, and a fanfare on a new leaderboard record. Independent of the music toggle, with its own SFX On/Off button that is remembered per browser.
 - **Scroll Wave Field background** — `wave-field.js`, a vanilla WebGL port of the Originkit component, draws a 3D field of glowing purple-and-gold points rolling toward you behind every screen, including the pack-opening animation; the pointer lifts the surface. It flares red-and-gold when a chase card or $20+ pack lands, turns gold on a new record, tints red while the quota clock is under ten seconds, caps at 30 fps, pauses in background tabs and renders a still frame under reduced motion. If WebGL is unavailable the Cell Field dots (`cell-field.js`) take over. The scene-per-section map (`BG_SCENES` in `build.py`) is still there if a section ever wants a different look.
 - **Floating glass UI** — nothing sits in a solid box. The HUD, summary strip, quota and record banners, cards, pop-up sheets and every button are translucent frosted glass (blurred backdrop, faint light edge, soft shadow) so the wave field shows through all of them. Buttons glow on hover and drift slowly on staggered rhythms, the gold Open Pack button carries a warm halo, and the drift switches off for users who prefer reduced motion. The theme is one override block at the end of the stylesheet in `build.py`, so it can be tuned or removed in one place.
+- **3D booster pack** — `pack3d.js` (Three.js r160, vendored in `vendor/`) turns each set's flat pack art into a pillow-shaped foil packet: sealed crimps top and bottom, a bulging middle, a physically lit clearcoat material with a studio environment, and a sweeping highlight. It tilts toward the pointer, floats idly, and is used on the home screen and inside the pack-opening animation, where the tear clips the 3D packet's top. Sets whose pack art is hotlinked from shop CDNs without CORS headers fall back to the flat image automatically.
 - **Sandbox** — free rips, every card shows its market value.
 - **Chill** — no quota or timer, but packs and upgrades still cost money and the run ends if you cannot afford another pack.
 - **Sandbox upgrades** — the full upgrade shop is available for free in Sandbox mode.
@@ -61,6 +62,7 @@ Mirror: https://preview.sasta.ai/pack-opener/
 | `index.html` | The whole game (generated, do not hand-edit). |
 | `build.py` | Generator. Edits to the game go here; run `python build.py` to rebuild `index.html`. |
 | `wave-field.js` | The WebGL Scroll Wave Field background with `flare()` / `setDanger()` hooks used by the game. |
+| `pack3d.js`, `vendor/three.min.js` | The 3D booster pack renderer and the Three.js build it needs. |
 | `cell-field.js` | Cell Field dots, used only when WebGL is unavailable; same hooks. |
 | `leaderboard-config.js`, `leaderboard-service.js` | Shared leaderboard API address and client. |
 | `me04-cards.json` | All 122 Chaos Rising cards with rarity + TCGplayer/cardmarket prices (from TCGdex). |
@@ -95,7 +97,7 @@ Re-fetch each card from `https://api.tcgdex.net/v2/en/cards/SET-NNN` (fields `ra
 ## Deploy
 
 ```
-scp index.html cell-field.js wave-field.js leaderboard-config.js leaderboard-service.js pack.jpg chaos-rising-pack.png destined-rivals-pack.jpg phantasmal-flames-pack.png pokemon-151-pack.png sun-moon-pack.png dragon-majesty-pack.jpg first-edition-pack.jpg root@<vps>:/var/www/pack-opener/
+scp -r index.html cell-field.js wave-field.js pack3d.js vendor leaderboard-config.js leaderboard-service.js pack.jpg chaos-rising-pack.png destined-rivals-pack.jpg phantasmal-flames-pack.png pokemon-151-pack.png sun-moon-pack.png dragon-majesty-pack.jpg first-edition-pack.jpg root@<vps>:/var/www/pack-opener/
 ```
 
 Card art is hotlinked from `assets.tcgdex.net` and `images.pokemontcg.io`; the nginx location block for `/pack-opener/` must allow both hosts in its CSP.

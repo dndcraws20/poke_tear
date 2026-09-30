@@ -18,7 +18,11 @@
     .screen { display: none; }
     .screen.on { display: block; }
     #home.on { min-height: 92vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .pack { width: min(260px, 64vw); border-radius: 14px; box-shadow: 0 20px 40px #000b; }
+    .pack { width: min(260px, 64vw); border-radius: 14px; box-shadow: 0 20px 40px #000b; display: block; }
+    .pack3d-host { position: relative; display: inline-block; }
+    .pack3d-canvas { position: absolute; pointer-events: none; z-index: 1; visibility: hidden; filter: drop-shadow(0 26px 30px rgba(0, 0, 0, .55)); }
+    img.pack3d-hidden { visibility: hidden; }
+    .opening-pack .pack-rip { z-index: 2; }
     .set-picker { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 14px 0 2px; }
     .set-choice { width: 190px; min-height: 92px; padding: 10px; background: #151020; color: #fff; border: 2px solid #3d2a57; }
     .set-choice.on { border-color: #ffe066; box-shadow: 0 0 18px #ffb30055; }
@@ -216,7 +220,7 @@
     <section id="home" class="screen on">
       <h1>🎴 Pokémon Pack Opener</h1>
       <p class="sub" id="setTitle"></p>
-      <img class="pack" id="packArt" src="pack.jpg" alt="Selected Pokémon set">
+      <div class="pack3d-host" id="packHost"><img class="pack" id="packArt" src="pack.jpg" alt="Selected Pokémon set"></div>
       <div class="set-picker" id="setPicker"></div>
       <h2>Choose a store</h2>
       <div class="store-picker" id="storePicker"></div>
@@ -426,6 +430,8 @@
     </div>
   </div>
 
+  <script src="vendor/three.min.js"></script>
+  <script src="pack3d.js"></script>
   <script src="cell-field.js"></script>
   <script src="wave-field.js"></script>
   <script src="leaderboard-config.js"></script>
@@ -2230,6 +2236,8 @@
       setDanger(on) { Object.values(this.scenes).forEach(fx => { if (fx) fx.setDanger(on); }); },
     };
     window.bgfx = BG; BG.init();
+    const PACK3D = { home: null, opening: null };
+    try { if (window.Pack3D) { PACK3D.home = new Pack3D($('packHost'), $('packArt')); PACK3D.opening = new Pack3D($('openingPack'), $('openingPackImage'), { watchOpened: true }); } } catch (e) {}
     home();
   </script>
 </body>
